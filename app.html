@@ -84,20 +84,9 @@
             font-size: 13px;
             box-sizing: border-box;
         }
-        .form-cita-box div {
-            display: flex;
-            gap: 8px;
-        }
-        .form-cita-box button {
-            padding: 8px;
-            font-size: 12px;
-            margin: 0;
-        }
-        .citas-lista {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
+        .form-cita-box div { display: flex; gap: 8px; }
+        .form-cita-box button { padding: 8px; font-size: 12px; margin: 0; }
+        .citas-lista { list-style: none; padding: 0; margin: 0; }
         .cita-item {
             display: flex;
             justify-content: space-between;
@@ -199,11 +188,12 @@
             box-sizing: border-box;
         }
 
+        /* Estilos de las Sugerencias con Colores del Buscador */
         .sugerencias-lista {
             background: white;
             border: 1px solid #ddd;
             border-radius: 10px;
-            max-height: 150px;
+            max-height: 180px;
             overflow-y: auto;
             margin-top: -10px;
             margin-bottom: 10px;
@@ -211,18 +201,37 @@
             list-style: none;
             display: none;
         }
-        .sugerencias-lista li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .sugerencias-lista li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
         .sugerencias-lista li:hover { background-color: #f1f1f1; }
+        
+        /* Etiquetas de advertencia visual */
+        .tag-alimento {
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+        .tag-permitido { background-color: var(--color-green); }
+        .tag-controlado { background-color: var(--color-yellow); color: #744210; }
+        .tag-prohibido { background-color: var(--color-red); }
 
         .alimento-seleccionado {
-            background: #e8f4fd;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             margin-bottom: 10px;
             font-size: 14px;
             font-weight: bold;
             display: none;
-            border-left: 4px solid var(--color-blue);
         }
 
         button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
@@ -317,8 +326,7 @@
             </div>
         </div>
 
-        <ul id="listaCitas" class="citas-lista">
-            </ul>
+        <ul id="listaCitas" class="citas-lista"></ul>
     </div>
 
     <div class="medidor-box">
@@ -353,14 +361,12 @@
 
     <div class="comidas-hoy-box">
         <h3>📋 Comidas de Hoy</h3>
-        <ul id="listaComidasHoy" class="comidas-hoy-lista">
-            </ul>
+        <ul id="listaComidasHoy" class="comidas-hoy-lista"></ul>
     </div>
 
     <div class="historial-box">
         <h3>📋 Historial de Días Anteriores</h3>
-        <ul id="listaHistorial" class="historial-lista">
-            </ul>
+        <ul id="listaHistorial" class="historial-lista"></ul>
         
         <div class="backup-zone">
             <button class="btn-export" onclick="exportarRespaldo()">📥 Exportar Respaldo</button>
@@ -371,53 +377,32 @@
 </div>
 
 <script>
-    // LISTA DE ALIMENTOS BASE
+    // BASE DE DATOS ACTUALIZADA CON CLASIFICACIÓN DE SEGURIDAD (tipo)
+    // "permitido": Libres / bajos en FA 🟢
+    // "controlado": Al límite de sí/no, pesar estricto 🟡
+    // "prohibido": Alto riesgo, bloqueado 🔴
     const baseDatosPKU = [
-        { nombre: "Acelga cruda", gramosPorcion: 12, faPorcion: 13 },
-        { nombre: "Achicoria cruda", gramosPorcion: 25, faPorcion: 6 },
-        { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
-        { nombre: "Arvejas crudas", gramosPorcion: 42, faPorcion: 84 },
-        { nombre: "Berenjena cruda", gramosPorcion: 35, faPorcion: 15 },
-        { nombre: "Berros crudos", gramosPorcion: 21, faPorcion: 24 },
-        { nombre: "Betarraga cruda", gramosPorcion: 54, faPorcion: 25 },
-        { nombre: "Brocoli crudo", gramosPorcion: 38, faPorcion: 44 },
-        { nombre: "Cebolla cruda toda variedad", gramosPorcion: 45, faPorcion: 11 },
-        { nombre: "Cebollines crudos porcion blanca", gramosPorcion: 45, faPorcion: 47 },
-        { nombre: "Champinones crudos", gramosPorcion: 29, faPorcion: 25 },
-        { nombre: "Choclo crudos", gramosPorcion: 44, faPorcion: 66 },
-        { nombre: "Col bruselas crudos", gramosPorcion: 35, faPorcion: 25 },
-        { nombre: "Coliflor crudo", gramosPorcion: 61, faPorcion: 40 },
-        { nombre: "Endibia cruda", gramosPorcion: 25, faPorcion: 13 },
-        { nombre: "Espinaca cruda", gramosPorcion: 13, faPorcion: 17 },
-        { nombre: "Habas crudas", gramosPorcion: 40, faPorcion: 441 },
-        { nombre: "Lechuga cruda toda variedad", gramosPorcion: 25, faPorcion: 6 },
-        { nombre: "Mostaza verde cruda", gramosPorcion: 25, faPorcion: 6 },
-        { nombre: "Papa cruda", gramosPorcion: 52, faPorcion: 42 },
-        { nombre: "Papa cruda porte huevo", gramosPorcion: 25, faPorcion: 21 },
-        { nombre: "Penca cruda", gramosPorcion: 25, faPorcion: 5 },
-        { nombre: "Pepino crudo", gramosPorcion: 42, faPorcion: 8 },
-        { nombre: "Perejil crudo", gramosPorcion: 12, faPorcion: 17 },
-        { nombre: "Pimenton crudo todos los colores", gramosPorcion: 41, faPorcion: 21 },
-        { nombre: "Porotos verdes crudos", gramosPorcion: 41, faPorcion: 29 },
-        { nombre: "Porrones crudos", gramosPorcion: 45, faPorcion: 30 },
-        { nombre: "Rabanitos crudos", gramosPorcion: 10, faPorcion: 3 },
-        { nombre: "Repollo crudo toda variedad", gramosPorcion: 21, faPorcion: 7 },
-        { nombre: "Tomate crudo, conserva o deshidratado", gramosPorcion: 100, faPorcion: 27 },
-        { nombre: "Zanahoria Cruda", gramosPorcion: 61, faPorcion: 37 },
-        { nombre: "Zapallo crudo", gramosPorcion: 46, faPorcion: 18 },
-        { nombre: "Zapallo italiano crudo", gramosPorcion: 52, faPorcion: 21 },
-        { nombre: "Esparragos crudos", gramosPorcion: 100, faPorcion: 75 },
-        { nombre: "Albahaca fresca cruda", gramosPorcion: 100, faPorcion: 130 },
-        { nombre: "Ajo crudo", gramosPorcion: 100, faPorcion: 183 },
-        { nombre: "Jengibre crudo", gramosPorcion: 100, faPorcion: 45 },
-        { nombre: "Kale crudo", gramosPorcion: 100, faPorcion: 150 },
-        { nombre: "Puerro crudo", gramosPorcion: 100, faPorcion: 55 },
-        { nombre: "Yuca cruda", gramosPorcion: 100, faPorcion: 71 },
-        { nombre: "Nabo crudo", gramosPorcion: 100, faPorcion: 17 },
+        { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5, tipo: "permitido" },
+        { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11, tipo: "permitido" },
+        { nombre: "Pepino ensalada", gramosPorcion: 100, faPorcion: 14, tipo: "permitido" },
+        { nombre: "Zapallo italiano cocido", gramosPorcion: 70, faPorcion: 24, tipo: "permitido" },
+        { nombre: "Zanahoria cruda", gramosPorcion: 50, faPorcion: 21, tipo: "permitido" },
+        { nombre: "Tomate", gramosPorcion: 80, faPorcion: 22, tipo: "permitido" },
+        { nombre: "Manzana", gramosPorcion: 100, faPorcion: 11, tipo: "permitido" },
+        { nombre: "Naranja", gramosPorcion: 120, faPorcion: 29, tipo: "permitido" },
         
+        // Al límite / Controlados (Cereales y Papas que se miden milimétricamente)
+        { nombre: "Plátano (Banana)", gramosPorcion: 60, faPorcion: 34, tipo: "controlado" },
+        { nombre: "Papa cocida", gramosPorcion: 70, faPorcion: 53, tipo: "controlado" },
+        { nombre: "Arroz corriente cocido", gramosPorcion: 100, faPorcion: 165, tipo: "controlado" },
+        
+        // Ejemplos de Prohibidos comunes (para alertar al usuario y evitar descuidos)
+        { nombre: "Pollo / Carne de ave", gramosPorcion: 0, faPorcion: 0, tipo: "prohibido" },
+        { nombre: "Huevo entero", gramosPorcion: 0, faPorcion: 0, tipo: "prohibido" },
+        { nombre: "Leche líquida común", gramosPorcion: 0, faPorcion: 0, tipo: "prohibido" },
+        { nombre: "Bebida Light con Aspartamo", gramosPorcion: 0, faPorcion: 0, tipo: "prohibido" }
     ];
 
-    // Arreglo de nombres de días de la semana en español para mapear orientación
     const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
     let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
@@ -445,7 +430,7 @@
             .catch(err => console.warn('Error SW', err));
     }
 
-    // --- FUNCIONES DEL CALENDARIO DE CITAS ---
+    // --- CITAS MÉDICAS ---
     function toggleFormCita() {
         const box = document.getElementById('formCitaBox');
         box.style.display = (box.style.display === 'block') ? 'none' : 'block';
@@ -463,13 +448,12 @@
         }
 
         const f = new Date(fechaHoraValue);
-        const nombreDia = diasSemana[f.getDay()]; // Obtiene el día de la semana
+        const nombreDia = diasSemana[f.getDay()];
         const dia = String(f.getDate()).padStart(2, '0');
         const mes = String(f.getMonth() + 1).padStart(2, '0');
         const horas = String(f.getHours()).padStart(2, '0');
         const minutos = String(f.getMinutes()).padStart(2, '0');
         
-        // Formato nuevo: Lunes, 01/06 a las 09:00 hrs
         const fechaFormateada = `${nombreDia}, ${dia}/${mes} a las ${horas}:${minutos} hrs`;
 
         const nuevaCita = {
@@ -481,7 +465,6 @@
 
         citasMedicas.push(nuevaCita);
         citasMedicas.sort((a, b) => new Date(a.rawDateTime) - new Date(b.rawDateTime));
-        
         localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
         
         toggleFormCita();
@@ -519,7 +502,120 @@
         }
     }
 
-    // --- FUNCIONES DE CÁLCULO E HISTORIAL AUTOMÁTICO ---
+    // --- BUSCADOR INTELIGENTE CON CLASIFICACIÓN ---
+    function buscarAlimento() {
+        const query = document.getElementById('buscador').value.toLowerCase();
+        const lista = document.getElementById('listaSugerencias');
+        lista.innerHTML = "";
+
+        if (query.trim() === "") {
+            lista.style.display = "none";
+            return;
+        }
+
+        const filtrados = baseDatosPKU.filter(a => a.nombre.toLowerCase().includes(query));
+
+        if (filtrados.length > 0) {
+            lista.style.display = "block";
+            filtrados.forEach(alimento => {
+                const li = document.createElement('li');
+                
+                // Definir texto y color de la etiqueta miniatura en la lista
+                let textoTag = "Permitido";
+                let claseTag = "tag-permitido";
+                if(alimento.tipo === "controlado") { textoTag = "Al Límite"; claseTag = "tag-controlado"; }
+                if(alimento.tipo === "prohibido") { textoTag = "Prohibido"; claseTag = "tag-prohibido"; }
+
+                li.innerHTML = `
+                    <span>${alimento.nombre}</span>
+                    <span class="tag-alimento ${claseTag}">${textoTag}</span>
+                `;
+                li.onclick = () => seleccionarAlimento(alimento);
+                lista.appendChild(li);
+            });
+        } else {
+            lista.style.display = "none";
+        }
+    }
+
+    function seleccionarAlimento(alimento) {
+        alimentoActual = alimento;
+        const box = document.getElementById('alimentoSeleccionadoBox');
+        const inputGramos = document.getElementById('gramos');
+        const btnCalc = document.getElementById('btnCalcular');
+        
+        box.style.display = "block";
+        document.getElementById('listaSugerencias').style.display = "none";
+        document.getElementById('buscador').value = "";
+
+        // CASO 1: PERMITIDO 🟢
+        if (alimento.tipo === "permitido") {
+            box.innerText = `🟢 OK: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)`;
+            box.style.backgroundColor = "rgba(46, 204, 113, 0.15)";
+            box.style.color = "#1e7e34";
+            box.style.borderLeft = "4px solid var(--color-green)";
+            inputGramos.disabled = false;
+            btnCalc.disabled = false;
+            inputGramos.focus();
+        } 
+        // CASO 2: CONTROLADO (AL LÍMITE) 🟡
+        else if (alimento.tipo === "controlado") {
+            box.innerText = `🟡 AL LÍMITE: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA). ¡Pesar estrictamente!`;
+            box.style.backgroundColor = "rgba(241, 196, 15, 0.15)";
+            box.style.color = "#744210";
+            box.style.borderLeft = "4px solid var(--color-yellow)";
+            inputGramos.disabled = false;
+            btnCalc.disabled = false;
+            inputGramos.focus();
+        } 
+        // CASO 3: PROHIBIDO 🔴
+        else if (alimento.tipo === "prohibido") {
+            box.innerText = `🔴 PROHIBIDO: ${alimento.nombre} contiene niveles peligrosos de proteína/FA. No apto para la dieta PKU.`;
+            box.style.backgroundColor = "rgba(231, 76, 60, 0.15)";
+            box.style.color = "#b71c1c";
+            box.style.borderLeft = "4px solid var(--color-red)";
+            
+            // Bloquear por completo el ingreso numérico y el cálculo
+            inputGramos.value = "";
+            inputGramos.disabled = true;
+            btnCalc.disabled = true;
+        }
+    }
+
+    function calcularFA() {
+        const gramosUsuario = parseFloat(document.getElementById('gramos').value);
+        if (!gramosUsuario || gramosUsuario <= 0) {
+            alert("Por favor, ingresa los gramos medidos.");
+            return;
+        }
+
+        guardarEstadoParaUndo();
+
+        const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
+        const faRedondeada = Math.round(resultadoFA);
+        
+        consumidoHoy += faRedondeada;
+        localStorage.setItem('pku_consumido', consumidoHoy);
+
+        comidasHoy.push({
+            id: Date.now(),
+            nombre: alimentoActual.nombre,
+            gramos: gramosUsuario,
+            fa: faRedondeada
+        });
+        localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
+
+        document.getElementById('gramos').value = '';
+        document.getElementById('gramos').disabled = true;
+        document.getElementById('btnCalcular').disabled = true;
+        document.getElementById('alimentoSeleccionadoBox').style.display = "none";
+        alimentoActual = null;
+
+        actualizarPantalla();
+        renderizarComidasHoy();
+    }
+
+    // --- MÁQUINA DEL TIEMPO (UNDO) ---
     function guardarEstadoParaUndo() {
         pilaEstadosAnteriores.push({
             consumido: consumidoHoy,
@@ -545,24 +641,17 @@
 
     function actualizarBotonUndoVisual() {
         const btn = document.getElementById('btnUndo');
-        if (pilaEstadosAnteriores.length > 0) {
-            btn.disabled = false;
-            btn.style.backgroundColor = "#cbd5e1";
-        } else {
-            btn.disabled = true;
-            btn.style.backgroundColor = "#e2e8f0";
-        }
+        btn.disabled = pilaEstadosAnteriores.length === 0;
+        btn.style.backgroundColor = pilaEstadosAnteriores.length > 0 ? "#cbd5e1" : "#e2e8f0";
     }
 
-    function verificarChange(fString) { return fString; }
-
+    // --- CRONÓMETRO AUTOMÁTICO 00:00 ---
     function verificarCambioDeDiaAutomatico() {
         const fechaActual = new Date();
         const nombreDiaHoy = diasSemana[fechaActual.getDay()];
         const fechaStringHoy = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1) + "/" + fechaActual.getFullYear();
-        
-        // Guardamos también el nombre del día para el historial
         const registroCompletoFecha = `${nombreDiaHoy} ${fechaActual.getDate()}/${fechaActual.getMonth() + 1}`;
+        
         const ultimaFechaRegistrada = localStorage.getItem('pku_ultima_fecha');
         const ultimaFechaVisual = localStorage.getItem('pku_ultima_fecha_visual') || registroCompletoFecha;
 
@@ -574,13 +663,12 @@
 
         if (ultimaFechaRegistrada !== fechaStringHoy) {
             if (consumidoHoy > 0 || comidasHoy.length > 0) {
-                const registroDiaPasado = {
+                historialDias.unshift({
                     id: Date.now(),
-                    fecha: ultimaFechaVisual, // Guarda con el nombre del día correspondiente, ej: "Viernes 29/5"
+                    fecha: ultimaFechaVisual,
                     consumido: consumidoHoy.toFixed(0),
                     meta: metaDiaria.toFixed(0)
-                };
-                historialDias.unshift(registroDiaPasado);
+                });
                 localStorage.setItem('pku_historial', JSON.stringify(historialDias));
             }
 
@@ -608,103 +696,21 @@
         }
     }
 
-    function buscarAlimento() {
-        const query = document.getElementById('buscador').value.toLowerCase();
-        const lista = document.getElementById('listaSugerencias');
-        lista.innerHTML = "";
-
-        if (query.trim() === "") {
-            lista.style.display = "none";
-            return;
-        }
-
-        const filtrados = baseDatosPKU.filter(a => a.nombre.toLowerCase().includes(query));
-
-        if (filtrados.length > 0) {
-            lista.style.display = "block";
-            filtrados.forEach(alimento => {
-                const li = document.createElement('li');
-                li.innerText = `${alimento.nombre} (Porción: ${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)`;
-                li.onclick = () => seleccionarAlimento(alimento);
-                lista.appendChild(li);
-            });
-        } else {
-            lista.style.display = "none";
-        }
-    }
-
-    function seleccionarAlimento(alimento) {
-        alimentoActual = alimento;
-        document.getElementById('alimentoSeleccionadoBox').innerText = `Seleccionado: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g)`;
-        document.getElementById('alimentoSeleccionadoBox').style.display = "block";
-        document.getElementById('listaSugerencias').style.display = "none";
-        document.getElementById('buscador').value = "";
-        
-        document.getElementById('gramos').disabled = false;
-        document.getElementById('btnCalcular').disabled = false;
-        document.getElementById('gramos').focus();
-    }
-
-    function calcularFA() {
-        const fechaActual = new Date();
-        const nombreDiaHoy = diasSemana[fechaActual.getDay()];
-        const fechaStringHoy = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1) + "/" + fechaActual.getFullYear();
-        localStorage.setItem('pku_ultima_fecha', fechaStringHoy);
-        localStorage.setItem('pku_ultima_fecha_visual', `${nombreDiaHoy} ${fechaActual.getDate()}/${fechaActual.getMonth() + 1}`);
-
-        const gramosUsuario = parseFloat(document.getElementById('gramos').value);
-        if (!gramosUsuario || gramosUsuario <= 0) {
-            alert("Por favor, ingresa los gramos medidos.");
-            return;
-        }
-
-        guardarEstadoParaUndo();
-
-        const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
-        const faRedondeada = Math.round(resultadoFA);
-        
-        consumidoHoy += faRedondeada;
-        localStorage.setItem('pku_consumido', consumidoHoy);
-
-        const nuevaComida = {
-            id: Date.now(),
-            nombre: alimentoActual.nombre,
-            gramos: gramosUsuario,
-            fa: faRedondeada
-        };
-        comidasHoy.push(nuevaComida);
-        localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-
-        document.getElementById('gramos').value = '';
-        document.getElementById('gramos').disabled = true;
-        document.getElementById('btnCalcular').disabled = true;
-        document.getElementById('alimentoSeleccionadoBox').style.display = "none";
-        alimentoActual = null;
-
-        actualizarPantalla();
-        renderizarComidasHoy();
-    }
-
     function renderizarComidasHoy() {
         const listaUI = document.getElementById('listaComidasHoy');
         listaUI.innerHTML = "";
-
         if (comidasHoy.length === 0) {
             listaUI.innerHTML = "<li style='padding:5px; font-size:13px; color:#95a5a6; text-align:center;'>No has registrado alimentos hoy.</li>";
             return;
         }
-
         comidasHoy.forEach(item => {
             const li = document.createElement('li');
             li.className = "comida-item";
             li.innerHTML = `
-                <div>
-                    <strong>${item.nombre}</strong> 
-                    <span class="comida-detalles">(${item.gramos}g)</span>
-                </div>
+                <div><strong>${item.nombre}</strong> <span class="comida-detalles">(${item.gramos}g)</span></div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight: bold; color: var(--text-main);">${item.fa} mg</span>
-                    <button class="btn-del-item" onclick="borrarComidaIndividual(${item.id}, ${item.fa})" title="Eliminar este alimento">❌</button>
+                    <span style="font-weight: bold;">${item.fa} mg</span>
+                    <button class="btn-del-item" onclick="borrarComidaIndividual(${item.id}, ${item.fa})">❌</button>
                 </div>
             `;
             listaUI.appendChild(li);
@@ -712,16 +718,12 @@
     }
 
     function borrarComidaIndividual(idComida, faARestar) {
-        if (confirm("¿Quieres eliminar este alimento del registro de hoy? Se descontará de tu medidor.")) {
+        if (confirm("¿Quieres eliminar este alimento del registro de hoy?")) {
             guardarEstadoParaUndo();
-
             comidasHoy = comidasHoy.filter(c => c.id !== idComida);
             localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            
-            consumidoHoy -= faARestar;
-            if (consumidoHoy < 0) consumidoHoy = 0;
+            consumidoHoy = Math.max(0, consumidoHoy - faARestar);
             localStorage.setItem('pku_consumido', consumidoHoy);
-            
             actualizarPantalla();
             renderizarComidasHoy();
         }
@@ -730,29 +732,20 @@
     function actualizarPantalla() {
         document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(0) + " mg";
         document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria.toFixed(0)} mg`;
-        
-        let porcentaje = (consumidoHoy / metaDiaria) * 100;
-        if (porcentaje > 100) porcentaje = 100;
-
+        let porcentaje = Math.min(100, (consumidoHoy / metaDiaria) * 100);
         let colorSemaforo = "var(--color-green)";
-        if (consumidoHoy >= metaDiaria * 0.8 && consumidoHoy < metaDiaria) {
-            colorSemaforo = "var(--color-yellow)";
-        } else if (consumidoHoy >= metaDiaria) {
-            colorSemaforo = "var(--color-red)";
-        }
-
-        const medidor = document.getElementById('medidorVisual');
-        medidor.style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
+        if (consumidoHoy >= metaDiaria * 0.8 && consumidoHoy < metaDiaria) colorSemaforo = "var(--color-yellow)";
+        else if (consumidoHoy >= metaDiaria) colorSemaforo = "var(--color-red)";
+        document.getElementById('medidorVisual').style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
     }
 
     function reiniciarDiaManual() {
-        if(confirm("¿Quieres REINICIAR el medidor y las comidas de hoy a cero? (Esto NO guardará datos en el historial anterior).")) {
+        if(confirm("¿Quieres REINICIAR el medidor y las comidas de hoy a cero?")) {
             guardarEstadoParaUndo();
             consumidoHoy = 0;
             comidasHoy = [];
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            
             actualizarPantalla();
             renderizarComidasHoy();
         }
@@ -761,31 +754,19 @@
     function renderizarHistorial() {
         const listaUI = document.getElementById('listaHistorial');
         listaUI.innerHTML = "";
-
         if (historialDias.length === 0) {
             listaUI.innerHTML = "<li style='padding:10px; font-size:12px; color:#95a5a6; text-align:center;'>No hay días archivados todavía.</li>";
             return;
         }
-
         historialDias.forEach(dia => {
             const li = document.createElement('li');
             li.className = "historial-item";
-            
-            li.onclick = (e) => {
-                if (e.target.tagName !== 'BUTTON') {
-                    revisarDiaEspecifico(dia);
-                }
-            };
-
+            li.onclick = (e) => { if (e.target.tagName !== 'BUTTON') revisarDiaEspecifico(dia); };
             li.innerHTML = `
-                <div class="historial-info">
-                    <span class="historial-fecha">${dia.fecha}</span>
-                </div>
+                <div class="historial-info"><span class="historial-fecha">${dia.fecha}</span></div>
                 <div class="historial-acciones">
-                    <span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">
-                        ${dia.consumido} / ${dia.meta} mg
-                    </span>
-                    <button class="btn-del-item" onclick="borrarDiaIndividual(${dia.id}, '${dia.fecha}')" title="Borrar este día">❌</button>
+                    <span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">${dia.consumido} / ${dia.meta} mg</span>
+                    <button class="btn-del-item" onclick="borrarDiaIndividual(${dia.id}, '${dia.fecha}')">❌</button>
                 </div>
             `;
             listaUI.appendChild(li);
@@ -794,24 +775,11 @@
 
     function revisarDiaEspecifico(dia) {
         const porcentaje = Math.round((parseFloat(dia.consumido) / parseFloat(dia.meta)) * 100);
-        let estadoMensaje = "Bajo el límite seguro ✅";
-        if (porcentaje >= 100) {
-            estadoMensaje = "Límite diario excedido ⚠️";
-        } else if (porcentaje >= 80) {
-            estadoMensaje = "Cerca del límite diario asignado 🟡";
-        }
-
-        alert(
-            `📋 INFORME PKU - FECHA: ${dia.fecha}\n\n` +
-            `• Consumo Total: ${dia.consumido} mg de FA\n` +
-            `• Meta de ese día: ${dia.meta} mg de FA\n` +
-            `• Porcentaje alcanzado: ${porcentaje}%\n` +
-            `• Estado: ${estadoMensaje}`
-        );
+        alert(`📋 INFORME PKU - FECHA: ${dia.fecha}\n\n• Consumo Total: ${dia.consumido} mg\n• Meta: ${dia.meta} mg\n• Porcentaje: ${porcentaje}%\n• Estado: ${porcentaje >= 100 ? 'Excedido ⚠️' : 'Seguro ✅'}`);
     }
 
     function borrarDiaIndividual(idParaBorrar, fechaParaMostrar) {
-        if (confirm(`¿Estás seguro de que quieres eliminar del registro el día ${fechaParaMostrar}?`)) {
+        if (confirm(`¿Eliminar el registro del día ${fechaParaMostrar}?`)) {
             historialDias = historialDias.filter(dia => dia.id !== idParaBorrar);
             localStorage.setItem('pku_historial', JSON.stringify(historialDias));
             renderizarHistorial();
@@ -819,59 +787,28 @@
     }
 
     function exportarRespaldo() {
-        const datosParaRespaldar = {
-            meta: metaDiaria,
-            historial: historialDias,
-            comidas_hoy: comidasHoy,
-            citas: citasMedicas
-        };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosParaRespaldar));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", "respaldo_pku.txt");
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ meta: metaDiaria, historial: historialDias, comidas_hoy: comidasHoy, citas: citasMedicas }));
+        const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "respaldo_pku.txt"); dl.click();
     }
 
-    function importaráRespaldo() { document.getElementById('fileInput').click(); }
-    function importarRespaldo() { importaráRespaldo(); }
+    function importarRespaldo() { document.getElementById('fileInput').click(); }
 
     function procesarArchivoRespaldo(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
+        const file = event.target.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const datosRestaurados = JSON.parse(e.target.result);
-                if (datosRestaurados.meta && Array.isArray(datosRestaurados.historial)) {
-                    metaDiaria = parseFloat(datosRestaurados.meta);
-                    historialDias = datosRestaurados.historial;
-                    comidasHoy = datosRestaurados.comidas_hoy || [];
-                    citasMedicas = datosRestaurados.citas || [];
-                    pilaEstadosAnteriores = [];
-                    
+                const res = JSON.parse(e.target.result);
+                if (res.meta && Array.isArray(res.historial)) {
+                    metaDiaria = parseFloat(res.meta); historialDias = res.historial; comidasHoy = res.comidas_hoy || []; citasMedicas = res.citas || [];
                     consumidoHoy = comidasHoy.reduce((acc, c) => acc + c.fa, 0);
-                    
-                    localStorage.setItem('pku_meta', metaDiaria);
-                    localStorage.setItem('pku_historial', JSON.stringify(historialDias));
-                    localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-                    localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
+                    localStorage.setItem('pku_meta', metaDiaria); localStorage.setItem('pku_historial', JSON.stringify(historialDias));
+                    localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy)); localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
                     localStorage.setItem('pku_consumido', consumidoHoy);
-                    
-                    actualizarPantalla();
-                    renderizarComidasHoy();
-                    renderizarHistorial();
-                    renderizarCitas();
-                    actualizarBotonUndoVisual();
-                    alert("¡Copia de seguridad restaurada con éxito! ✅");
-                } else {
-                    alert("El archivo seleccionado no tiene un formato válido de respaldo PKU.");
+                    actualizarPantalla(); renderizarComidasHoy(); renderizarHistorial(); renderizarCitas(); actualizarBotonUndoVisual();
+                    alert("¡Copia de seguridad restaurada! ✅");
                 }
-            } catch (err) {
-                alert("Error al leer el archivo. Asegúrate de seleccionar el archivo respaldo_pku.txt correcto.");
-            }
+            } catch (err) { alert("Archivo no válido."); }
         };
         reader.readAsText(file);
     }
