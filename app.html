@@ -154,7 +154,7 @@
         button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-reset { background-color: #7f8c8d; margin-top: 5px; padding: 8px; font-size: 12px; }
 
-        /* Estilos de la Nueva Sección de Historial */
+        /* Estilos de la Sección de Historial con funciones individuales */
         .historial-box {
             background: #fcfcfc;
             border: 1px solid #eaeaea;
@@ -165,22 +165,41 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 200px;
+            max-height: 220px;
             overflow-y: auto;
         }
         .historial-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 10px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
             font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        .historial-item:hover { background-color: #f5f5f5; border-radius: 8px; }
         .historial-item:last-child { border-bottom: none; }
-        .historial-fecha { font-weight: bold; color: #7f8c8d; }
-        .historial-valores { font-weight: bold; }
+        
+        .historial-info { display: flex; flex-direction: column; gap: 2px; }
+        .historial-fecha { font-weight: bold; color: var(--text-main); }
         .historial-formulas { font-size: 11px; color: #95a5a6; }
-        .btn-clear-history { background-color: #c0392b; margin-top: 10px; padding: 6px; font-size: 11px; }
+        
+        .historial-acciones { display: flex; align-items: center; gap: 12px; }
+        .historial-valores { font-weight: bold; }
+        
+        .btn-del-item {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            width: auto;
+            margin: 0;
+            display: inline;
+        }
+        .btn-clear-history { background-color: #7f8c8d; margin-top: 15px; padding: 6px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -237,12 +256,12 @@
         <h3>📋 Historial de Días Anteriores</h3>
         <ul id="listaHistorial" class="historial-lista">
             </ul>
-        <button class="btn-clear-history" onclick="borrarHistorialCompleto()">Borrar Todo el Historial</button>
+        <button class="btn-clear-history" onclick="borrarHistorialCompleto()">Limpiar Historial Completo</button>
     </div>
 </div>
 
 <script>
-    // BASE DE DATOS (Maneja los alimentos con total libertad desde aquí)
+    // LISTA DE ALIMENTOS BASE
     const baseDatosPKU = [
         { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
         { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11 },
@@ -260,8 +279,6 @@
     let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
     let alimentoActual = null;
     let formulasEstado = JSON.parse(localStorage.getItem('pku_formulas')) || { manana: false, tarde: false, noche: false };
-    
-    // Cargar arreglo del historial desde la memoria
     let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
 
     window.onload = function() {
@@ -359,7 +376,6 @@
         if (consumidoHoy >= metaDiaria * 0.8 && consumidoHoy < metaDiaria) {
             colorSemaforo = "var(--color-yellow)";
         } else if (consumidoHoy >= metaDiaria) {
-            colorSFA = "var(--color-red)";
             colorSemaforo = "var(--color-red)";
         }
 
@@ -387,47 +403,40 @@
         }
     }
 
-    // NUEVA FUNCIÓN: Guarda el día actual en el historial antes de resetear
     function reiniciarDia() {
         if(confirm("¿Quieres ARCHIVAR los datos de hoy en el informe e iniciar un nuevo día en cero?")) {
-            
-            // 1. Obtener la fecha de hoy formateada de manera simple (DD/MM)
             const fechaActual = new Date();
-            const fechaString = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1);
+            const fechaString = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1) + "/" + fechaActual.getFullYear();
 
-            // 2. Contar cuántas dosis de fórmula se tomaron
             let dosisTomadas = 0;
             if (formulasEstado.manana) dosisTomadas++;
             if (formulasEstado.tarde) dosisTomadas++;
             if (formulasEstado.noche) dosisTomadas++;
 
-            // 3. Crear el objeto con el registro del día
             const registroDia = {
+                id: Date.now(), // ID único para poder borrar individualmente
                 fecha: fechaString,
                 consumido: consumidoHoy.toFixed(0),
                 meta: metaDiaria.toFixed(0),
                 formulas: `${dosisTomadas}/3`
             };
 
-            // 4. Agregarlo al inicio de nuestro historial
             historialDias.unshift(registroDia);
             localStorage.setItem('pku_historial', JSON.stringify(historialDias));
 
-            // 5. Resetear los contadores a cero de forma normal
             consumidoHoy = 0;
             formulasEstado = { manana: false, tarde: false, noche: false };
             
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
             
-            // 6. Actualizar la aplicación por completo
             actualizarPantalla();
             cargarChecklist();
             renderizarHistorial();
         }
     }
 
-    // NUEVA FUNCIÓN: Muestra la lista del historial en la pantalla
+    // Muestra la lista del historial y configura las acciones al hacer clic
     function renderizarHistorial() {
         const listaUI = document.getElementById('listaHistorial');
         listaUI.innerHTML = "";
@@ -440,22 +449,61 @@
         historialDias.forEach(dia => {
             const li = document.createElement('li');
             li.className = "historial-item";
+            
+            // Si hace clic en el cuerpo de la fila (excepto en el botón X), revisa el día
+            li.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') {
+                    revisarDiaEspecifico(dia);
+                }
+            };
+
             li.innerHTML = `
-                <div>
-                    <span class="historial-fecha">Día ${dia.fecha}:</span>
-                    <span class="historial-formulas"> 🍼 Fórmula: ${dia.formulas}</span>
+                <div class="historial-info">
+                    <span class="historial-fecha">Día ${dia.fecha.split('/')[0] + '/' + dia.fecha.split('/')[1]}</span>
+                    <span class="historial-formulas">🍼 Fórmula: ${dia.formulas}</span>
                 </div>
-                <span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">
-                    ${dia.consumido} / ${dia.meta} mg
-                </span>
+                <div class="historial-acciones">
+                    <span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">
+                        ${dia.consumido} / ${dia.meta} mg
+                    </span>
+                    <button class="btn-del-item" onclick="borrarDiaIndividual(${dia.id}, '${dia.fecha}')" title="Borrar este día">❌</button>
+                </div>
             `;
             listaUI.appendChild(li);
         });
     }
 
-    // NUEVA FUNCIÓN: Por si necesitas vaciar la bitácora completa
+    // NUEVA FUNCIÓN: Muestra un informe emergente detallado del día seleccionado
+    function revisarDiaEspecifico(dia) {
+        const porcentaje = Math.round((parseFloat(dia.consumido) / parseFloat(dia.meta)) * 100);
+        let estadoMensaje = "Bajo el límite seguro ✅";
+        if (porcentaje >= 100) {
+            estadoMensaje = "Límite diario excedido ⚠️";
+        } else if (porcentaje >= 80) {
+            estadoMensaje = "Cerca del límite diario asignado 🟡";
+        }
+
+        alert(
+            `📋 INFORME PKU - FECHA: ${dia.fecha}\n\n` +
+            `• Consumo Total: ${dia.consumido} mg de FA\n` +
+            `• Meta de ese día: ${dia.meta} mg de FA\n` +
+            `• Porcentaje alcanzado: ${porcentaje}%\n` +
+            `• Estado: ${estadoMensaje}\n\n` +
+            `• Cumplimiento de Fórmula Médica: ${dia.formulas} dosis tomadas.`
+        );
+    }
+
+    // NUEVA FUNCIÓN: Elimina solo el día seleccionado buscando su ID único
+    function borrarDiaIndividual(idParaBorrar, fechaParaMostrar) {
+        if (confirm(`¿Estás seguro de que quieres eliminar del registro el día ${fechaParaMostrar.split('/')[0] + '/' + fechaParaMostrar.split('/')[1]}?`)) {
+            historialDias = historialDias.filter(dia => dia.id !== idParaBorrar);
+            localStorage.setItem('pku_historial', JSON.stringify(historialDias));
+            renderizarHistorial();
+        }
+    }
+
     function borrarHistorialCompleto() {
-        if(confirm("⚠️ ¿Estás seguro de que quieres BORRAR TODO EL HISTORIAL acumulado? Esta acción no se puede deshacer.")) {
+        if(confirm("⚠️ ¿Estás seguro de que quieres vaciar la bitácora completa? Se perderán todos los informes pasados.")) {
             historialDias = [];
             localStorage.removeItem('pku_historial');
             renderizarHistorial();
