@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PKU Control - Versión 2.0</title>
+    <title>PKU Control Oficial</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2ecc71">
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -16,7 +18,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
@@ -35,11 +37,7 @@
             box-sizing: border-box;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        header { text-align: center; margin-bottom: 20px; }
         h2, h3 { margin: 0 0 10px 0; }
 
         .cita-card {
@@ -51,7 +49,6 @@
             font-size: 14px;
         }
 
-        /* El Medidor Circular Semáforo */
         .medidor-box {
             display: flex;
             flex-direction: column;
@@ -79,24 +76,32 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            position: relative;
         }
 
-        .valores-fa {
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .meta-fa {
+        .valores-fa { font-size: 24px; font-weight: bold; }
+        
+        .meta-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
             font-size: 12px;
             color: #7f8c8d;
+            margin-top: 4px;
         }
 
-        /* Checklist Silencioso de Fórmula */
-        .checklist-box {
-            margin-bottom: 25px;
+        .btn-edit-meta {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+            width: auto;
+            display: inline;
         }
 
+        .checklist-box { margin-bottom: 25px; }
         .formula-item {
             display: flex;
             align-items: center;
@@ -105,27 +110,11 @@
             border-radius: 12px;
             margin-bottom: 8px;
             cursor: pointer;
-            transition: all 0.3s;
         }
+        .formula-item input { margin-right: 15px; transform: scale(1.2); }
+        .formula-item.checked { opacity: 0.5; text-decoration: line-through; background: #edfcf4; }
 
-        .formula-item input {
-            margin-right: 15px;
-            transform: scale(1.2);
-        }
-
-        .formula-item.checked {
-            opacity: 0.5;
-            text-decoration: line-through;
-            background: #edfcf4;
-        }
-
-        /* Buscador y Calculadora Avanzada */
-        .calculadora-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 18px;
-        }
-
+        .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; }
         input[type="text"], input[type="number"], button {
             width: 100%;
             padding: 12px;
@@ -136,7 +125,6 @@
             box-sizing: border-box;
         }
 
-        /* Sugerencias del buscador */
         .sugerencias-lista {
             background: white;
             border: 1px solid #ddd;
@@ -149,16 +137,8 @@
             list-style: none;
             display: none;
         }
-
-        .sugerencias-lista li {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .sugerencias-lista li:hover {
-            background-color: #f1f1f1;
-        }
+        .sugerencias-lista li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .sugerencias-lista li:hover { background-color: #f1f1f1; }
 
         .alimento-seleccionado {
             background: #e8f4fd;
@@ -171,20 +151,8 @@
             border-left: 4px solid var(--color-blue);
         }
 
-        button {
-            background-color: var(--color-green);
-            color: white;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .btn-reset {
-            background-color: #7f8c8d;
-            margin-top: 5px;
-            padding: 8px;
-            font-size: 12px;
-        }
+        button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-reset { background-color: #7f8c8d; margin-top: 5px; padding: 8px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -195,14 +163,17 @@
     </header>
 
     <div class="cita-card">
-        📌 <strong>Nota de recordatorio:</strong> Próximo control médico e informes del INTA el próximo jueves en la mañana.
+        📌 <strong>Nota de recordatorio:</strong> Próximo control médico e informes oficiales en la mañana.
     </div>
 
     <div class="medidor-box">
         <div class="circulo-progreso" id="medidorVisual">
             <div class="circulo-interno">
                 <span class="valores-fa" id="txtConsumido">0 mg</span>
-                <span class="meta-fa" id="txtMeta">Meta: 300 mg</span>
+                <div class="meta-container">
+                    <span id="txtMeta">Meta: 300 mg</span>
+                    <button class="btn-edit-meta" onclick="cambiarMeta()" title="Cambiar meta diaria">⚙️</button>
+                </div>
             </div>
         </div>
     </div>
@@ -221,48 +192,68 @@
     </div>
 
     <div class="calculadora-box">
-        <h3>🧮 Buscador e INTA Regla de 3</h3>
+        <h3>🧮 Buscador PKU 2021</h3>
         
-        <input type="text" id="buscador" placeholder="🔎 Busca un alimento (ej: zapallo, arroz)..." oninput="buscarAlimento()">
+        <input type="text" id="buscador" placeholder="🔎 Escribe para buscar alimento..." oninput="buscarAlimento()">
         <ul id="listaSugerencias" class="sugerencias-lista"></ul>
 
         <div id="alimentoSeleccionadoBox" class="alimento-seleccionado"></div>
 
-        <input type="number" id="gramos" placeholder="Gramos en la pesa (Ej: 150)" min="0" disabled>
+        <input type="number" id="gramos" placeholder="Gramos reales en la pesa" min="0" disabled>
 
-        <button id="btnCalcular" onclick="calcularFA()" disabled>Calcular y Sumar al Día</button>
-        <button class="btn-reset" onclick="reiniciarDia()">Reiniciar Contador Diario</button>
+        <button id="btnCalcular" onclick="calcularFA()" disabled>Calcular y Sumar</button>
+        <button class="btn-reset" onclick="reiniciarDia()">Reiniciar Día</button>
     </div>
 </div>
 
 <script>
-    // 1. BASE DE DATOS INTA (Ejemplo expandible con valores oficiales por cada 100g)
-    const baseDatosINTA = [
-        { nombre: "Zapallo italiano", fa: 26 },
-        { nombre: "Plátano (Banana)", fa: 43 },
-        { nombre: "Arroz corriente cocido", fa: 165 },
-        { nombre: "Manzana", fa: 11 },
-        { nombre: "Zanahoria cruda", fa: 33 },
-        { nombre: "Papa cocida", fa: 76 },
-        { nombre: "Betarraga / Remolacha", fa: 36 },
-        { nombre: "Arvejas verdes cocidas", fa: 254 },
-        { nombre: "Palta (Aguacate)", fa: 65 }
+    // LISTA DE ALIMENTOS: Modifica los valores internos con total libertad aquí mismo
+    const baseDatosPKU = [
+        { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
+        { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11 },
+        { nombre: "Pepino ensalada", gramosPorcion: 100, faPorcion: 14 },
+        { nombre: "Zapallo italiano cocido", gramosPorcion: 70, faPorcion: 24 },
+        { nombre: "Zanahoria cruda", gramosPorcion: 50, faPorcion: 21 },
+        { nombre: "Tomate", gramosPorcion: 80, faPorcion: 22 },
+        { nombre: "Manzana", gramosPorcion: 100, faPorcion: 11 },
+        { nombre: "Plátano (Banana)", gramosPorcion: 60, faPorcion: 34 },
+        { nombre: "Naranja", gramosPorcion: 120, faPorcion: 29 },
+        { nombre: "Papa cocida", gramosPorcion: 70, faPorcion: 53 }
     ];
 
-    // Variables de estado cargadas desde la memoria del teléfono (localStorage)
-    let metaDiaria = 300;
+    // Cargar meta personalizada (por defecto 300 mg si no existe una guardada)
+    let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
     let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
     let alimentoActual = null;
-
     let formulasEstado = JSON.parse(localStorage.getItem('pku_formulas')) || { manana: false, tarde: false, noche: false };
 
-    // Inicializar la interfaz al abrir
     window.onload = function() {
         actualizarPantalla();
         cargarChecklist();
     };
 
-    // Lógica del Buscador Inteligente
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker OK'))
+            .catch(err => console.warn('Error SW', err));
+    }
+
+    // Nueva función para editar y guardar el límite de FA personalizado
+    function cambiarMeta() {
+        const nuevaMeta = prompt("Ingresa el límite diario de FA asignado por tu nutricionista (en mg):", metaDiaria);
+        
+        if (nuevaMeta !== null) {
+            const valorNumerico = parseFloat(nuevaMeta);
+            if (!isNaN(valorNumerico) && valorNumerico > 0) {
+                metaDiaria = valorNumerico;
+                localStorage.setItem('pku_meta', metaDiaria);
+                actualizarPantalla();
+            } else {
+                alert("Por favor, ingresa un número válido y mayor a 0.");
+            }
+        }
+    }
+
     function buscarAlimento() {
         const query = document.getElementById('buscador').value.toLowerCase();
         const lista = document.getElementById('listaSugerencias');
@@ -273,13 +264,13 @@
             return;
         }
 
-        const filtrados = baseDatosINTA.filter(a => a.nombre.toLowerCase().includes(query));
+        const filtrados = baseDatosPKU.filter(a => a.nombre.toLowerCase().includes(query));
 
         if (filtrados.length > 0) {
             lista.style.display = "block";
             filtrados.forEach(alimento => {
                 const li = document.createElement('li');
-                li.innerText = `${alimento.nombre} (${alimento.fa}mg FA / 100g)`;
+                li.innerText = `${alimento.nombre} (Porción: ${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)`;
                 li.onclick = () => seleccionarAlimento(alimento);
                 lista.appendChild(li);
             });
@@ -290,37 +281,29 @@
 
     function seleccionarAlimento(alimento) {
         alimentoActual = alimento;
-        
-        // Interfaz activa
-        document.getElementById('alimentoSeleccionadoBox').innerText = `Seleccionado: ${alimento.nombre}`;
+        document.getElementById('alimentoSeleccionadoBox').innerText = `Seleccionado: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g)`;
         document.getElementById('alimentoSeleccionadoBox').style.display = "block";
         document.getElementById('listaSugerencias').style.display = "none";
         document.getElementById('buscador').value = "";
         
-        // Habilitar campos
         document.getElementById('gramos').disabled = false;
         document.getElementById('btnCalcular').disabled = false;
         document.getElementById('gramos').focus();
     }
 
-    // Lógica de la Regla de Tres
     function calcularFA() {
         const gramosUsuario = parseFloat(document.getElementById('gramos').value);
 
         if (!gramosUsuario || gramosUsuario <= 0) {
-            alert("Por favor, ingresa los gramos de tu porción.");
+            alert("Por favor, ingresa los gramos medidos.");
             return;
         }
 
-        // REGLA DE TRES: (Gramos del plato * FA en tabla) / 100
-        const resultadoFA = (gramosUsuario * alimentoActual.fa) / 100;
+        const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
 
         consumidoHoy += resultadoFA;
-        
-        // Guardar en almacenamiento interno
         localStorage.setItem('pku_consumido', consumidoHoy);
 
-        // Resetear inputs de cálculo
         document.getElementById('gramos').value = '';
         document.getElementById('gramos').disabled = true;
         document.getElementById('btnCalcular').disabled = true;
@@ -332,6 +315,7 @@
 
     function actualizarPantalla() {
         document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(1) + " mg";
+        document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria} mg`;
         
         let porcentaje = (consumidoHoy / metaDiaria) * 100;
         if (porcentaje > 100) porcentaje = 100;
@@ -347,7 +331,6 @@
         medidor.style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
     }
 
-    // Control de Checklist Silencioso Guardado en Memoria
     function toggleFormula(momento) {
         formulasEstado[momento] = !formulasEstado[momento];
         localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
@@ -369,18 +352,15 @@
     }
 
     function reiniciarDia() {
-        if(confirm("¿Quieres reiniciar el contador diario de FA y las fórmulas tomadas?")) {
+        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas?")) {
             consumidoHoy = 0;
             formulasEstado = { manana: false, tarde: false, noche: false };
-            
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
-            
             actualizarPantalla();
             cargarChecklist();
         }
     }
 </script>
-
 </body>
 </html>
