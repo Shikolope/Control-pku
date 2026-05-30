@@ -101,6 +101,34 @@
             display: inline;
         }
 
+        /* Botón Volver Atrás de estilo sutil */
+        .btn-undo-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        .btn-undo {
+            background-color: #e2e8f0;
+            color: #475569;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: auto;
+            margin: 0;
+        }
+        .btn-undo:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; margin-bottom: 20px; }
         input[type="text"], input[type="number"], button {
             width: 100%;
@@ -245,6 +273,10 @@
         </div>
     </div>
 
+    <div class="btn-undo-container">
+        <button id="btnUndo" class="btn-undo" onclick="volverAtras()" disabled>↩️ Volver Atrás</button>
+    </div>
+
     <div class="calculadora-box">
         <h3>🧮 Buscador PKU 2021</h3>
         
@@ -300,11 +332,15 @@
     let comidasHoy = JSON.parse(localStorage.getItem('pku_comidas_hoy')) || [];
     let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
 
+    // Arreglo para guardar los estados anteriores (Memoria Undo)
+    let pilaEstadosAnteriores = [];
+
     window.onload = function() {
         verificarCambioDeDiaAutomatico();
         actualizarPantalla();
         renderizarComidasHoy();
         renderizarHistorial();
+        actualizarBotonUndoVisual();
     };
 
     if ('serviceWorker' in navigator) {
@@ -313,28 +349,68 @@
             .catch(err => console.warn('Error SW', err));
     }
 
-    // CONTROL AUTOMÁTICO CRONOLÓGICO DESDE LAS 00:00 HRS
+    // NUEVA FUNCIÓN: Toma una foto del estado actual antes de hacer cambios
+    function guardarEstadoParaUndo() {
+        const instantanea = {
+            consumido: consumidoHoy,
+            comidas: JSON.parse(JSON.stringify(comidasHoy)) // Copia profunda
+        };
+        pilaEstadosAnteriores.push(instantanea);
+        
+        // Mantener solo los últimos 10 movimientos para no sobrecargar el celular
+        if (pilaEstadosAnteriores.length > 10) {
+            pilaEstadosAnteriores.shift();
+        }
+        actualizarBotonUndoVisual();
+    }
+
+    // NUEVA FUNCIÓN: Ejecuta la acción de volver atrás (Ctrl+Z)
+    function volverAtras() {
+        if (pilaEstadosAnteriores.length === 0) return;
+
+        // Recuperamos el último estado guardado
+        const estadoAnterior = pilaEstadosAnteriores.pop();
+
+        consumidoHoy = estadoAnterior.consumido;
+        comidasHoy = estadoAnterior.comidas;
+
+        // Guardar la restauración de inmediato en la memoria local
+        localStorage.setItem('pku_consumido', consumidoHoy);
+        localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
+
+        // Actualizar toda la interfaz de usuario
+        actualizarPantalla();
+        renderizarComidasHoy();
+        actualizarBotonUndoVisual();
+    }
+
+    // Activa o desactiva el botón gris según haya cosas para deshacer
+    function actualizarBotonUndoVisual() {
+        const btn = document.getElementById('btnUndo');
+        if (pilaEstadosAnteriores.length > 0) {
+            btn.disabled = false;
+            btn.style.backgroundColor = "#cbd5e1"; // Color un poco más vivo si está activo
+        } else {
+            btn.disabled = true;
+            btn.style.backgroundColor = "#e2e8f0";
+        }
+    }
+
     function verificarCambioDeDiaAutomatico() {
         const fechaActual = new Date();
         const fechaStringHoy = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1) + "/" + fechaActual.getFullYear();
-        
-        // Leer cuál fue la última fecha en que se registró un alimento o se abrió la app
         const ultimaFechaRegistrada = localStorage.getItem('pku_ultima_fecha');
 
-        // Si no existe fecha guardada, inicializamos con la de hoy
         if (!ultimaFechaRegistrada) {
             localStorage.setItem('pku_ultima_fecha', fechaStringHoy);
             return;
         }
 
-        // Si la fecha actual es diferente a la última registrada, significa que pasaron las 00:00 hrs
         if (ultimaFechaRegistrada !== fechaStringHoy) {
-            
-            // Solo archivamos si el usuario consumió algo en el día que termina
             if (consumidoHoy > 0 || comidasHoy.length > 0) {
                 const registroDiaPasado = {
                     id: Date.now(),
-                    fecha: ultimaFechaRegistrada, // Se guarda con la fecha del día al que correspondían los datos
+                    fecha: ultimaFechaRegistrada,
                     consumido: consumidoHoy.toFixed(0),
                     meta: metaDiaria.toFixed(0)
                 };
@@ -342,13 +418,11 @@
                 localStorage.setItem('pku_historial', JSON.stringify(historialDias));
             }
 
-            // Forzar el reseteo a cero automático para el nuevo día
             consumidoHoy = 0;
             comidasHoy = [];
+            pilaEstadosAnteriores = []; // Al cambiar de día, se limpia el historial de volver atrás
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            
-            // Actualizar la fecha de control a la del día de hoy
             localStorage.setItem('pku_ultima_fecha', fechaStringHoy);
         }
     }
@@ -405,7 +479,6 @@
     }
 
     function calcularFA() {
-        // Asegurar que la fecha de control esté al día antes de procesar el cálculo
         const fechaActual = new Date();
         const fechaStringHoy = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1) + "/" + fechaActual.getFullYear();
         localStorage.setItem('pku_ultima_fecha', fechaStringHoy);
@@ -415,6 +488,9 @@
             alert("Por favor, ingresa los gramos medidos.");
             return;
         }
+
+        // GUARDAR ESTADO ANTES de modificar los números para poder volver atrás
+        guardarEstadoParaUndo();
 
         const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
         const faRedondeada = Math.round(resultadoFA);
@@ -469,6 +545,9 @@
 
     function borrarComidaIndividual(idComida, faARestar) {
         if (confirm("¿Quieres eliminar este alimento del registro de hoy? Se descontará de tu medidor.")) {
+            // GUARDAR ESTADO ANTES de borrar el elemento para poder revertirlo con "Volver Atrás"
+            guardarEstadoParaUndo();
+
             comidasHoy = comidasHoy.filter(c => c.id !== idComida);
             localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
             
@@ -499,9 +578,11 @@
         medidor.style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
     }
 
-    // BOTÓN DE REINICIO MANUAL (SOLO BORRA LO DE HOY EN CASO DE ERROR, SIN ARCHIVAR)
     function reiniciarDiaManual() {
         if(confirm("¿Quieres REINICIAR el medidor y las comidas de hoy a cero? (Esto NO guardará datos en el historial anterior).")) {
+            // GUARDAR ESTADO ANTES de reiniciar el día por completo
+            guardarEstadoParaUndo();
+
             consumidoHoy = 0;
             comidasHoy = [];
             localStorage.setItem('pku_consumido', 0);
@@ -513,7 +594,6 @@
     }
 
     function renderizarHistorial() {
-        const_listaUI = document.getElementById('listaHistorial');
         const listaUI = document.getElementById('listaHistorial');
         listaUI.innerHTML = "";
 
@@ -589,9 +669,11 @@
         downloadAnchor.remove();
     }
 
-    function importarRespaldo() {
+    function importaráRespaldo() {
         document.getElementById('fileInput').click();
     }
+    // Alias por si el input llama con tilde
+    function importarRespaldo() { importaráRespaldo(); }
 
     function procesarArchivoRespaldo(event) {
         const file = event.target.files[0];
@@ -606,6 +688,7 @@
                     metaDiaria = parseFloat(datosRestaurados.meta);
                     historialDias = datosRestaurados.historial;
                     comidasHoy = datosRestaurados.comidas_hoy || [];
+                    pilaEstadosAnteriores = []; // Se limpia el undo al restaurar respaldo externo
                     
                     consumidoHoy = comidasHoy.reduce((acc, c) => acc + c.fa, 0);
                     
@@ -617,6 +700,7 @@
                     actualizarPantalla();
                     renderizarComidasHoy();
                     renderizarHistorial();
+                    actualizarBotonUndoVisual();
                     alert("¡Copia de seguridad restaurada con éxito! ✅");
                 } else {
                     alert("El archivo seleccionado no tiene un formato válido de respaldo PKU.");
