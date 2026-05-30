@@ -40,14 +40,77 @@
         header { text-align: center; margin-bottom: 20px; }
         h2, h3 { margin: 0 0 10px 0; }
 
-        .cita-card {
-            background-color: rgba(52, 152, 219, 0.1);
+        /* Estilos de la Zona de Citas Médicas */
+        .citas-container {
+            background-color: rgba(52, 152, 219, 0.08);
             border-left: 5px solid var(--color-blue);
-            padding: 12px;
-            border-radius: 8px;
+            padding: 15px;
+            border-radius: 14px;
             margin-bottom: 20px;
             font-size: 14px;
         }
+        .citas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .citas-header h3 { font-size: 15px; margin: 0; color: #2980b9; }
+        .btn-add-cita {
+            background-color: var(--color-blue);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
+        }
+        .form-cita-box {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e1;
+            display: none; /* Se muestra al hacer click */
+        }
+        .form-cita-box input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .form-cita-box div {
+            display: flex;
+            gap: 8px;
+        }
+        .form-cita-box button {
+            padding: 8px;
+            font-size: 12px;
+            margin: 0;
+        }
+        .citas-lista {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .cita-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+        .cita-item:last-child { margin-bottom: 0; }
+        .cita-fecha-info { font-weight: bold; color: #475569; font-size: 11px; }
 
         .medidor-box {
             display: flex;
@@ -101,7 +164,6 @@
             display: inline;
         }
 
-        /* Botón Volver Atrás de estilo sutil */
         .btn-undo-container {
             width: 100%;
             display: flex;
@@ -124,10 +186,7 @@
             width: auto;
             margin: 0;
         }
-        .btn-undo:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+        .btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; margin-bottom: 20px; }
         input[type="text"], input[type="number"], button {
@@ -169,7 +228,6 @@
         button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-reset { background-color: #7f8c8d; margin-top: 5px; padding: 8px; font-size: 12px; }
 
-        /* Estilos: Comidas de Hoy */
         .comidas-hoy-box {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -177,11 +235,7 @@
             border-radius: 18px;
             margin-bottom: 25px;
         }
-        .comidas-hoy-lista {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
+        .comidas-hoy-lista { list-style: none; padding: 0; margin: 0; }
         .comida-item {
             display: flex;
             justify-content: space-between;
@@ -193,7 +247,6 @@
         .comida-item:last-child { border-bottom: none; }
         .comida-detalles { color: #64748b; font-size: 12px; }
 
-        /* Sección de Historial y Copias de Seguridad */
         .historial-box {
             background: #fcfcfc;
             border: 1px solid #eaeaea;
@@ -236,16 +289,8 @@
             display: inline;
         }
 
-        .backup-zone {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .backup-zone button {
-            font-size: 11px;
-            padding: 8px;
-            margin: 0;
-        }
+        .backup-zone { display: flex; gap: 10px; margin-top: 15px; }
+        .backup-zone button { font-size: 11px; padding: 8px; margin: 0; }
         .btn-export { background-color: var(--color-blue); }
         .btn-import { background-color: #9b59b6; }
     </style>
@@ -257,8 +302,23 @@
         <h2>Mi Control PKU</h2>
     </header>
 
-    <div class="cita-card">
-        📌 <strong>Nota de recordatorio:</strong> Próximo control médico e informes oficiales en la mañana.
+    <div class="citas-container">
+        <div class="citas-header">
+            <h3>📅 Próximas Citas Médicas</h3>
+            <button class="btn-add-cita" onclick="toggleFormCita()">+ Añadir Cita</button>
+        </div>
+
+        <div id="formCitaBox" class="form-cita-box">
+            <input type="text" id="citaNota" placeholder="Ej: Control INTA, Examen...">
+            <input type="datetime-local" id="citaFechaHora">
+            <div>
+                <button onclick="guardarNuevaCita()">Guardar</button>
+                <button style="background-color:#7f8c8d;" onclick="toggleFormCita()">Cancelar</button>
+            </div>
+        </div>
+
+        <ul id="listaCitas" class="citas-lista">
+            </ul>
     </div>
 
     <div class="medidor-box">
@@ -331,8 +391,10 @@
     
     let comidasHoy = JSON.parse(localStorage.getItem('pku_comidas_hoy')) || [];
     let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
+    
+    // Cargar arreglo de citas médicas desde memoria local
+    let citasMedicas = JSON.parse(localStorage.getItem('pku_citas')) || [];
 
-    // Arreglo para guardar los estados anteriores (Memoria Undo)
     let pilaEstadosAnteriores = [];
 
     window.onload = function() {
@@ -340,6 +402,7 @@
         actualizarPantalla();
         renderizarComidasHoy();
         renderizarHistorial();
+        renderizarCitas();
         actualizarBotonUndoVisual();
     };
 
@@ -349,47 +412,111 @@
             .catch(err => console.warn('Error SW', err));
     }
 
-    // NUEVA FUNCIÓN: Toma una foto del estado actual antes de hacer cambios
-    function guardarEstadoParaUndo() {
-        const instantanea = {
-            consumido: consumidoHoy,
-            comidas: JSON.parse(JSON.stringify(comidasHoy)) // Copia profunda
-        };
-        pilaEstadosAnteriores.push(instantanea);
-        
-        // Mantener solo los últimos 10 movimientos para no sobrecargar el celular
-        if (pilaEstadosAnteriores.length > 10) {
-            pilaEstadosAnteriores.shift();
+    // --- FUNCIONES DEL CALENDARIO DE CITAS ---
+    function toggleFormCita() {
+        const box = document.getElementById('formCitaBox');
+        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        // Limpiar campos al abrir/cerrar
+        document.getElementById('citaNota').value = '';
+        document.getElementById('citaFechaHora').value = '';
+    }
+
+    function guardarNuevaCita() {
+        const nota = document.getElementById('citaNota').value.trim();
+        const fechaHoraValue = document.getElementById('citaFechaHora').value;
+
+        if (!nota || !fechaHoraValue) {
+            alert("Por favor, introduce una descripción y la fecha/hora de la cita.");
+            return;
         }
+
+        // Formatear la fecha de visualización amigable (DD/MM/AAAA - HH:MM)
+        const f = new Date(fechaHoraValue);
+        const dia = String(f.getDate()).padStart(2, '0');
+        const mes = String(f.getMonth() + 1).padStart(2, '0');
+        const anio = f.getFullYear();
+        const horas = String(f.getHours()).padStart(2, '0');
+        const minutos = String(f.getMinutes()).padStart(2, '0');
+        const fechaFormateada = `${dia}/${mes}/${anio} a las ${horas}:${minutos} hrs`;
+
+        const nuevaCita = {
+            id: Date.now(),
+            texto: nota,
+            fechaTexto: fechaFormateada,
+            rawDateTime: fechaHoraValue
+        };
+
+        // Guardar y ordenar citas cronológicamente por fecha aproximada
+        citasMedicas.push(nuevaCita);
+        citasMedicas.sort((a, b) => new Date(a.rawDateTime) - new Date(b.rawDateTime));
+        
+        localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
+        
+        toggleFormCita();
+        renderizarCitas();
+    }
+
+    function renderizarCitas() {
+        const listaUI = document.getElementById('listaCitas');
+        listaUI.innerHTML = "";
+
+        if (citasMedicas.length === 0) {
+            listaUI.innerHTML = "<li style='padding:5px; font-size:12px; color:#555; text-align:center; list-style:none;'>No tienes citas médicas programadas.</li>";
+            return;
+        }
+
+        citasMedicas.forEach(cita => {
+            const li = document.createElement('li');
+            li.className = "cita-item";
+            li.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <strong>📌 ${cita.texto}</strong>
+                    <span class="cita-fecha-info">⏰ ${cita.fechaTexto}</span>
+                </div>
+                <button class="btn-del-item" onclick="borrarCitaIndividual(${cita.id})" title="Borrar cita">❌</button>
+            `;
+            listaUI.appendChild(li);
+        });
+    }
+
+    function borrarCitaIndividual(idCita) {
+        if (confirm("¿Quieres eliminar esta cita médica de la lista?")) {
+            citasMedicas = citasMedicas.filter(c => c.id !== idCita);
+            localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
+            renderizarCitas();
+        }
+    }
+
+
+    // --- RESTO DE FUNCIONES (MÁQUINA DEL TIEMPO, CALCULADORA E HISTORIAL) ---
+    function guardarEstadoParaUndo() {
+        pilaEstadosAnteriores.push({
+            consumido: consumidoHoy,
+            comidas: JSON.parse(JSON.stringify(comidasHoy))
+        });
+        if (pilaEstadosAnteriores.length > 10) pilaEstadosAnteriores.shift();
         actualizarBotonUndoVisual();
     }
 
-    // NUEVA FUNCIÓN: Ejecuta la acción de volver atrás (Ctrl+Z)
     function volverAtras() {
         if (pilaEstadosAnteriores.length === 0) return;
-
-        // Recuperamos el último estado guardado
         const estadoAnterior = pilaEstadosAnteriores.pop();
-
         consumidoHoy = estadoAnterior.consumido;
         comidasHoy = estadoAnterior.comidas;
 
-        // Guardar la restauración de inmediato en la memoria local
         localStorage.setItem('pku_consumido', consumidoHoy);
         localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
 
-        // Actualizar toda la interfaz de usuario
         actualizarPantalla();
         renderizarComidasHoy();
         actualizarBotonUndoVisual();
     }
 
-    // Activa o desactiva el botón gris según haya cosas para deshacer
     function actualizarBotonUndoVisual() {
         const btn = document.getElementById('btnUndo');
         if (pilaEstadosAnteriores.length > 0) {
             btn.disabled = false;
-            btn.style.backgroundColor = "#cbd5e1"; // Color un poco más vivo si está activo
+            btn.style.backgroundColor = "#cbd5e1";
         } else {
             btn.disabled = true;
             btn.style.backgroundColor = "#e2e8f0";
@@ -420,7 +547,7 @@
 
             consumidoHoy = 0;
             comidasHoy = [];
-            pilaEstadosAnteriores = []; // Al cambiar de día, se limpia el historial de volver atrás
+            pilaEstadosAnteriores = [];
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
             localStorage.setItem('pku_ultima_fecha', fechaStringHoy);
@@ -489,7 +616,6 @@
             return;
         }
 
-        // GUARDAR ESTADO ANTES de modificar los números para poder volver atrás
         guardarEstadoParaUndo();
 
         const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
@@ -545,7 +671,6 @@
 
     function borrarComidaIndividual(idComida, faARestar) {
         if (confirm("¿Quieres eliminar este alimento del registro de hoy? Se descontará de tu medidor.")) {
-            // GUARDAR ESTADO ANTES de borrar el elemento para poder revertirlo con "Volver Atrás"
             guardarEstadoParaUndo();
 
             comidasHoy = comidasHoy.filter(c => c.id !== idComida);
@@ -580,9 +705,7 @@
 
     function reiniciarDiaManual() {
         if(confirm("¿Quieres REINICIAR el medidor y las comidas de hoy a cero? (Esto NO guardará datos en el historial anterior).")) {
-            // GUARDAR ESTADO ANTES de reiniciar el día por completo
             guardarEstadoParaUndo();
-
             consumidoHoy = 0;
             comidasHoy = [];
             localStorage.setItem('pku_consumido', 0);
@@ -657,7 +780,8 @@
         const datosParaRespaldar = {
             meta: metaDiaria,
             historial: historialDias,
-            comidas_hoy: comidasHoy
+            comidas_hoy: comidasHoy,
+            citas: citasMedicas // Respaldar también las citas médicas
         };
         
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosParaRespaldar));
@@ -669,10 +793,7 @@
         downloadAnchor.remove();
     }
 
-    function importaráRespaldo() {
-        document.getElementById('fileInput').click();
-    }
-    // Alias por si el input llama con tilde
+    function importaráRespaldo() { document.getElementById('fileInput').click(); }
     function importarRespaldo() { importaráRespaldo(); }
 
     function procesarArchivoRespaldo(event) {
@@ -688,18 +809,21 @@
                     metaDiaria = parseFloat(datosRestaurados.meta);
                     historialDias = datosRestaurados.historial;
                     comidasHoy = datosRestaurados.comidas_hoy || [];
-                    pilaEstadosAnteriores = []; // Se limpia el undo al restaurar respaldo externo
+                    citasMedicas = datosRestaurados.citas || []; // Restaurar citas médicas
+                    pilaEstadosAnteriores = [];
                     
                     consumidoHoy = comidasHoy.reduce((acc, c) => acc + c.fa, 0);
                     
                     localStorage.setItem('pku_meta', metaDiaria);
                     localStorage.setItem('pku_historial', JSON.stringify(historialDias));
                     localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
+                    localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
                     localStorage.setItem('pku_consumido', consumidoHoy);
                     
                     actualizarPantalla();
                     renderizarComidasHoy();
                     renderizarHistorial();
+                    renderizarCitas();
                     actualizarBotonUndoVisual();
                     alert("¡Copia de seguridad restaurada con éxito! ✅");
                 } else {
