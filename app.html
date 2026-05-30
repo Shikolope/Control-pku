@@ -207,7 +207,9 @@
 </div>
 
 <script>
-    // LISTA DE ALIMENTOS: Modifica los valores internos con total libertad aquí mismo
+    // LISTA DE ALIMENTOS BASE (AQUÍ PUEDES AGREGAR O CORREGIR TODOS LOS QUE NECESITES)
+    // gramosPorcion = Peso de la porción oficial de intercambio
+    // faPorcion = Miligramos de FA por cada porción de intercambio
     const baseDatosPKU = [
         { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
         { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11 },
@@ -221,7 +223,7 @@
         { nombre: "Papa cocida", gramosPorcion: 70, faPorcion: 53 }
     ];
 
-    // Cargar meta personalizada (por defecto 300 mg si no existe una guardada)
+    // Cargar configuraciones y estado desde LocalStorage
     let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
     let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
     let alimentoActual = null;
@@ -232,13 +234,14 @@
         cargarChecklist();
     };
 
+    // Registro del Service Worker para funcionamiento sin Internet
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker OK'))
             .catch(err => console.warn('Error SW', err));
     }
 
-    // Nueva función para editar y guardar el límite de FA personalizado
+    // Cambiar Meta Diaria Personalizada
     function cambiarMeta() {
         const nuevaMeta = prompt("Ingresa el límite diario de FA asignado por tu nutricionista (en mg):", metaDiaria);
         
@@ -254,6 +257,7 @@
         }
     }
 
+    // Buscador Inteligente
     function buscarAlimento() {
         const query = document.getElementById('buscador').value.toLowerCase();
         const lista = document.getElementById('listaSugerencias');
@@ -279,6 +283,7 @@
         }
     }
 
+    // Seleccionar alimento de la lista filtrada
     function seleccionarAlimento(alimento) {
         alimentoActual = alimento;
         document.getElementById('alimentoSeleccionadoBox').innerText = `Seleccionado: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g)`;
@@ -291,6 +296,7 @@
         document.getElementById('gramos').focus();
     }
 
+    // Cálculo con Regla de 3 y Redondeo Exacto Entero
     function calcularFA() {
         const gramosUsuario = parseFloat(document.getElementById('gramos').value);
 
@@ -299,11 +305,16 @@
             return;
         }
 
+        // Regla de tres basada en la porción de intercambio
         const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
 
-        consumidoHoy += resultadoFA;
+        // REDONDEO ESTRICTO A NÚMERO EXACTO ENTERO
+        consumidoHoy += Math.round(resultadoFA);
+        
+        // Guardar progreso en la memoria local
         localStorage.setItem('pku_consumido', consumidoHoy);
 
+        // Resetear controles
         document.getElementById('gramos').value = '';
         document.getElementById('gramos').disabled = true;
         document.getElementById('btnCalcular').disabled = true;
@@ -313,9 +324,10 @@
         actualizarPantalla();
     }
 
+    // Actualiza la visualización del Semáforo y Contadores (Sin decimales)
     function actualizarPantalla() {
-        document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(1) + " mg";
-        document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria} mg`;
+        document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(0) + " mg";
+        document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria.toFixed(0)} mg`;
         
         let porcentaje = (consumidoHoy / metaDiaria) * 100;
         if (porcentaje > 100) porcentaje = 100;
@@ -331,6 +343,7 @@
         medidor.style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
     }
 
+    // Control Visual y Persistente del Checklist de Fórmulas
     function toggleFormula(momento) {
         formulasEstado[momento] = !formulasEstado[momento];
         localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
@@ -351,16 +364,6 @@
         }
     }
 
+    // Reiniciar datos para un nuevo día
     function reiniciarDia() {
-        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas?")) {
-            consumidoHoy = 0;
-            formulasEstado = { manana: false, tarde: false, noche: false };
-            localStorage.setItem('pku_consumido', 0);
-            localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
-            actualizarPantalla();
-            cargarChecklist();
-        }
-    }
-</script>
-</body>
-</html>
+        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas para iniciar un nuevo día?"))
