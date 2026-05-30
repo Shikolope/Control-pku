@@ -154,7 +154,7 @@
         button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-reset { background-color: #7f8c8d; margin-top: 5px; padding: 8px; font-size: 12px; }
 
-        /* Estilos de la Sección de Historial con funciones individuales */
+        /* Sección de Historial y Copias de Seguridad */
         .historial-box {
             background: #fcfcfc;
             border: 1px solid #eaeaea;
@@ -176,7 +176,6 @@
             border-bottom: 1px solid #eee;
             font-size: 13px;
             cursor: pointer;
-            transition: background 0.2s;
         }
         .historial-item:hover { background-color: #f5f5f5; border-radius: 8px; }
         .historial-item:last-child { border-bottom: none; }
@@ -199,7 +198,20 @@
             margin: 0;
             display: inline;
         }
-        .btn-clear-history { background-color: #7f8c8d; margin-top: 15px; padding: 6px; font-size: 11px; }
+
+        .backup-zone {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .backup-zone button {
+            font-size: 11px;
+            padding: 8px;
+            margin: 0;
+        }
+        .btn-export { background-color: var(--color-blue); }
+        .btn-import { background-color: #9b59b6; }
+        .btn-clear-history { background-color: #7f8c8d; margin-top: 10px; padding: 6px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -256,6 +268,13 @@
         <h3>📋 Historial de Días Anteriores</h3>
         <ul id="listaHistorial" class="historial-lista">
             </ul>
+        
+        <div class="backup-zone">
+            <button class="btn-export" onclick="exportarRespaldo()">📥 Exportar Respaldo</button>
+            <button class="btn-import" onclick="importarRespaldo()">📤 Importar Respaldo</button>
+            <input type="file" id="fileInput" style="display:none;" onchange="procesarArchivoRespaldo(event)">
+        </div>
+
         <button class="btn-clear-history" onclick="borrarHistorialCompleto()">Limpiar Historial Completo</button>
     </div>
 </div>
@@ -414,7 +433,7 @@
             if (formulasEstado.noche) dosisTomadas++;
 
             const registroDia = {
-                id: Date.now(), // ID único para poder borrar individualmente
+                id: Date.now(),
                 fecha: fechaString,
                 consumido: consumidoHoy.toFixed(0),
                 meta: metaDiaria.toFixed(0),
@@ -436,7 +455,6 @@
         }
     }
 
-    // Muestra la lista del historial y configura las acciones al hacer clic
     function renderizarHistorial() {
         const listaUI = document.getElementById('listaHistorial');
         listaUI.innerHTML = "";
@@ -450,7 +468,6 @@
             const li = document.createElement('li');
             li.className = "historial-item";
             
-            // Si hace clic en el cuerpo de la fila (excepto en el botón X), revisa el día
             li.onclick = (e) => {
                 if (e.target.tagName !== 'BUTTON') {
                     revisarDiaEspecifico(dia);
@@ -473,7 +490,6 @@
         });
     }
 
-    // NUEVA FUNCIÓN: Muestra un informe emergente detallado del día seleccionado
     function revisarDiaEspecifico(dia) {
         const porcentaje = Math.round((parseFloat(dia.consumido) / parseFloat(dia.meta)) * 100);
         let estadoMensaje = "Bajo el límite seguro ✅";
@@ -493,7 +509,6 @@
         );
     }
 
-    // NUEVA FUNCIÓN: Elimina solo el día seleccionado buscando su ID único
     function borrarDiaIndividual(idParaBorrar, fechaParaMostrar) {
         if (confirm(`¿Estás seguro de que quieres eliminar del registro el día ${fechaParaMostrar.split('/')[0] + '/' + fechaParaMostrar.split('/')[1]}?`)) {
             historialDias = historialDias.filter(dia => dia.id !== idParaBorrar);
@@ -508,6 +523,57 @@
             localStorage.removeItem('pku_historial');
             renderizarHistorial();
         }
+    }
+
+    // NUEVA FUNCIÓN: Exporta los datos a un archivo descargable .txt
+    function exportarRespaldo() {
+        const datosParaRespaldar = {
+            meta: metaDiaria,
+            historial: historialDias
+        };
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosParaRespaldar));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "respaldo_pku.txt");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    // NUEVA FUNCIÓN: Abre el explorador de archivos para importar
+    function importarRespaldo() {
+        document.getElementById('fileInput').click();
+    }
+
+    // NUEVA FUNCIÓN: Procesa el archivo subido y restaura la memoria
+    function procesarArchivoRespaldo(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const datosRestaurados = JSON.parse(e.target.result);
+                
+                if (datosRestaurados.meta && Array.isArray(datosRestaurados.historial)) {
+                    metaDiaria = parseFloat(datosRestaurados.meta);
+                    historialDias = datosRestaurados.historial;
+                    
+                    localStorage.setItem('pku_meta', metaDiaria);
+                    localStorage.setItem('pku_historial', JSON.stringify(historialDias));
+                    
+                    actualizarPantalla();
+                    renderizarHistorial();
+                    alert("¡Copia de seguridad restaurada con éxito! ✅");
+                } else {
+                    alert("El archivo seleccionado no tiene un formato válido de respaldo PKU.");
+                }
+            } catch (err) {
+                alert("Error al leer el archivo. Asegúrate de seleccionar el archivo respaldo_pku.txt correcto.");
+            }
+        };
+        reader.readAsText(file);
     }
 </script>
 </body>
