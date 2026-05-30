@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pku-control-v2';
+const CACHE_NAME = 'pku-control-v3';
 const assets = [
   'app.html',
   'manifest.json'
