@@ -366,4 +366,22 @@
 
     // Reiniciar datos para un nuevo día
     function reiniciarDia() {
+        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas para iniciar un nuevo día?")) {
+            consumidoHoy = 0;
+            formulasEstado = { manana: false, tarde: false, noche: false };
+            
+            localStorage.setItem('pku_consumido', 0);
+            localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
+            
+            actualizarPantalla();
+            cargarChecklist();
+        }
+    }
+</script>
+</body>
+</html>
+    }
+
+    // Reiniciar datos para un nuevo día
+    function reiniciarDia() {
         if(confirm("¿Quieres reiniciar el contador de FA y fórmulas para iniciar un nuevo día?"))
