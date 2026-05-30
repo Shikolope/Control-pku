@@ -114,7 +114,7 @@
         .formula-item input { margin-right: 15px; transform: scale(1.2); }
         .formula-item.checked { opacity: 0.5; text-decoration: line-through; background: #edfcf4; }
 
-        .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; }
+        .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; margin-bottom: 25px; }
         input[type="text"], input[type="number"], button {
             width: 100%;
             padding: 12px;
@@ -153,6 +153,34 @@
 
         button { background-color: var(--color-green); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-reset { background-color: #7f8c8d; margin-top: 5px; padding: 8px; font-size: 12px; }
+
+        /* Estilos de la Nueva Sección de Historial */
+        .historial-box {
+            background: #fcfcfc;
+            border: 1px solid #eaeaea;
+            padding: 15px;
+            border-radius: 18px;
+        }
+        .historial-lista {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .historial-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        .historial-item:last-child { border-bottom: none; }
+        .historial-fecha { font-weight: bold; color: #7f8c8d; }
+        .historial-valores { font-weight: bold; }
+        .historial-formulas { font-size: 11px; color: #95a5a6; }
+        .btn-clear-history { background-color: #c0392b; margin-top: 10px; padding: 6px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -202,14 +230,19 @@
         <input type="number" id="gramos" placeholder="Gramos reales en la pesa" min="0" disabled>
 
         <button id="btnCalcular" onclick="calcularFA()" disabled>Calcular y Sumar</button>
-        <button class="btn-reset" onclick="reiniciarDia()">Reiniciar Día</button>
+        <button class="btn-reset" onclick="reiniciarDia()">Archivar y Reiniciar Día</button>
+    </div>
+
+    <div class="historial-box">
+        <h3>📋 Historial de Días Anteriores</h3>
+        <ul id="listaHistorial" class="historial-lista">
+            </ul>
+        <button class="btn-clear-history" onclick="borrarHistorialCompleto()">Borrar Todo el Historial</button>
     </div>
 </div>
 
 <script>
-    // LISTA DE ALIMENTOS BASE (AQUÍ PUEDES AGREGAR O CORREGIR TODOS LOS QUE NECESITES)
-    // gramosPorcion = Peso de la porción oficial de intercambio
-    // faPorcion = Miligramos de FA por cada porción de intercambio
+    // BASE DE DATOS (Maneja los alimentos con total libertad desde aquí)
     const baseDatosPKU = [
         { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
         { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11 },
@@ -223,28 +256,28 @@
         { nombre: "Papa cocida", gramosPorcion: 70, faPorcion: 53 }
     ];
 
-    // Cargar configuraciones y estado desde LocalStorage
     let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
     let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
     let alimentoActual = null;
     let formulasEstado = JSON.parse(localStorage.getItem('pku_formulas')) || { manana: false, tarde: false, noche: false };
+    
+    // Cargar arreglo del historial desde la memoria
+    let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
 
     window.onload = function() {
         actualizarPantalla();
         cargarChecklist();
+        renderizarHistorial();
     };
 
-    // Registro del Service Worker para funcionamiento sin Internet
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker OK'))
             .catch(err => console.warn('Error SW', err));
     }
 
-    // Cambiar Meta Diaria Personalizada
     function cambiarMeta() {
         const nuevaMeta = prompt("Ingresa el límite diario de FA asignado por tu nutricionista (en mg):", metaDiaria);
-        
         if (nuevaMeta !== null) {
             const valorNumerico = parseFloat(nuevaMeta);
             if (!isNaN(valorNumerico) && valorNumerico > 0) {
@@ -257,7 +290,6 @@
         }
     }
 
-    // Buscador Inteligente
     function buscarAlimento() {
         const query = document.getElementById('buscador').value.toLowerCase();
         const lista = document.getElementById('listaSugerencias');
@@ -283,7 +315,6 @@
         }
     }
 
-    // Seleccionar alimento de la lista filtrada
     function seleccionarAlimento(alimento) {
         alimentoActual = alimento;
         document.getElementById('alimentoSeleccionadoBox').innerText = `Seleccionado: ${alimento.nombre} (Base: ${alimento.gramosPorcion}g)`;
@@ -296,25 +327,18 @@
         document.getElementById('gramos').focus();
     }
 
-    // Cálculo con Regla de 3 y Redondeo Exacto Entero
     function calcularFA() {
         const gramosUsuario = parseFloat(document.getElementById('gramos').value);
-
         if (!gramosUsuario || gramosUsuario <= 0) {
             alert("Por favor, ingresa los gramos medidos.");
             return;
         }
 
-        // Regla de tres basada en la porción de intercambio
         const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
-
-        // REDONDEO ESTRICTO A NÚMERO EXACTO ENTERO
         consumidoHoy += Math.round(resultadoFA);
         
-        // Guardar progreso en la memoria local
         localStorage.setItem('pku_consumido', consumidoHoy);
 
-        // Resetear controles
         document.getElementById('gramos').value = '';
         document.getElementById('gramos').disabled = true;
         document.getElementById('btnCalcular').disabled = true;
@@ -324,7 +348,6 @@
         actualizarPantalla();
     }
 
-    // Actualiza la visualización del Semáforo y Contadores (Sin decimales)
     function actualizarPantalla() {
         document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(0) + " mg";
         document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria.toFixed(0)} mg`;
@@ -336,6 +359,7 @@
         if (consumidoHoy >= metaDiaria * 0.8 && consumidoHoy < metaDiaria) {
             colorSemaforo = "var(--color-yellow)";
         } else if (consumidoHoy >= metaDiaria) {
+            colorSFA = "var(--color-red)";
             colorSemaforo = "var(--color-red)";
         }
 
@@ -343,7 +367,6 @@
         medidor.style.background = `conic-gradient(${colorSemaforo} ${porcentaje}%, #e0e0e0 ${porcentaje}%)`;
     }
 
-    // Control Visual y Persistente del Checklist de Fórmulas
     function toggleFormula(momento) {
         formulasEstado[momento] = !formulasEstado[momento];
         localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
@@ -364,24 +387,80 @@
         }
     }
 
-    // Reiniciar datos para un nuevo día
+    // NUEVA FUNCIÓN: Guarda el día actual en el historial antes de resetear
     function reiniciarDia() {
-        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas para iniciar un nuevo día?")) {
+        if(confirm("¿Quieres ARCHIVAR los datos de hoy en el informe e iniciar un nuevo día en cero?")) {
+            
+            // 1. Obtener la fecha de hoy formateada de manera simple (DD/MM)
+            const fechaActual = new Date();
+            const fechaString = fechaActual.getDate() + "/" + (fechaActual.getMonth() + 1);
+
+            // 2. Contar cuántas dosis de fórmula se tomaron
+            let dosisTomadas = 0;
+            if (formulasEstado.manana) dosisTomadas++;
+            if (formulasEstado.tarde) dosisTomadas++;
+            if (formulasEstado.noche) dosisTomadas++;
+
+            // 3. Crear el objeto con el registro del día
+            const registroDia = {
+                fecha: fechaString,
+                consumido: consumidoHoy.toFixed(0),
+                meta: metaDiaria.toFixed(0),
+                formulas: `${dosisTomadas}/3`
+            };
+
+            // 4. Agregarlo al inicio de nuestro historial
+            historialDias.unshift(registroDia);
+            localStorage.setItem('pku_historial', JSON.stringify(historialDias));
+
+            // 5. Resetear los contadores a cero de forma normal
             consumidoHoy = 0;
             formulasEstado = { manana: false, tarde: false, noche: false };
             
             localStorage.setItem('pku_consumido', 0);
             localStorage.setItem('pku_formulas', JSON.stringify(formulasEstado));
             
+            // 6. Actualizar la aplicación por completo
             actualizarPantalla();
             cargarChecklist();
+            renderizarHistorial();
+        }
+    }
+
+    // NUEVA FUNCIÓN: Muestra la lista del historial en la pantalla
+    function renderizarHistorial() {
+        const listaUI = document.getElementById('listaHistorial');
+        listaUI.innerHTML = "";
+
+        if (historialDias.length === 0) {
+            listaUI.innerHTML = "<li style='padding:10px; font-size:12px; color:#95a5a6; text-align:center;'>No hay días archivados todavía.</li>";
+            return;
+        }
+
+        historialDias.forEach(dia => {
+            const li = document.createElement('li');
+            li.className = "historial-item";
+            li.innerHTML = `
+                <div>
+                    <span class="historial-fecha">Día ${dia.fecha}:</span>
+                    <span class="historial-formulas"> 🍼 Fórmula: ${dia.formulas}</span>
+                </div>
+                <span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">
+                    ${dia.consumido} / ${dia.meta} mg
+                </span>
+            `;
+            listaUI.appendChild(li);
+        });
+    }
+
+    // NUEVA FUNCIÓN: Por si necesitas vaciar la bitácora completa
+    function borrarHistorialCompleto() {
+        if(confirm("⚠️ ¿Estás seguro de que quieres BORRAR TODO EL HISTORIAL acumulado? Esta acción no se puede deshacer.")) {
+            historialDias = [];
+            localStorage.removeItem('pku_historial');
+            renderizarHistorial();
         }
     }
 </script>
 </body>
 </html>
-    }
-
-    // Reiniciar datos para un nuevo día
-    function reiniciarDia() {
-        if(confirm("¿Quieres reiniciar el contador de FA y fórmulas para iniciar un nuevo día?"))
