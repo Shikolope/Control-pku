@@ -101,19 +101,6 @@
             display: inline;
         }
 
-        .checklist-box { margin-bottom: 25px; }
-        .formula-item {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
-        .formula-item input { margin-right: 15px; transform: scale(1.2); }
-        .formula-item.checked { opacity: 0.5; text-decoration: line-through; background: #edfcf4; }
-
         .calculadora-box { background: #f8f9fa; padding: 15px; border-radius: 18px; margin-bottom: 25px; }
         input[type="text"], input[type="number"], button {
             width: 100%;
@@ -182,7 +169,6 @@
         
         .historial-info { display: flex; flex-direction: column; gap: 2px; }
         .historial-fecha { font-weight: bold; color: var(--text-main); }
-        .historial-formulas { font-size: 11px; color: #95a5a6; }
         
         .historial-acciones { display: flex; align-items: center; gap: 12px; }
         .historial-valores { font-weight: bold; }
@@ -194,128 +180,4 @@
             cursor: pointer;
             font-size: 14px;
             padding: 4px;
-            width: auto;
-            margin: 0;
-            display: inline;
-        }
-
-        .backup-zone {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .backup-zone button {
-            font-size: 11px;
-            padding: 8px;
-            margin: 0;
-        }
-        .btn-export { background-color: var(--color-blue); }
-        .btn-import { background-color: #9b59b6; }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <header>
-        <h2>Mi Control PKU</h2>
-    </header>
-
-    <div class="cita-card">
-        📌 <strong>Nota de recordatorio:</strong> Próximo control médico e informes oficiales en la mañana.
-    </div>
-
-    <div class="medidor-box">
-        <div class="circulo-progreso" id="medidorVisual">
-            <div class="circulo-interno">
-                <span class="valores-fa" id="txtConsumido">0 mg</span>
-                <div class="meta-container">
-                    <span id="txtMeta">Meta: 300 mg</span>
-                    <button class="btn-edit-meta" onclick="cambiarMeta()" title="Cambiar meta diaria">⚙️</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="checklist-box">
-        <h3>🍼 Registro de Fórmula (Hoy)</h3>
-        <div class="formula-item" id="f-manana" onclick="toggleFormula('manana')">
-            <input type="checkbox" id="chk-manana"> <span>Dosis Mañana</span>
-        </div>
-        <div class="formula-item" id="f-tarde" onclick="toggleFormula('tarde')">
-            <input type="checkbox" id="chk-tarde"> <span>Dosis Tarde</span>
-        </div>
-        <div class="formula-item" id="f-noche" onclick="toggleFormula('noche')">
-            <input type="checkbox" id="chk-noche"> <span>Dosis Noche</span>
-        </div>
-    </div>
-
-    <div class="calculadora-box">
-        <h3>🧮 Buscador PKU 2021</h3>
-        
-        <input type="text" id="buscador" placeholder="🔎 Escribe para buscar alimento..." oninput="buscarAlimento()">
-        <ul id="listaSugerencias" class="sugerencias-lista"></ul>
-
-        <div id="alimentoSeleccionadoBox" class="alimento-seleccionado"></div>
-
-        <input type="number" id="gramos" placeholder="Gramos reales en la pesa" min="0" disabled>
-
-        <button id="btnCalcular" onclick="calcularFA()" disabled>Calcular y Sumar</button>
-        <button class="btn-reset" onclick="reiniciarDia()">Archivar y Reiniciar Día</button>
-    </div>
-
-    <div class="historial-box">
-        <h3>📋 Historial de Días Anteriores</h3>
-        <ul id="listaHistorial" class="historial-lista">
-            </ul>
-        
-        <div class="backup-zone">
-            <button class="btn-export" onclick="exportarRespaldo()">📥 Exportar Respaldo</button>
-            <button class="btn-import" onclick="importarRespaldo()">📤 Importar Respaldo</button>
-            <input type="file" id="fileInput" style="display:none;" onchange="procesarArchivoRespaldo(event)">
-        </div>
-    </div>
-</div>
-
-<script>
-    // LISTA DE ALIMENTOS BASE
-    const baseDatosPKU = [
-        { nombre: "Apio crudo", gramosPorcion: 25, faPorcion: 5 },
-        { nombre: "Lechuga", gramosPorcion: 50, faPorcion: 11 },
-        { nombre: "Pepino ensalada", gramosPorcion: 100, faPorcion: 14 },
-        { nombre: "Zapallo italiano cocido", gramosPorcion: 70, faPorcion: 24 },
-        { nombre: "Zanahoria cruda", gramosPorcion: 50, faPorcion: 21 },
-        { nombre: "Tomate", gramosPorcion: 80, faPorcion: 22 },
-        { nombre: "Manzana", gramosPorcion: 100, faPorcion: 11 },
-        { nombre: "Plátano (Banana)", gramosPorcion: 60, faPorcion: 34 },
-        { nombre: "Naranja", gramosPorcion: 120, faPorcion: 29 },
-        { nombre: "Papa cocida", gramosPorcion: 70, faPorcion: 53 }
-    ];
-
-    let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
-    let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
-    let alimentoActual = null;
-    let formulasEstado = JSON.parse(localStorage.getItem('pku_formulas')) || { manana: false, tarde: false, noche: false };
-    let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
-
-    window.onload = function() {
-        actualizarPantalla();
-        cargarChecklist();
-        renderizarHistorial();
-    };
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker OK'))
-            .catch(err => console.warn('Error SW', err));
-    }
-
-    function cambiarMeta() {
-        const nuevaMeta = prompt("Ingresa el límite diario de FA asignado por tu nutricionista (en mg):", metaDiaria);
-        if (nuevaMeta !== null) {
-            const valorNumerico = parseFloat(nuevaMeta);
-            if (!isNaN(valorNumerico) && valorNumerico > 0) {
-                metaDiaria = valorNumerico;
-                localStorage.setItem('pku_meta', metaDiaria);
-                actualizarPantalla();
-            } else {
-                alert("Por favor, ingresa un número válido y mayor a
+            width: auto
