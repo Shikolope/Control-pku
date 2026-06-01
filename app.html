@@ -341,7 +341,6 @@
         <h2>Mi Control PKU</h2>
     </header>
 
-    <!-- Zona de Citas Médicas -->
     <div class="citas-container">
         <div class="citas-header">
             <h3>📅 Próximas Citas Médicas</h3>
@@ -360,7 +359,6 @@
         <ul id="listaCitas" class="citas-lista"></ul>
     </div>
 
-    <!-- Medidor Circular -->
     <div class="medidor-box">
         <div class="circulo-progreso" id="medidorVisual">
             <div class="circulo-interno">
@@ -373,12 +371,10 @@
         </div>
     </div>
 
-    <!-- Botón Volver Atrás (Ctrl+Z) -->
     <div class="btn-undo-container">
         <button id="btnUndo" class="btn-undo" onclick="volverAtras()" disabled>↩️ Volver Atrás</button>
     </div>
 
-    <!-- Calculadora con Buscador -->
     <div class="calculadora-box">
         <h3>🧮 Buscador PKU 2021</h3>
         
@@ -393,7 +389,6 @@
         <button class="btn-reset" onclick="reiniciarDiaManual()">Reiniciar Día Actual</button>
     </div>
 
-    <!-- Tabla de Pesos Estandarizados (Tus datos) -->
     <div class="ayuda-medidas-box">
         <div class="ayuda-medidas-title" onclick="toggleAyudaMedidas()">
             <span>💡 Tabla de Pesos Estandarizados</span>
@@ -408,13 +403,11 @@
         </div>
     </div>
 
-    <!-- Registro del Desglose diario -->
     <div class="comidas-hoy-box">
         <h3>📋 Comidas de Hoy</h3>
         <ul id="listaComidasHoy" class="comidas-hoy-lista"></ul>
     </div>
 
-    <!-- Sección: Historial Dinámico con Respaldo de Seguridad -->
     <div class="historial-box">
         <h3>📋 Historial de Días Anteriores</h3>
         <ul id="listaHistorial" class="historial-lista"></ul>
@@ -428,7 +421,7 @@
 </div>
 
 <script>
-    // BASE DE DATOS ADAPTADA CON LAS UNIDADES EXACTAS DE TU TABLA
+    // BASE DE DATOS ADAPTADA CON LAS UNIDADES EXACTAS DE TU TABLA (CORREGIDA)
     const baseDatosPKU = [
         { nombre: "Acelga cruda", gramosPorcion: 12, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Achicoria cruda", gramosPorcion: 25, faPorcion: 6, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
@@ -472,488 +465,37 @@
         { nombre: "Yuca cruda", gramosPorcion: 100, faPorcion: 71, tipo: "permitido" },
         { nombre: "Nabo crudo", gramosPorcion: 100, faPorcion: 17, tipo: "permitido" },
         { nombre: "Acelga cocida", gramosPorcion: 39, faPorcion: 44, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Alcachofa fondo cocida", gramosPorcion: 55, faPorcion: 96, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Apio cocido", gramosPorcion: 45, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Arvejas cocidas", gramosPorcion: 56, faPorcion: 112, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Berenjena cocida", gramosPorcion: 56, faPorcion: 20, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Betarraga cocida", gramosPorcion: 53, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Brócoli cocido", gramosPorcion: 44, faPorcion: 51, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Camote cocido", gramosPorcion: 56, faPorcion: 56, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Cebollines cocidos", gramosPorcion: 25, faPorcion: 9, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Champiñones cocidos o en conserva", gramosPorcion: 38, faPorcion: 23, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Choclo cocido", gramosPorcion: 58, faPorcion: 90, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Chucrut cocido", gramosPorcion: 59, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-    	{ nombre: "Col bruselas cocida", gramosPorcion: 32, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-    	{ nombre: "Coliflor cocida", gramosPorcion: 32, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-    	{ nombre: "Espárragos cocidos", gramosPorcion: 20, faPorcion: 16, tipo: "permitido", medidaCasera: "~1 unidad" },
-    	{ nombre: "Espinaca cocida o en conserva", gramosPorcion: 39, faPorcion: 52, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Habas cocidas", gramosPorcion: 50, faPorcion: 190, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Mostaza verde cocida", gramosPorcion: 32, faPorcion: 32, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-    	{ nombre: "Nabo cocido", gramosPorcion: 90, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Papas cocidas", gramosPorcion: 62, faPorcion: 51, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-    	{ nombre: "Pickle cocido", gramosPorcion: 40, faPorcion: 38, tipo: "permitido", medidaCasera: "~1 unidad" },
-	    { nombre: "Porotos verdes cocidos", gramosPorcion: 23, faPorcion: 16, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-	    { nombre: "Repollitos de bruselas cocidas", gramosPorcion: 13, faPorcion: 10, tipo: "permitido", medidaCasera: "~1 unidad" },
-	    { nombre: "Repollo cocido", gramosPorcion: 55, faPorcion: 18, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-    	{ nombre: "Tomate salsa o ketchup", gramosPorcion: 101, faPorcion: 21, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-	    { nombre: "Tomate salsa o ketchup", gramosPorcion: 9, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 Medida nestle (md.)" },
-		{ nombre: "Tomate cocido o conversa", gramosPorcion: 45, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Yuca blanca fresca cocida", gramosPorcion: 100, faPorcion: 69, tipo: "permitido" },
-		{ nombre: "Zanahoria cocida", gramosPorcion: 25, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Zapallo asado o cocido", gramosPorcion: 57, faPorcion: 31, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Zapallo italiano cocido", gramosPorcion: 56, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Palmito enlatados", gramosPorcion: 57, faPorcion: 56, tipo: "permitido" },
-		{ nombre: "Puerro cocido", gramosPorcion: 100, faPorcion: 30, tipo: "permitido" },
-		{ nombre: "Cereza fresca", gramosPorcion: 6, faPorcion: 3, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Chirimoya", gramosPorcion: 62, faPorcion: 53, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Ciruela deshidratada deshuesada", gramosPorcion: 12, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Ciruela en conserva", gramosPorcion: 37, faPorcion: 10, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Ciruela fresca", gramosPorcion: 65, faPorcion: 23, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Ciruela fresca", gramosPorcion: 37, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Coco molido (1cda)", gramosPorcion: 5, faPorcion: 17, tipo: "permitido", medidaCasera: "~1 cucharada rasa" },
-		{ nombre: "Coco molino (1 medida)", gramosPorcion: 3, faPorcion: 5, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Coktail de fruta en conserva", gramosPorcion: 71, faPorcion: 7, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Damasco deshidratado", gramosPorcion: 11, faPorcion: 19, tipo: "permitido", medidaCasera: "~3 mitades" },
-		{ nombre: "Damasco fresco", gramosPorcion: 80, faPorcion: 56, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Damasco en conserva", gramosPorcion: 65, faPorcion: 21, tipo: "permitido", medidaCasera: "~4 mitades" },
-		{ nombre: "Damasco fresco", gramosPorcion: 40, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Datil deshuesado entero", gramosPorcion: 25, faPorcion: 31, tipo: "permitido", medidaCasera: "~3 unidades" },
-		{ nombre: "Durazno deshidratado", gramosPorcion: 13, faPorcion: 24, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Durazno en conserva", gramosPorcion: 85, faPorcion: 19, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Durazno en conserva", gramosPorcion: 53, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Durazno fresco", gramosPorcion: 65, faPorcion: 30, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Frambuesa roja congelada", gramosPorcion: 75, faPorcion: 45, tipo: "permitido", medidaCasera: "~1/4 de Taza Luminarc (tz.)" },
-		{ nombre: "Frambuesas Frescas", gramosPorcion: 65, faPorcion: 39, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Frutillas congeladas con azucar", gramosPorcion: 30, faPorcion: 7, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Frutillas congeladas sin azucar", gramosPorcion: 30, faPorcion: 7, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Frutillas en conserva", gramosPorcion: 78, faPorcion: 22, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Frutillas frescas", gramosPorcion: 68, faPorcion: 23, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Grosella", gramosPorcion: 60, faPorcion: 42, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
-		{ nombre: "Guayaba fresca", gramosPorcion: 33, faPorcion: 4, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Higo fresco", gramosPorcion: 40, faPorcion: 15, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Higo seco", gramosPorcion: 13, faPorcion: 21, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Huesillo", gramosPorcion: 12, faPorcion: 22, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Kiwi", gramosPorcion: 74, faPorcion: 39, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Kiwi", gramosPorcion: 50, faPorcion: 27, tipo: "permitido", medidaCasera: "~1 unidad chica" },
-		{ nombre: "Limon entero", gramosPorcion: 50, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Limon jugo", gramosPorcion: 100, faPorcion: 18, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Lucuma pure", gramosPorcion: 11, faPorcion: 6, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Lucuma pure", gramosPorcion: 25, faPorcion: 14, tipo: "permitido", medidaCasera: "~1 cucharada rasa" },
-		{ nombre: "Mandarina fresca", gramosPorcion: 95, faPorcion: 39, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Mandarina jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Mango conserva", gramosPorcion: 85, faPorcion: 26, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Mango fresco", gramosPorcion: 85, faPorcion: 35, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Mango deshidratado", gramosPorcion: 100, faPorcion: 123, tipo: "permitido",
-		{ nombre: "Manzana fresca picada", gramosPorcion: 43, faPorcion: 6, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Manzana fresca picada toda variedad", gramosPorcion: 100, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 unidad chica" },
-		{ nombre: "Manzana rebanada deshidratada", gramosPorcion: 5, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 rodela" },
-		{ nombre: "Marrasquino", gramosPorcion: 70, faPorcion: 8, tipo: "permitido", medidaCasera: "~15 unidades pequeñas" },
-		{ nombre: "Melon toda variedad", gramosPorcion: 62, faPorcion: 17, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Membrillo", gramosPorcion: 100, faPorcion: 20, tipo: "permitido", medidaCasera: "~1 unidad chica" },
-		{ nombre: "Mora Fresca", gramosPorcion: 75, faPorcion: 53, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Naranja fresca pelada", gramosPorcion: 60, faPorcion: 45, tipo: "permitido", medidaCasera: "~1/2 unidad regular" },
-		{ nombre: "Naranja fresca picada", gramosPorcion: 69, faPorcion: 32, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Naranja jugo fresco", gramosPorcion: 100, faPorcion: 34, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Nectarines", gramosPorcion: 100, faPorcion: 30, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Nísperos en conserva", gramosPorcion: 55, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Nísperos frescos", gramosPorcion: 17, faPorcion: 4, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Nísperos frescos", gramosPorcion: 70, faPorcion: 16, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Papaya", gramosPorcion: 66, faPorcion: 16, tipo: "permitido", medidaCasera: "~1/2 unidad regular" },
-		{ nombre: "Papaya en conserva", gramosPorcion: 100, faPorcion: 18, tipo: "permitido",
-		{ nombre: "Palta", gramosPorcion: 100, faPorcion: 100, tipo: "permitido",
-		{ nombre: "Pasas", gramosPorcion: 1, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "Pepino dulce", gramosPorcion: 120, faPorcion: 24, tipo: "permitido", medidaCasera: "~1/2 unidad grande" },
-		{ nombre: "Pera fresca picada", gramosPorcion: 52, faPorcion: 9, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Pera deshidratada", gramosPorcion: 4, faPorcion: 4, tipo: "permitido", medidaCasera: "~1 rodela" },
-		{ nombre: "Pera en conserva", gramosPorcion: 270, faPorcion: 24, tipo: "permitido", medidaCasera: "~2 unidades mediana" },
-		{ nombre: "Pera fresca", gramosPorcion: 100, faPorcion: 18, tipo: "permitido", medidaCasera: "~1 unidad chica" },
-		{ nombre: "Piña confitada", gramosPorcion: 75, faPorcion: 54, tipo: "permitido", medidaCasera: "~2 rebanadas" },
-		{ nombre: "Piña en conserva", gramosPorcion: 80, faPorcion: 10, tipo: "permitido", medidaCasera: "~1 rodela" },
-		{ nombre: "Piña en conserva", gramosPorcion: 66, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Piña fresca", gramosPorcion: 70, faPorcion: 19, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Plátano (Banana) deshidratado", gramosPorcion: 13, faPorcion: 21, tipo: "permitido", medidaCasera: "~10 rodelas" },
-		{ nombre: "Plátano (Banana) fresco pelado", gramosPorcion: 60, faPorcion: 33, tipo: "permitido", medidaCasera: "~1/2 unidad" },
-		{ nombre: "Plátano (Banana) fresco picado", gramosPorcion: 63, faPorcion: 35, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Plátano (Banana) chips", gramosPorcion: 100, faPorcion: 179, tipo: "controlado",
-		{ nombre: "Pomelo fresco", gramosPorcion: 58, faPorcion: 23, tipo: "permitido", medidaCasera: "~1/2 Taza Luminarc (tz.)" },
-		{ nombre: "Pomelo jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Ruibardo cocido", gramosPorcion: 115, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Ruibardo fresco", gramosPorcion: 60, faPorcion: 27, tipo: "permitido", medidaCasera: "~1/2 Taza Luminarc (tz.)" },
-		{ nombre: "Sandia", gramosPorcion: 100, faPorcion: 31, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Tangerina fresca", gramosPorcion: 136, faPorcion: 27, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Tunas", gramosPorcion: 75, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
-		{ nombre: "Uva negra", gramosPorcion: 125, faPorcion: 45, tipo: "permitido", medidaCasera: "~20 unidades grandes" },
-		{ nombre: "Uva verde", gramosPorcion: 110, faPorcion: 40, tipo: "permitido", medidaCasera: "~18 unidades grandes" },
-		{ nombre: "Avena cruda", gramosPorcion: 8, faPorcion: 64, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Arroz toda variedad crudo", gramosPorcion: 72, faPorcion: 256, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Ñoquis de papa crudo", gramosPorcion: 5, faPorcion: 7, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Cebada cruda", gramosPorcion: 7, faPorcion: 34, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Chuchoca cruda", gramosPorcion: 7, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Chuño crudo", gramosPorcion: 5, faPorcion: 20, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Centeno crudo", gramosPorcion: 4, faPorcion: 0.3, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Fideos huevo o espinaca general cruda", gramosPorcion: 25, faPorcion: 166, tipo: "controlado",
-		{ nombre: "Fideos cabello de angel crudo", gramosPorcion: 4, faPorcion: 27, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Maicena cruda", gramosPorcion: 5, faPorcion: 0.8, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Polenta cruda", gramosPorcion: 7, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Sémola cruda", gramosPorcion: 7, faPorcion: 45, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Harina de trigo cruda", gramosPorcion: 5, faPorcion: 26, tipo: "permitido", medidaCasera: "~1 medida nestle" },
-		{ nombre: "Arroz toda variedad cocidos", gramosPorcion: 49, faPorcion: 66, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Fideos toda variedad cocidos", gramosPorcion: 30, faPorcion: 69, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "Sopa Maggi de choclo", gramosPorcion: 16, faPorcion: 50, tipo: "permitido", medidaCasera: "~1 sobre para uno" },
-		{ nombre: "Sopa Maggi de cebolla", gramosPorcion: 16, faPorcion: 50, tipo: "permitido", medidaCasera: "~1 sobre para uno" },
-		{ nombre: "Sopa Maggi de esparragos", gramosPorcion: 16, faPorcion: 50, tipo: "permitido", medidaCasera: "~1 sobre para uno" },
-		{ nombre: "Sopa Maggi oxtail", gramosPorcion: 16, faPorcion: 50, tipo: "permitido", medidaCasera: "~1 sobre para uno" },
-		{ nombre: "APROTEN pan de molde tostado", gramosPorcion: 8, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN galletas saladas de hoja", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Rigatini, penne, fusilla", gramosPorcion: 31, faPorcion: 1, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "APROTEN Fetuccine, tagliatelle", gramosPorcion: 48, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "APROTEN Spaghetti", gramosPorcion: 48, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "APROTEN Anelini, ditalini", gramosPorcion: 16, faPorcion: 50, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "APROTEN Galletas de chocolate", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Galletas de vainilla", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Galletitas de fruta", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Obleas de chocolate", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Obleas de vainilla", gramosPorcion: 6, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 unidad" },
-		{ nombre: "APROTEN Harina", gramosPorcion: 38, faPorcion: 0.9, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-		{ nombre: "VIOLIFE Queso original", gramosPorcion: 20, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
-		{ nombre: "VIOLIFE Queso Mozzarella", gramosPorcion: 30, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
-		{ nombre: "VIOLIFE Queso Cheddar", gramosPorcion: 30, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
-		{ nombre: "VIOLIFE Queso Creamy", gramosPorcion: 20, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
-    ];
-
-    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-
-    let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
-    let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
-    let alimentoActual = null;
-    
-    let comidasHoy = JSON.parse(localStorage.getItem('pku_comidas_hoy')) || [];
-    let historialDias = JSON.parse(localStorage.getItem('pku_historial')) || [];
-    let citasMedicas = JSON.parse(localStorage.getItem('pku_citas')) || [];
-    let pilaEstadosAnteriores = [];
-
-    window.onload = function() {
-        verificarCambioDeDiaAutomatico();
-        actualizarPantalla();
-        renderizarComidasHoy();
-        renderizarHistorial();
-        renderizarCitas();
-        actualizarBotonUndoVisual();
-    };
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker OK'))
-            .catch(err => console.warn('Error SW', err));
-    }
-
-    function toggleAyudaMedidas() {
-        const content = document.getElementById('ayudaMedidasContent');
-        const flecha = document.getElementById('ayudaFlecha');
-        content.style.display = (content.style.display === 'block') ? 'none' : 'block';
-        flecha.innerText = (content.style.display === 'block') ? '▲' : '▼';
-    }
-
-    // --- CITAS MÉDICAS ---
-    function toggleFormCita() {
-        const box = document.getElementById('formCitaBox');
-        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
-    }
-
-    function guardarNuevaCita() {
-        const nota = document.getElementById('citaNota').value.trim();
-        const fechaHoraValue = document.getElementById('citaFechaHora').value;
-
-        if (!nota || !fechaHoraValue) {
-            alert("Por favor, introduce una descripción y la fecha/hora.");
-            return;
-        }
-
-        const f = new Date(fechaHoraValue);
-        const nombreDia = diasSemana[f.getDay()];
-        const dia = String(f.getDate()).padStart(2, '0');
-        const mes = String(f.getMonth() + 1).padStart(2, '0');
-        const horas = String(f.getHours()).padStart(2, '0');
-        const minutos = String(f.getMinutes()).padStart(2, '0');
-        
-        const fechaFormateada = `${nombreDia}, ${dia}/${mes} a las ${horas}:${minutos} hrs`;
-
-        citasMedicas.push({
-            id: Date.now(),
-            texto: nota,
-            fechaTexto: fechaFormateada,
-            rawDateTime: fechaHoraValue
-        });
-        citasMedicas.sort((a, b) => new Date(a.rawDateTime) - new Date(b.rawDateTime));
-        localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
-        
-        toggleFormCita();
-        renderizarCitas();
-    }
-
-    function renderizarCitas() {
-        const listaUI = document.getElementById('listaCitas');
-        listaUI.innerHTML = "";
-        if (citasMedicas.length === 0) {
-            listaUI.innerHTML = "<li style='padding:5px; font-size:12px; color:#555; text-align:center; list-style:none;'>No tienes citas programadas.</li>";
-            return;
-        }
-        citasMedicas.forEach(cita => {
-            const li = document.createElement('li');
-            li.className = "cita-item";
-            li.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <strong>📌 ${cita.texto}</strong>
-                    <span class="cita-fecha-info">⏰ ${cita.fechaTexto}</span>
-                </div>
-                <button class="btn-del-item" onclick="borrarCitaIndividual(${cita.id})">❌</button>
-            `;
-            listaUI.appendChild(li);
-        });
-    }
-
-    function borrarCitaIndividual(idCita) {
-        if (confirm("¿Quieres eliminar esta cita médica?")) {
-            citasMedicas = citasMedicas.filter(c => c.id !== idCita);
-            localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
-            renderizarCitas();
-        }
-    }
-
-    // --- BUSCADOR ---
-    function buscarAlimento() {
-        const query = document.getElementById('buscador').value.toLowerCase();
-        const lista = document.getElementById('listaSugerencias');
-        lista.innerHTML = "";
-
-        if (query.trim() === "") {
-            lista.style.display = "none";
-            return;
-        }
-
-        const filtrados = baseDatosPKU.filter(a => a.nombre.toLowerCase().includes(query));
-
-        if (filtrados.length > 0) {
-            lista.style.display = "block";
-            filtrados.forEach(alimento => {
-                const li = document.createElement('li');
-                let textoTag = "Permitido"; let claseTag = "tag-permitido";
-                if(alimento.tipo === "controlado") { textoTag = "Al Límite"; claseTag = "tag-controlado"; }
-                if(alimento.tipo === "prohibido") { textoTag = "Prohibido"; claseTag = "tag-prohibido"; }
-
-                li.innerHTML = `<span>${alimento.nombre}</span><span class="tag-alimento ${claseTag}">${textoTag}</span>`;
-                li.onclick = () => seleccionarAlimento(alimento);
-                lista.appendChild(li);
-            });
-        } else {
-            lista.style.display = "none";
-        }
-    }
-
-    function seleccionarAlimento(alimento) {
-        alimentoActual = alimento;
-        const box = document.getElementById('alimentoSeleccionadoBox');
-        const inputGramos = document.getElementById('gramos');
-        const btnCalc = document.getElementById('btnCalcular');
-        box.style.display = "block";
-        document.getElementById('listaSugerencias').style.display = "none";
-        document.getElementById('buscador').value = "";
-
-        if (alimento.tipo === "permitido") {
-            box.innerHTML = `🟢 OK: ${alimento.nombre} (${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span>`;
-            box.style.backgroundColor = "rgba(46, 204, 113, 0.15)"; box.style.color = "#1e7e34"; box.style.borderLeft = "4px solid var(--color-green)";
-            inputGramos.disabled = false; btnCalc.disabled = false; inputGramos.focus();
-        } 
-        else if (alimento.tipo === "controlado") {
-            box.innerHTML = `🟡 AL LÍMITE: ${alimento.nombre} (${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span>`;
-            box.style.backgroundColor = "rgba(241, 196, 15, 0.15)"; box.style.color = "#744210"; box.style.borderLeft = "4px solid var(--color-yellow)";
-            inputGramos.disabled = false; btnCalc.disabled = false; inputGramos.focus();
-        } 
-        else if (alimento.tipo === "prohibido") {
-            box.innerHTML = `🔴 PROHIBIDO: ${alimento.nombre}<span class="medida-sugerida-texto" style="color:#b71c1c;">⚠️ Advertencia: ${alimento.medidaCasera}</span>`;
-            box.style.backgroundColor = "rgba(231, 76, 60, 0.15)"; box.style.color = "#b71c1c"; box.style.borderLeft = "4px solid var(--color-red)";
-            inputGramos.value = ""; inputGramos.disabled = true; btnCalc.disabled = true;
-        }
-    }
-
-    function calcularFA() {
-        const gramosUsuario = parseFloat(document.getElementById('gramos').value);
-        if (!gramosUsuario || gramosUsuario <= 0) {
-            alert("Por favor, ingresa los gramos medidos.");
-            return;
-        }
-
-        guardarEstadoParaUndo();
-
-        const resultadoFA = (gramosUsuario * alimentoActual.faPorcion) / alimentoActual.gramosPorcion;
-        const faRedondeada = Math.round(resultadoFA);
-        
-        consumidoHoy += faRedondeada;
-        localStorage.setItem('pku_consumido', consumidoHoy);
-
-        comidasHoy.push({ id: Date.now(), nombre: alimentoActual.nombre, gramos: gramosUsuario, fa: faRedondeada });
-        localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-
-        document.getElementById('gramos').value = '';
-        document.getElementById('gramos').disabled = true;
-        document.getElementById('btnCalcular').disabled = true;
-        document.getElementById('alimentoSeleccionadoBox').style.display = "none";
-        alimentoActual = null;
-
-        actualizarPantalla();
-        renderizarComidasHoy();
-    }
-
-    function renderizarComidasHoy() {
-        const listaUI = document.getElementById('listaComidasHoy');
-        listaUI.innerHTML = "";
-        if (comidasHoy.length === 0) {
-            listaUI.innerHTML = "<li style='padding:5px; font-size:13px; color:#95a5a6; text-align:center;'>No has registrado alimentos hoy.</li>";
-            return;
-        }
-        comidasHoy.forEach(item => {
-            const li = document.createElement('li');
-            li.className = "comida-item";
-            li.innerHTML = `<div><strong>${item.nombre}</strong> <span class="comida-detalles">(${item.gramos}g)</span></div>
-                            <div style="display: flex; align-items: center; gap: 10px;"><span style="font-weight: bold;">${item.fa} mg</span><button class="btn-del-item" onclick="borrarComidaIndividual(${item.id}, ${item.fa})">❌</button></div>`;
-            listaUI.appendChild(li);
-        });
-    }
-
-    function borrarComidaIndividual(idComida, faARestar) {
-        if (confirm("¿Quieres eliminar este alimento?")) {
-            guardarEstadoParaUndo();
-            comidasHoy = comidasHoy.filter(c => c.id !== idComida);
-            localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            consumidoHoy = Math.max(0, consumidoHoy - faARestar);
-            localStorage.setItem('pku_consumido', consumidoHoy);
-            actualizarPantalla();
-            renderizarComidasHoy();
-        }
-    }
-
-    // --- MÁQUINA DEL TIEMPO (UNDO) ---
-    function guardarEstadoParaUndo() {
-        pilaEstadosAnteriores.push({ consumido: consumidoHoy, comidas: JSON.parse(JSON.stringify(comidasHoy)) });
-        if (pilaEstadosAnteriores.length > 10) pilaEstadosAnteriores.shift();
-        actualizarBotonUndoVisual();
-    }
-
-    function volverAtras() {
-        if (pilaEstadosAnteriores.length === 0) return;
-        const est = pilaEstadosAnteriores.pop();
-        consumidoHoy = est.consumido; comidasHoy = est.comidas;
-        localStorage.setItem('pku_consumido', consumidoHoy);
-        localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-        actualizarPantalla(); renderizarComidasHoy(); actualizarBotonUndoVisual();
-    }
-
-    function actualizarBotonUndoVisual() {
-        const btn = document.getElementById('btnUndo');
-        btn.disabled = pilaEstadosAnteriores.length === 0;
-        btn.style.backgroundColor = pilaEstadosAnteriores.length > 0 ? "#cbd5e1" : "#e2e8f0";
-    }
-
-    // --- AUTOMATISMO DIARIO Y PANTALLA ---
-    function verificarCambioDeDiaAutomatico() {
-        const f = new Date();
-        const fStrHoy = f.getDate() + "/" + (f.getMonth() + 1) + "/" + f.getFullYear();
-        const regFecha = `${diasSemana[f.getDay()]} ${f.getDate()}/${f.getMonth() + 1}`;
-        const ultF = localStorage.getItem('pku_ultima_fecha');
-        const ultFVis = localStorage.getItem('pku_ultima_fecha_visual') || regFecha;
-
-        if (!ultF) {
-            localStorage.setItem('pku_ultima_fecha', fStrHoy);
-            localStorage.setItem('pku_ultima_fecha_visual', regFecha);
-            return;
-        }
-        if (ultF !== fStrHoy) {
-            if (consumidoHoy > 0 || comidasHoy.length > 0) {
-                historialDias.unshift({ id: Date.now(), fecha: ultFVis, consumido: consumidoHoy.toFixed(0), meta: metaDiaria.toFixed(0) });
-                localStorage.setItem('pku_historial', JSON.stringify(historialDias));
-            }
-            consumidoHoy = 0; comidasHoy = []; pilaEstadosAnteriores = [];
-            localStorage.setItem('pku_consumido', 0); localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            localStorage.setItem('pku_ultima_fecha', fStrHoy); localStorage.setItem('pku_ultima_fecha_visual', regFecha);
-        }
-    }
-
-    function actualizarPantalla() {
-        document.getElementById('txtConsumido').innerText = consumidoHoy.toFixed(0) + " mg";
-        document.getElementById('txtMeta').innerText = `Meta: ${metaDiaria.toFixed(0)} mg`;
-        let porc = Math.min(100, (consumidoHoy / metaDiaria) * 100);
-        let col = "var(--color-green)";
-        if (consumidoHoy >= metaDiaria * 0.8 && consumidoHoy < metaDiaria) col = "var(--color-yellow)";
-        else if (consumidoHoy >= metaDiaria) col = "var(--color-red)";
-        document.getElementById('medidorVisual').style.background = `conic-gradient(${col} ${porc}%, #e0e0e0 ${porc}%)`;
-    }
-
-    function cambiarMeta() {
-        const nMeta = prompt("Ingresa el límite diario (en mg):", metaDiaria);
-        if (nMeta !== null) {
-            const num = parseFloat(nMeta);
-            if (!isNaN(num) && num > 0) { metaDiaria = num; localStorage.setItem('pku_meta', metaDiaria); actualizarPantalla(); }
-        }
-    }
-
-    function reiniciarDiaManual() {
-        if(confirm("¿Quieres reiniciar el medidor y las comidas de hoy a cero?")) {
-            guardarEstadoParaUndo(); consumidoHoy = 0; comidasHoy = [];
-            localStorage.setItem('pku_consumido', 0); localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
-            actualizarPantalla(); renderizarComidasHoy();
-        }
-    }
-
-    function renderizarHistorial() {
-        const listaUI = document.getElementById('listaHistorial'); listaUI.innerHTML = "";
-        if (historialDias.length === 0) {
-            listaUI.innerHTML = "<li style='padding:10px; font-size:12px; color:#95a5a6; text-align:center;'>No hay días archivados.</li>"; return;
-        }
-        historialDias.forEach(dia => {
-            const li = document.createElement('li'); li.className = "historial-item";
-            li.onclick = (e) => { if (e.target.tagName !== 'BUTTON') revisarDiaEspecifico(dia); };
-            li.innerHTML = `<div class="historial-info"><span class="historial-fecha">${dia.fecha}</span></div>
-                            <div class="historial-acciones"><span class="historial-valores" style="color: ${parseFloat(dia.consumido) >= parseFloat(dia.meta) ? 'var(--color-red)' : 'var(--color-green)'}">${dia.consumido} / ${dia.meta} mg</span><button class="btn-del-item" onclick="borrarDiaIndividual(${dia.id}, '${dia.fecha}')">❌</button></div>`;
-            listaUI.appendChild(li);
-        });
-    }
-
-    function revisarDiaEspecifico(dia) {
-        const p = Math.round((parseFloat(dia.consumido) / parseFloat(dia.meta)) * 100);
-        alert(`📋 INFORME - FECHA: ${dia.fecha}\n\n• Consumo: ${dia.consumido} mg\n• Meta: ${dia.meta} mg\n• Porcentaje: ${p}%\n• Estado: ${p >= 100 ? 'Excedido ⚠️' : 'Seguro ✅'}`);
-    }
-
-    function borrarDiaIndividual(id, fMostrar) {
-        if (confirm(`¿Eliminar registro del día ${fMostrar}?`)) {
-            historialDias = historialDias.filter(d => d.id !== id); localStorage.setItem('pku_historial', JSON.stringify(historialDias)); renderizarHistorial();
-        }
-    }
-
-    function exportarRespaldo() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ meta: metaDiaria, historial: historialDias, comidas_hoy: comidasHoy, citas: citasMedicas }));
-        const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "respaldo_pku.txt"); dl.click();
-    }
-
-    function importarRespaldo() { document.getElementById('fileInput').click(); }
-
-    function procesarArchivoRespaldo(event) {
-        const file = event.target.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const res = JSON.parse(e.target.result);
-                if (res.meta && Array.isArray(res.historial)) {
-                    metaDiaria = parseFloat(res.meta); historialDias = res.historial; comidasHoy = res.comidas_hoy || []; citasMedicas = res.citas || [];
-                    consumidoHoy = comidasHoy.reduce((acc, c) => acc + c.fa, 0);
-                    localStorage.setItem('pku_meta', metaDiaria); localStorage.setItem('pku_historial', JSON.stringify(historialDias));
-                    localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy)); localStorage.setItem('pku_citas', JSON.stringify(citasMedicas)); localStorage.setItem('pku_consumido', consumidoHoy);
-                    actualizarPantalla(); renderizarComidasHoy(); renderizarHistorial(); renderizarCitas(); actualizarBotonUndoVisual();
-                    alert("¡Respaldo restaurado! ✅");
-                }
-            } catch (err) { alert("Archivo no válido."); }
-        };
-        reader.readAsText(file);
-    }
-</script>
-</body>
-</html>
+        { nombre: "Alcachofa fondo cocida", gramosPorcion: 55, faPorcion: 96, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Apio cocido", gramosPorcion: 45, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Arvejas cocidas", gramosPorcion: 56, faPorcion: 112, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Berenjena cocida", gramosPorcion: 56, faPorcion: 20, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Betarraga cocida", gramosPorcion: 53, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Brócoli cocido", gramosPorcion: 44, faPorcion: 51, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Camote cocido", gramosPorcion: 56, faPorcion: 56, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Cebollines cocidos", gramosPorcion: 25, faPorcion: 9, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Champiñones cocidos o en conserva", gramosPorcion: 38, faPorcion: 23, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Choclo cocido", gramosPorcion: 58, faPorcion: 90, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Chucrut cocido", gramosPorcion: 59, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Col bruselas cocida", gramosPorcion: 32, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Coliflor cocida", gramosPorcion: 32, faPorcion: 25, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Espárragos cocidos", gramosPorcion: 20, faPorcion: 16, tipo: "permitido", medidaCasera: "~1 unidad" },
+        { nombre: "Espinaca cocida o en conserva", gramosPorcion: 39, faPorcion: 52, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Habas cocidas", gramosPorcion: 50, faPorcion: 190, tipo: "controlado", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Mostaza verde cocida", gramosPorcion: 32, faPorcion: 32, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Nabo cocido", gramosPorcion: 90, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Papas cocidas", gramosPorcion: 62, faPorcion: 51, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Pickle cocido", gramosPorcion: 40, faPorcion: 38, tipo: "permitido", medidaCasera: "~1 unidad" },
+        { nombre: "Porotos verdes cocidos", gramosPorcion: 23, faPorcion: 16, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Repollitos de bruselas cocidas", gramosPorcion: 13, faPorcion: 10, tipo: "permitido", medidaCasera: "~1 unidad" },
+        { nombre: "Repollo cocido", gramosPorcion: 55, faPorcion: 18, tipo: "permitido", medidaCasera: "~1/2 de Taza Luminarc (tz.)" },
+        { nombre: "Tomate salsa o ketchup", gramosPorcion: 101, faPorcion: 21, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Tomate salsa o ketchup", gramosPorcion: 9, faPorcion: 2, tipo: "permitido", medidaCasera: "~1 Medida nestle (md.)" },
+        { nombre: "Tomate cocido o conversa", gramosPorcion: 45, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 unidad" },
+        { nombre: "Yuca blanca fresca cocida", gramosPorcion: 100, faPorcion: 69, tipo: "permitido" },
+        { nombre: "Zanahoria cocida", gramosPorcion: 25, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Zapallo asado o cocido", gramosPorcion: 57, faPorcion: 31, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Zapallo italiano cocido", gramosPorcion: 56, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Palmito enlatados", gramosPorcion: 57, faPorcion: 56, tipo: "permitido" },
+        { nombre: "Puerro cocido", gramosPorcion: 100, faPorcion: 30, tipo: "permitido" },
+        { nombre: "Cereza fresca", gramosPorcion: 6, faPorcion: 3, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Chirimoya",
