@@ -1,9 +1,9 @@
 {
-  "id": "app.html",
+  "id": ".",
   "name": "PKU Control Diario",
   "short_name": "PKU Control",
   "description": "Aplicación intuitiva y silenciosa para el cálculo de niveles de FA",
-  "start_url": "app.html",
+  "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#f4f7f6",
