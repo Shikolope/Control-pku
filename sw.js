@@ -1,7 +1,10 @@
 const CACHE_NAME = 'pku-control-v17';
 const assets = [
   'app.html',
-  'manifest.json'
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-512-maskable.png'
 ];
 
 // Instalar el Service Worker y guardar archivos esenciales en la memoria del fono
