@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pku-control-v16';
+const CACHE_NAME = 'pku-control-v17';
 const assets = [
   'app.html',
   'manifest.json'
@@ -13,11 +13,23 @@ self.addEventListener('install', e => {
   );
 });
 
+// Limpiar cachés viejas cuando se activa una nueva versión
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+      );
+    })
+  );
+});
+
 // Hacer que la app funcione sin internet (Offline)
 self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(response => {
-      return response || fetch(e.request);
+      return response || fetch(e.request).catch(() => caches.match('app.html'));
     })
   );
 });
