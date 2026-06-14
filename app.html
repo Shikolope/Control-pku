@@ -1654,7 +1654,7 @@
         resDiv.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:10px; font-size:13px;">🔎 Buscando producto (código ${codigo})...</p>`;
 
         try {
-            const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${codigo}.json?fields=product_name,brands,nutriments`);
+            const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${codigo}.json?fields=product_name,brands,nutriments,ingredients_text,ingredients_text_es,additives_tags`);
             const data = await resp.json();
 
             if (data.status !== 1 || !data.product) {
@@ -1670,13 +1670,47 @@
             const grasas = n['fat_100g'];
             const energia = n['energy-kcal_100g'];
 
+            // --- DETECCIÓN DE ASPARTAMO / NEOTAMO / FENILALANINA ---
+            const ingredientesTexto = p.ingredients_text_es || p.ingredients_text || '';
+            const ingredientesLower = ingredientesTexto.toLowerCase();
+            const additivos = p.additives_tags || [];
+            const tieneAspartamo = additivos.includes('en:e951') || additivos.includes('en:e961')
+                || ingredientesLower.includes('aspartam')
+                || ingredientesLower.includes('e-951') || ingredientesLower.includes('e951')
+                || ingredientesLower.includes('neotamo') || ingredientesLower.includes('neotame')
+                || ingredientesLower.includes('e-961') || ingredientesLower.includes('e961')
+                || ingredientesLower.includes('fenilalanina') || ingredientesLower.includes('phenylalanine');
+
+            let alertaAspartamoHtml = '';
+            if (tieneAspartamo) {
+                alertaAspartamoHtml = `
+                    <div style="background:rgba(231,76,60,0.15); border-left:4px solid var(--color-red); border-radius:8px; padding:10px; margin-top:8px;">
+                        <strong style="color:#b71c1c;">🔴 ⚠️ CONTIENE ASPARTAMO Y/O FENILALANINA</strong>
+                        <div style="font-size:12px; color:#b71c1c; margin-top:4px;">Se detectó aspartamo (E-951), neotamo (E-961) o fenilalanina en los ingredientes declarados. <strong>Este producto NO es apto para tu dieta PKU.</strong></div>
+                    </div>`;
+            }
+
+            let ingredientesHtml = '';
+            if (ingredientesTexto) {
+                ingredientesHtml = `
+                    <div style="margin-top:10px; font-size:12px; color:#475569;">
+                        <strong>Ingredientes:</strong> ${ingredientesTexto}
+                    </div>`;
+            } else {
+                ingredientesHtml = `
+                    <div style="margin-top:10px; font-size:11px; color:#95a5a6;">
+                        Este producto no tiene lista de ingredientes registrada en Open Food Facts.
+                    </div>`;
+            }
+
             let faEstimadoHtml = '';
             if (typeof proteinas === 'number') {
                 const faEstimado = Math.round(proteinas * 50);
                 faEstimadoHtml = `
                     <div class="fa-estimado-box">
                         <strong>⚠️ FA estimado: ~${faEstimado} mg por cada 100g</strong>
-                        <small>Estimación basada en ${proteinas}g de proteína cada 100g (regla aproximada: 1g de proteína ≈ 50mg de FA). <strong>No es un valor oficial de tu tabla PKU.</strong> Verifica con tu nutricionista antes de consumir.</small>
+                        <small>Estimación general basada en ${proteinas}g de proteína cada 100g (regla aproximada usada en literatura clínica internacional: 1g de proteína ≈ 50mg de FA). <strong>Este NO es un valor de la Tabla de Alimentos PKU de INTA Chile</strong> — la tabla oficial no incluye una fórmula para calcular FA a partir de proteínas de productos genéricos. Verifica con tu nutricionista antes de consumir.</small>
+                        <small style="display:block; margin-top:4px;">Si este producto sí está en tu base de datos PKU (búscalo arriba), usa siempre ese valor oficial en vez de esta estimación.</small>
                     </div>`;
             }
 
@@ -1684,6 +1718,7 @@
                 <div class="producto-card">
                     <strong style="font-size:15px;">${p.product_name || 'Producto sin nombre'}</strong>
                     ${p.brands ? `<div style="font-size:12px; color:#7f8c8d;">${p.brands}</div>` : ''}
+                    ${alertaAspartamoHtml}
                     <table>
                         <tr><td>Energía</td><td>${energia ?? '—'} kcal</td></tr>
                         <tr><td>Proteínas</td><td>${proteinas ?? '—'} g</td></tr>
@@ -1693,6 +1728,7 @@
                     </table>
                     <div style="font-size:11px; color:#95a5a6; margin-top:6px;">Valores por cada 100g del producto (fuente: Open Food Facts)</div>
                     ${faEstimadoHtml}
+                    ${ingredientesHtml}
                 </div>
             `;
         } catch (err) {
