@@ -222,6 +222,26 @@
         .tag-controlado { background-color: var(--color-yellow); color: #744210; }
         .tag-prohibido { background-color: var(--color-red); }
 
+        .icono-alimento {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .fila-alimento {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex: 1;
+        }
+        .fila-alimento .nombre-alimento {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .alimento-seleccionado {
             padding: 12px;
             border-radius: 8px;
@@ -332,9 +352,82 @@
         .backup-zone button { font-size: 11px; padding: 8px; margin: 0; }
         .btn-export { background-color: var(--color-blue); }
         .btn-import { background-color: #9b59b6; }
+
+        .icono-alimento {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .scanner-box {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+        }
+        .scanner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .scanner-header h3 { margin: 0; font-size: 15px; }
+        .btn-scanner {
+            background-color: var(--color-blue);
+            width: auto;
+            margin: 0;
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 15px;
+        }
+        #qr-reader { border-radius: 10px; overflow: hidden; }
+        #qr-reader img { display: none; }
+        .scanner-hint {
+            font-size: 11px;
+            color: #95a5a6;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .scanner-disclaimer {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .producto-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        .producto-card table { width: 100%; font-size: 13px; margin-top: 8px; border-collapse: collapse; }
+        .producto-card td { padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+        .producto-card td:last-child { text-align: right; font-weight: bold; }
+        .fa-estimado-box {
+            background: rgba(241,196,15,0.15);
+            border-left: 4px solid var(--color-yellow);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .fa-estimado-box small { display: block; color: #744210; margin-top: 4px; font-size: 11px; }
+        .error-box {
+            padding: 12px;
+            background: #fdecea;
+            border-radius: 10px;
+            color: #b71c1c;
+            font-size: 13px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 
 <div class="app-container">
     <header>
@@ -412,6 +505,22 @@
     <div class="comidas-hoy-box">
         <h3>📋 Comidas de Hoy</h3>
         <ul id="listaComidasHoy" class="comidas-hoy-lista"></ul>
+    </div>
+
+    <!-- Sección: Escáner de Productos -->
+    <div class="scanner-box">
+        <div class="scanner-header">
+            <h3>📷 Escanear Producto</h3>
+            <button id="btnScanner" class="btn-scanner" onclick="toggleScanner()">📷 Abrir Cámara</button>
+        </div>
+        <div id="qrReaderBox" style="display:none;">
+            <div id="qr-reader"></div>
+            <p class="scanner-hint">Apunta la cámara al código de barras del envase.</p>
+        </div>
+        <div id="resultadoEscaneo"></div>
+        <div class="scanner-disclaimer">
+            ⚠️ Requiere conexión a internet. Muestra la información nutricional general del producto (Open Food Facts), no de tu tabla PKU. El FA mostrado es solo una <strong>estimación</strong>.
+        </div>
     </div>
 
     <!-- Sección: Historial Dinámico con Respaldo de Seguridad -->
@@ -536,11 +645,11 @@
         { nombre: "Kiwi", gramosPorcion: 74, faPorcion: 39, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Kiwi", gramosPorcion: 50, faPorcion: 27, tipo: "permitido", medidaCasera: "~1 unidad chica" },
         { nombre: "Limon entero", gramosPorcion: 50, faPorcion: 28, tipo: "permitido", medidaCasera: "~1 unidad" },
-        { nombre: "Limon jugo", gramosPorcion: 100, faPorcion: 18, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Limon jugo", gramosPorcion: 100, faPorcion: 18, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)", unidad: "ml" },
         { nombre: "Lucuma pure", gramosPorcion: 11, faPorcion: 6, tipo: "permitido", medidaCasera: "~1 medida nestle" },
         { nombre: "Lucuma pure", gramosPorcion: 25, faPorcion: 14, tipo: "permitido", medidaCasera: "~1 cucharada rasa" },
         { nombre: "Mandarina fresca", gramosPorcion: 95, faPorcion: 39, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-        { nombre: "Mandarina jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Mandarina jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)", unidad: "ml" },
         { nombre: "Mango conserva", gramosPorcion: 85, faPorcion: 26, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Mango fresco", gramosPorcion: 85, faPorcion: 35, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Mango deshidratado", gramosPorcion: 100, faPorcion: 123, tipo: "permitido", medidaCasera: "Pesar gramos" },
@@ -553,7 +662,7 @@
         { nombre: "Mora Fresca", gramosPorcion: 75, faPorcion: 53, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Naranja fresca pelada", gramosPorcion: 60, faPorcion: 45, tipo: "permitido", medidaCasera: "~1/2 unidad regular" },
         { nombre: "Naranja fresca picada", gramosPorcion: 69, faPorcion: 32, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
-        { nombre: "Naranja jugo fresco", gramosPorcion: 100, faPorcion: 34, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Naranja jugo fresco", gramosPorcion: 100, faPorcion: 34, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)", unidad: "ml" },
         { nombre: "Nectarines", gramosPorcion: 100, faPorcion: 30, tipo: "permitido", medidaCasera: "~1 unidad mediana" },
         { nombre: "Nísperos en conserva", gramosPorcion: 55, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Nísperos frescos", gramosPorcion: 17, faPorcion: 4, tipo: "permitido", medidaCasera: "~1 unidad" },
@@ -576,7 +685,7 @@
         { nombre: "Plátano (Banana) fresco picado", gramosPorcion: 63, faPorcion: 35, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Plátano (Banana) chips", gramosPorcion: 100, faPorcion: 179, tipo: "controlado", medidaCasera: "Pesar gramos" },
         { nombre: "Pomelo fresco", gramosPorcion: 58, faPorcion: 23, tipo: "permitido", medidaCasera: "~1/2 Taza Luminarc (tz.)" },
-        { nombre: "Pomelo jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
+        { nombre: "Pomelo jugo", gramosPorcion: 100, faPorcion: 25, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)", unidad: "ml" },
         { nombre: "Ruibardo cocido", gramosPorcion: 115, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
         { nombre: "Ruibardo fresco", gramosPorcion: 60, faPorcion: 27, tipo: "permitido", medidaCasera: "~1/2 Taza Luminarc (tz.)" },
         { nombre: "Sandia", gramosPorcion: 100, faPorcion: 31, tipo: "permitido", medidaCasera: "~1 de Taza Luminarc (tz.)" },
@@ -618,7 +727,467 @@
         { nombre: "VIOLIFE Queso original", gramosPorcion: 20, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
         { nombre: "VIOLIFE Queso Mozzarella", gramosPorcion: 30, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
         { nombre: "VIOLIFE Queso Cheddar", gramosPorcion: 30, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
-        { nombre: "VIOLIFE Queso Creamy", gramosPorcion: 20, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" }
+        { nombre: "VIOLIFE Queso Creamy", gramosPorcion: 20, faPorcion: 0, tipo: "permitido", medidaCasera: "~1 rebanada" },
+
+        // --- LÍQUIDOS: Jugos concentrados ---
+        { nombre: "Concentrado Watt's Mango", gramosPorcion: 20, faPorcion: 10, tipo: "permitido", medidaCasera: "~2 cucharadas (cda.)", unidad: "ml" },
+        { nombre: "Concentrado Watt's Damasco", gramosPorcion: 20, faPorcion: 30, tipo: "permitido", medidaCasera: "~2 cucharadas (cda.)", unidad: "ml" },
+
+        // --- LÍQUIDOS: Jugos embotellados / néctares (1 vaso = 200 ml) ---
+        { nombre: "Soprole Néctar Manzana", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Soprole Néctar Naranja", gramosPorcion: 200, faPorcion: 60, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Soprole Néctar Piña", gramosPorcion: 200, faPorcion: 30, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Soprole Néctar Damasco", gramosPorcion: 200, faPorcion: 60, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Yuz Néctar Piña", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Yuz Néctar Naranja", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Yuz Néctar Multifrutas", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Yuz Néctar Mango", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Yuz Néctar Damasco", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Naranja", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Piña", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Manzana", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Durazno", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Damasco", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Néctar Tuttifrutti", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Andina Nutri Defensas Piña", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Watt's Néctar Naranja", gramosPorcion: 200, faPorcion: 30, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Watt's Néctar Durazno", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Watt's Néctar Piña", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Watt's Néctar Ciruela", gramosPorcion: 200, faPorcion: 40, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Atacama Néctar Durazno", gramosPorcion: 200, faPorcion: 40, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Atacama Néctar Naranja", gramosPorcion: 200, faPorcion: 30, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Colún Néctar Damasco", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Colún Néctar Piña", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Guallarauco Mango", gramosPorcion: 200, faPorcion: 5, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Guallarauco Papaya", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "AFE Manzana", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "AFE Pera", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "AFE Membrillo", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "AFE Uva", gramosPorcion: 200, faPorcion: 20, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Next Néctar Naranja", gramosPorcion: 200, faPorcion: 40, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Next Néctar Piña", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Watt's LIGHT Piña", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+
+        // --- LÍQUIDOS: Jugos en caja (1 caja = 200 ml) ---
+        { nombre: "Sprim Damasco", gramosPorcion: 200, faPorcion: 15, tipo: "permitido", medidaCasera: "1 caja (200 ml)", unidad: "ml" },
+        { nombre: "Sprim Naranja", gramosPorcion: 200, faPorcion: 15, tipo: "permitido", medidaCasera: "1 caja (200 ml)", unidad: "ml" },
+        { nombre: "Sprim Multifrutas", gramosPorcion: 200, faPorcion: 10, tipo: "permitido", medidaCasera: "1 caja (200 ml)", unidad: "ml" },
+        { nombre: "Kapo todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 caja (200 ml)", unidad: "ml" },
+
+        // --- LÍQUIDOS: Jugos en polvo (1 vaso = 200 ml) ---
+        { nombre: "Ambrosoli Naranja", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Ambrosoli Guinda", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Zuko GO todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+
+        // --- LÍQUIDOS: Bebidas LIGHT permitidas (1 vaso = 200 ml) ---
+        { nombre: "Nordic Zero Ginger Ale", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Bilz Zero", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Pap Zero", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+
+        // --- LÍQUIDOS: Otros líquidos (1 vaso = 200 ml) ---
+        { nombre: "Arizona todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Vitamin O2 todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Gatorade todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Aquarius todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Powerade todos los sabores", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+        { nombre: "Powerade LIGHT", gramosPorcion: 200, faPorcion: 0, tipo: "permitido", medidaCasera: "1 vaso (200 ml)", unidad: "ml" },
+
+        // --- LÍQUIDOS: PROHIBIDOS (según advertencias de la tabla) ---
+        { nombre: "Yupi (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Sprim Zero (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Livean (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Zuko Zero (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Zuko Light (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Otra bebida Light o Zero (no autorizada)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "Solo se permiten: Nordic Zero Ginger Ale, Bilz Zero y Pap Zero", unidad: "ml" },
+        { nombre: "Lipton Té Verde", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Otro sabor Watt's LIGHT (no autorizado)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "Solo se permite Watt's LIGHT Piña", unidad: "ml" },
+        { nombre: "Andina Light (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Yuz Light (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+        { nombre: "Watt's Clear (todos los sabores)", gramosPorcion: 200, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", unidad: "ml" },
+
+        // --- ALIMENTOS INFANTILES: Cereales (1 medida Nestlé) ---
+        { nombre: "Blevit Plus Avena", gramosPorcion: 3, faPorcion: 13, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Blevit Plus cinco cereales", gramosPorcion: 3, faPorcion: 11, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Blevit Plus integral", gramosPorcion: 3, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Blevit Plus cinco cereales colacao", gramosPorcion: 3, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Raff trigo frutas", gramosPorcion: 3, faPorcion: 10, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Raff avena miel", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Gerber Arroz", gramosPorcion: 3, faPorcion: 9, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Gerber tres cereales", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Gerber trigo con leche", gramosPorcion: 3, faPorcion: 14, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Nestlé Avena", gramosPorcion: 3, faPorcion: 8, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Nestlé Arroz", gramosPorcion: 3, faPorcion: 8, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Nestlé Maíz", gramosPorcion: 3, faPorcion: 8, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Nestlé Trigo y frutas", gramosPorcion: 3, faPorcion: 12, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+        { nombre: "Nestlé cinco cereales", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "~1 medida Nestlé" },
+
+        // --- ALIMENTOS INFANTILES: Jugos ---
+        { nombre: "Gerber jugo de Kiwi/pera Etapa 1", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Gerber jugo de manzana/durazno", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Gerber jugo de manzanas", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Gerber jugo peras", gramosPorcion: 100, faPorcion: 0, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Gerber jugo uvas blancas", gramosPorcion: 100, faPorcion: 15, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Nestlé jugo manzana Etapa 1", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Nestlé jugo manzana/durazno Etapa 2", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Nestlé jugo pera/kiwi Etapa 2", gramosPorcion: 100, faPorcion: 5, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Nestlé jugo peras Etapa 1", gramosPorcion: 100, faPorcion: 10, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+        { nombre: "Nestlé jugo uvas Etapa 1", gramosPorcion: 100, faPorcion: 10, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", unidad: "ml" },
+
+        // --- ALIMENTOS INFANTILES: Colados / picados (frasco) ---
+        { nombre: "Gerber colado de manzana Etapa 1", gramosPorcion: 71, faPorcion: 0, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de manzana Etapa 2", gramosPorcion: 113, faPorcion: 0, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de ciruela Etapa 1", gramosPorcion: 71, faPorcion: 35, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de ciruela Etapa 2", gramosPorcion: 113, faPorcion: 35, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de damasco Etapa 2", gramosPorcion: 113, faPorcion: 10, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de durazno Etapa 1", gramosPorcion: 71, faPorcion: 35, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de durazno Etapa 2", gramosPorcion: 113, faPorcion: 25, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de pera Etapa 1", gramosPorcion: 71, faPorcion: 20, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de pera Etapa 2", gramosPorcion: 113, faPorcion: 10, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Gerber colado de zanahoria y jugo naranja", gramosPorcion: 113, faPorcion: 25, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado de pera Etapa 1", gramosPorcion: 115, faPorcion: 15, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado de durazno Etapa 1", gramosPorcion: 115, faPorcion: 21, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado de manzana Etapa 1", gramosPorcion: 115, faPorcion: 15, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado de plátano-naranja Etapa 1", gramosPorcion: 115, faPorcion: 35, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado orgánico pera-manzana", gramosPorcion: 115, faPorcion: 33, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado orgánico manzana-plátano", gramosPorcion: 115, faPorcion: 33, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé colado orgánico Manz-Plátano-Dura", gramosPorcion: 115, faPorcion: 39, tipo: "permitido", medidaCasera: "1 frasco" },
+        { nombre: "Nestlé picado de frutas mixtas", gramosPorcion: 225, faPorcion: 50, tipo: "controlado", medidaCasera: "1 frasco" },
+
+        // --- BARRITAS DE CEREAL ---
+        { nombre: "Great Value Blueberry", gramosPorcion: 23, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Great Value Strawberry", gramosPorcion: 25, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Great Value Oats & Honey", gramosPorcion: 21, faPorcion: 100, tipo: "controlado", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Chispa Chocolate", gramosPorcion: 20, faPorcion: 55, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Frutilla crema", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Durazno crema", gramosPorcion: 20, faPorcion: 55, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Mouse chocolate", gramosPorcion: 20, faPorcion: 60, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Manzana", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Chewy Mantequilla Maní", gramosPorcion: 12, faPorcion: 40, tipo: "permitido", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Crocante Miel", gramosPorcion: 11, faPorcion: 45, tipo: "permitido", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Crocante Almendras", gramosPorcion: 11, faPorcion: 45, tipo: "permitido", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Trail Mix Frutas", gramosPorcion: 15, faPorcion: 53, tipo: "controlado", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Trail Mix Semillas-Frutos", gramosPorcion: 15, faPorcion: 65, tipo: "controlado", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Quaker Trail Mix Nuts-Semillas", gramosPorcion: 15, faPorcion: 73, tipo: "controlado", medidaCasera: "1/2 unidad", categoria: 'barrita' },
+        { nombre: "Ideal Nutri Up Multicereal Linaza", gramosPorcion: 20, faPorcion: 75, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Ideal Nutri Up Multicereal Nueces", gramosPorcion: 20, faPorcion: 65, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Costa Cereal Bar Chocolate", gramosPorcion: 20, faPorcion: 45, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Costa Cereal Bar Frutos Rojos", gramosPorcion: 21, faPorcion: 40, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Costa Cereal Bar Golden Cereal", gramosPorcion: 28, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'barrita' },
+        { nombre: "Lider Puré (125 grs)", gramosPorcion: 31, faPorcion: 135, tipo: "controlado", medidaCasera: "1/4 caja de 125 grs", categoria: 'raiz' },
+        { nombre: "Selección Puré Mediterráneo", gramosPorcion: 15, faPorcion: 48, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Selección Puré 4 Quesos", gramosPorcion: 15, faPorcion: 73, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Selección Puré Tocino", gramosPorcion: 15, faPorcion: 85, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Maggi Puré (125 grs)", gramosPorcion: 31, faPorcion: 200, tipo: "controlado", medidaCasera: "1/4 bolsa de 125 grs", categoria: 'raiz' },
+        { nombre: "Maggi Napolitano Puré (125 grs)", gramosPorcion: 31, faPorcion: 190, tipo: "controlado", medidaCasera: "1/4 bolsa de 125 grs", categoria: 'raiz' },
+        { nombre: "Maggi Tocino Puré (125 grs)", gramosPorcion: 31, faPorcion: 190, tipo: "controlado", medidaCasera: "1/4 bolsa de 125 grs", categoria: 'raiz' },
+        { nombre: "Knorr Puré", gramosPorcion: 16, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Alcafood Puré gratinado", gramosPorcion: 17, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Acuenta Puré", gramosPorcion: 16, faPorcion: 65, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Hoffman Puré", gramosPorcion: 17, faPorcion: 55, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'raiz' },
+        { nombre: "Milo", gramosPorcion: 10, faPorcion: 52, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Nesquik", gramosPorcion: 10, faPorcion: 25, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Colacao Pillows Mini", gramosPorcion: 17, faPorcion: 34, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Colacao Pillows", gramosPorcion: 15, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Phineas & Ferb", gramosPorcion: 10, faPorcion: 40, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Zucaritas Original", gramosPorcion: 10, faPorcion: 20, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Azucarados Lider", gramosPorcion: 15, faPorcion: 40, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Zucosos", gramosPorcion: 10, faPorcion: 23, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Monoflakes", gramosPorcion: 10, faPorcion: 42, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Monoballs", gramosPorcion: 10, faPorcion: 42, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Monorolls", gramosPorcion: 10, faPorcion: 35, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Monochoc", gramosPorcion: 10, faPorcion: 35, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Costa Cars Frutas", gramosPorcion: 10, faPorcion: 32, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Cornflakes", gramosPorcion: 15, faPorcion: 48, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Gold", gramosPorcion: 10, faPorcion: 23, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Cheerios", gramosPorcion: 10, faPorcion: 35, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Gran Cereal Integral Berries", gramosPorcion: 10, faPorcion: 47, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Gran Cereal Integral", gramosPorcion: 10, faPorcion: 48, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Gran Cereal Integral Avena", gramosPorcion: 10, faPorcion: 53, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Cornflakes", gramosPorcion: 15, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Cereal con Frutas", gramosPorcion: 20, faPorcion: 85, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Chocolatados", gramosPorcion: 15, faPorcion: 60, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Fitness Original", gramosPorcion: 15, faPorcion: 68, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Fitness Miel & Almendras", gramosPorcion: 15, faPorcion: 65, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Fitness Yogurt", gramosPorcion: 15, faPorcion: 60, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Fitness Frutas", gramosPorcion: 15, faPorcion: 55, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Selección Cereal y Berries", gramosPorcion: 15, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Selección Frutos Secos y Chips", gramosPorcion: 15, faPorcion: 85, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Life Quaker Original", gramosPorcion: 11, faPorcion: 55, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Life Quaker Cinammon", gramosPorcion: 11, faPorcion: 50, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Quaker Quadritos", gramosPorcion: 11, faPorcion: 65, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Quaker Quadritos Canela", gramosPorcion: 11, faPorcion: 55, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Chococrispis", gramosPorcion: 10, faPorcion: 33, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Zucaritas Chocolate", gramosPorcion: 10, faPorcion: 23, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Chocapic", gramosPorcion: 10, faPorcion: 42, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Chocapic Trocitos", gramosPorcion: 10, faPorcion: 40, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Chocapic Duo", gramosPorcion: 10, faPorcion: 42, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Froot Loops", gramosPorcion: 10, faPorcion: 28, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Trix", gramosPorcion: 10, faPorcion: 20, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Estrellitas", gramosPorcion: 10, faPorcion: 30, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Arroz - Miel", gramosPorcion: 15, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Trigo - Miel", gramosPorcion: 15, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Lider Maíz - Miel", gramosPorcion: 15, faPorcion: 33, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Natur Arroz", gramosPorcion: 10, faPorcion: 23, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Natur Trigo", gramosPorcion: 10, faPorcion: 48, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Natur Maíz", gramosPorcion: 15, faPorcion: 33, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'cereal' },
+        { nombre: "Granola o Muesli (cualquier marca)", gramosPorcion: 1, faPorcion: 0, tipo: "prohibido", medidaCasera: "No permitido según tu tabla PKU", categoria: 'cereal', unidad: "unidad" },
+        { nombre: "Crackelet original", gramosPorcion: 2, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Crackelet integral", gramosPorcion: 3, faPorcion: 11, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Aceitunas", gramosPorcion: 8, faPorcion: 9, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Pepinillos", gramosPorcion: 13, faPorcion: 14, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Club Social original", gramosPorcion: 9, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Club Social Queso", gramosPorcion: 9, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Club Social Integral", gramosPorcion: 9, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Cracker Selz Original", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Cracker Selz Orégano-Oliva", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Cracker Selz Albahaca", gramosPorcion: 3, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Agua Light", gramosPorcion: 5, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Agua", gramosPorcion: 5, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Soda", gramosPorcion: 5, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Vivo Soda", gramosPorcion: 4, faPorcion: 20, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Vivo Agua", gramosPorcion: 5, faPorcion: 18, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Soda Light", gramosPorcion: 4, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Soda", gramosPorcion: 4, faPorcion: 21, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Agua", gramosPorcion: 10, faPorcion: 37, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Agua Light", gramosPorcion: 5, faPorcion: 24, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Agua", gramosPorcion: 5, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Soda Light", gramosPorcion: 5, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Soda", gramosPorcion: 5, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Selz Agua Light", gramosPorcion: 5, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Selz Soda", gramosPorcion: 5, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Fitness Sésamo Amapola", gramosPorcion: 3, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Fitness Linaza Chia", gramosPorcion: 3, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Green Tree Chip de Manzana", gramosPorcion: 22, faPorcion: 0, tipo: "permitido", medidaCasera: "1 paquete", categoria: 'fruta' },
+        { nombre: "Saltletts Lawrence", gramosPorcion: 25, faPorcion: 150, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Twistos Jamón Ibérico", gramosPorcion: 13, faPorcion: 58, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Twistos Jamón Queso", gramosPorcion: 13, faPorcion: 58, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Chispop Sabor frutas", gramosPorcion: 13, faPorcion: 20, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Chispop Queso", gramosPorcion: 13, faPorcion: 45, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Cheetos Queso (Tigre)", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Cheezels", gramosPorcion: 15, faPorcion: 75, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'papas' },
+        { nombre: "Snack Mix Evercrisp", gramosPorcion: 13, faPorcion: 40, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Traga Traga Chirimoya", gramosPorcion: 13, faPorcion: 15, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Traga Traga Frambuesa", gramosPorcion: 13, faPorcion: 25, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Ramitas Marco Polo Queso", gramosPorcion: 17, faPorcion: 62, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Ramitas Marco Polo Originales", gramosPorcion: 17, faPorcion: 62, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Ramitas Lider Queso", gramosPorcion: 17, faPorcion: 60, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Ramitas Evercrisp Originales", gramosPorcion: 13, faPorcion: 33, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Ramitas Evercrisp Queso", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Doritos Misterio", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Doritos Pizza", gramosPorcion: 13, faPorcion: 45, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Doritos Original", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Doritos Queso", gramosPorcion: 13, faPorcion: 53, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Pancho Villa Chili-Lima", gramosPorcion: 2, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pancho Villanos Originales", gramosPorcion: 3, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pancho Villanos Queso extreme", gramosPorcion: 2, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pancho Villanos Pizza", gramosPorcion: 2, faPorcion: 7, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pancho Villanos BBQ extreme", gramosPorcion: 2, faPorcion: 7, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Panchitos Villa Tortilla Maíz", gramosPorcion: 3, faPorcion: 7, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Panchitos Villa Tortilla Sésamo", gramosPorcion: 3, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Delight Original", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Delight Crema-Cebolla", gramosPorcion: 2, faPorcion: 5, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Alita pollo extreme", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Queso Cheddar extreme", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Queso", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Crema-Cebolla", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Pringles Original", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Great Value Crema-Cebolla", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Great Value BBQ", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Lays Original Tarro", gramosPorcion: 2, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Lays Crema-Cebolla Tarro", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Lays Cheddar Tarro", gramosPorcion: 2, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo BBQ", gramosPorcion: 2, faPorcion: 5, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo Jamón Ahumado", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo Crema-Cebolla", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo Original", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo Queso", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Kryspo Pizza", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Marco Polo Corte Americano", gramosPorcion: 3, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Marco Polo Casetas", gramosPorcion: 2, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Lays Artesanales", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Corte Liso", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Restó Cebolla-Soya", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Restó con Cáscara", gramosPorcion: 13, faPorcion: 28, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Mediterráneas Jamón", gramosPorcion: 13, faPorcion: 45, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Mediterráneas A la Chilena", gramosPorcion: 13, faPorcion: 50, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Crema-Cebolla", gramosPorcion: 13, faPorcion: 55, tipo: "controlado", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Queso crema-soya", gramosPorcion: 13, faPorcion: 28, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lays Originales", gramosPorcion: 13, faPorcion: 45, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Patagonia", gramosPorcion: 13, faPorcion: 28, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Zapallo", gramosPorcion: 13, faPorcion: 43, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Merken", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Furiosas", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Palafito", gramosPorcion: 13, faPorcion: 18, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Chiloe", gramosPorcion: 13, faPorcion: 45, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Tika Hilo", gramosPorcion: 13, faPorcion: 43, tipo: "permitido", medidaCasera: "1 taza Luminarc (tz.)", categoria: 'papas' },
+        { nombre: "Lider Corte Liso", gramosPorcion: 2, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Lider Corte Americano", gramosPorcion: 3, faPorcion: 5, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Mom's Onduladas", gramosPorcion: 2, faPorcion: 7, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Mom's Caseras", gramosPorcion: 2, faPorcion: 7, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'papas' },
+        { nombre: "Salvado 4 semillas", gramosPorcion: 1, faPorcion: 20, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Voortman Oblea chocolate sin azúcar", gramosPorcion: 1, faPorcion: 13, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Voortman Oblea vainilla sin azúcar", gramosPorcion: 1, faPorcion: 9, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Nutrafood Sugarfree Chia Cookies", gramosPorcion: 1, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Nutrafood Linaza Cookies", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Nutrafood Valentine Cookies", gramosPorcion: 1, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Nutrafood Vainilla Cookies", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Nutrafood Limón Cookies", gramosPorcion: 1, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "NoGlut Chocolate", gramosPorcion: 1, faPorcion: 14, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "NoGlut Jungla", gramosPorcion: 1, faPorcion: 9, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "NoGlut Obleas Vainilla", gramosPorcion: 1, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "NoGlut Obleas Chocolate", gramosPorcion: 1, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Biosnack Quinoa, Centeno y Arroz", gramosPorcion: 1, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Biosnack Maíz, Centeno y Arroz", gramosPorcion: 1, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Terrium Galletas Quinoa Canela", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Terrium Galletas Avena Jengibre", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Terrium Galletas Chocolate", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Terrium Galletas Yogurt", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Kupiec Arroz", gramosPorcion: 1, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Gallo Bizcochos Arroz Dulces", gramosPorcion: 1, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Gullon Cookies", gramosPorcion: 1, faPorcion: 4, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Gullon Cookies Chocolate", gramosPorcion: 1, faPorcion: 9, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "Organ Gluten Free Vainilla Cookies", gramosPorcion: 1, faPorcion: 5, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack', unidad: "unidad" },
+        { nombre: "MacKay Mini Niza", gramosPorcion: 20, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Mini Limón", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Mini Vino", gramosPorcion: 20, faPorcion: 70, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Mini Coco", gramosPorcion: 20, faPorcion: 58, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Mini Tritón", gramosPorcion: 20, faPorcion: 55, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Mini Kuky", gramosPorcion: 20, faPorcion: 60, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Morochas", gramosPorcion: 20, faPorcion: 33, tipo: "permitido", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Fitness Cacao-Cranberries", gramosPorcion: 10, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Fitness Manzana", gramosPorcion: 10, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Fitness Chia-Miel-Almendras", gramosPorcion: 10, faPorcion: 43, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Mini Chips", gramosPorcion: 18, faPorcion: 35, tipo: "permitido", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Costa Mini Cocaditas", gramosPorcion: 20, faPorcion: 40, tipo: "permitido", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Costa Mini Dulcitas", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Costa Mini Vino", gramosPorcion: 20, faPorcion: 60, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Costa Mini Mantequilla", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Quaker Mini Vainilla", gramosPorcion: 18, faPorcion: 63, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Quaker Mini Arándanos", gramosPorcion: 18, faPorcion: 63, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Dos en Uno Mini Conquistas", gramosPorcion: 20, faPorcion: 90, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Dos en Uno Mini Choco Kiss", gramosPorcion: 20, faPorcion: 63, tipo: "controlado", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "Costa Disney Galletitas Manjar", gramosPorcion: 18, faPorcion: 45, tipo: "permitido", medidaCasera: "1/2 paquete", categoria: 'snack' },
+        { nombre: "MacKay Criollitas", gramosPorcion: 7, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Champañitas", gramosPorcion: 3, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Champaña", gramosPorcion: 6, faPorcion: 18, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Gran Cereal Avena-Berries", gramosPorcion: 13, faPorcion: 40, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Bocaditos Memb", gramosPorcion: 17, faPorcion: 45, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Coco", gramosPorcion: 9, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Mantequilla", gramosPorcion: 9, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Chocolate", gramosPorcion: 9, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Limón", gramosPorcion: 9, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Oblea Bocado", gramosPorcion: 8, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Oblea Chocolate", gramosPorcion: 8, faPorcion: 20, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Oblea Frutilla", gramosPorcion: 8, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Oblea Limón", gramosPorcion: 8, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Surtidos", gramosPorcion: 7, faPorcion: 24, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Vainilla R/ frutilla", gramosPorcion: 11, faPorcion: 37, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Chocolate R/ vainilla", gramosPorcion: 11, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Vainilla R/ vainilla", gramosPorcion: 11, faPorcion: 37, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Choco Kiss", gramosPorcion: 9, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Dos en Uno Nut Kiss", gramosPorcion: 10, faPorcion: 40, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Limón", gramosPorcion: 8, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Chocolate", gramosPorcion: 8, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Mantequilla", gramosPorcion: 8, faPorcion: 16, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa NIK Frutilla", gramosPorcion: 4, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa NIK Limón", gramosPorcion: 4, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa NIK Clásica", gramosPorcion: 4, faPorcion: 6, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Gretel Chocolate", gramosPorcion: 7, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Gretel Frutilla", gramosPorcion: 7, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Obsesión Clásica", gramosPorcion: 5, faPorcion: 13, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Obsesión Menta", gramosPorcion: 5, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Obsesión Maní", gramosPorcion: 5, faPorcion: 13, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Donuts Coco Crunch", gramosPorcion: 7, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Donuts Blanco", gramosPorcion: 7, faPorcion: 18, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Donuts Orange Bitter", gramosPorcion: 6, faPorcion: 14, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Donuts Chocolate", gramosPorcion: 7, faPorcion: 18, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Waffer", gramosPorcion: 4, faPorcion: 8, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Tuareg Mango-Piña", gramosPorcion: 12, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Costa Tuareg Coco", gramosPorcion: 12, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Maravilla", gramosPorcion: 6, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Niza", gramosPorcion: 6, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Limón", gramosPorcion: 6, faPorcion: 15, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Mantequilla", gramosPorcion: 6, faPorcion: 18, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Coco", gramosPorcion: 8, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Vino", gramosPorcion: 6, faPorcion: 20, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Tritón Chocolate", gramosPorcion: 11, faPorcion: 37, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Tritón Vainilla", gramosPorcion: 11, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Tritón Capuccino", gramosPorcion: 11, faPorcion: 27, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Kuky Clásica", gramosPorcion: 9, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Kuky Chocolate", gramosPorcion: 8, faPorcion: 27, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Frac Vainilla", gramosPorcion: 13, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Frac Chocholate", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Frac Clásica", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Frac Capuccino", gramosPorcion: 13, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Alteza Chirimoya", gramosPorcion: 7, faPorcion: 12, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Alteza Bocado", gramosPorcion: 7, faPorcion: 13, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Alteza Helado", gramosPorcion: 7, faPorcion: 13, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Hogareña Mantequilla", gramosPorcion: 17, faPorcion: 63, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "MacKay Hogareña Chocolate", gramosPorcion: 20, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Galletas Santiago Coco", gramosPorcion: 4, faPorcion: 11, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Galletas Santiago Limón", gramosPorcion: 4, faPorcion: 11, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Chocolate", gramosPorcion: 10, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Coco", gramosPorcion: 13, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Lider Rellena Chocolate", gramosPorcion: 13, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Chocolate", gramosPorcion: 10, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Chocoexplosión", gramosPorcion: 9, faPorcion: 27, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Originales", gramosPorcion: 9, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Colores", gramosPorcion: 9, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Originales Caja", gramosPorcion: 11, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy Chewy Caja", gramosPorcion: 15, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Chips Ahoy White Fugde Chunky", gramosPorcion: 16, faPorcion: 30, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Tody Chocolate", gramosPorcion: 10, faPorcion: 28, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Blanco Caja", gramosPorcion: 17, faPorcion: 50, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Chocolate Fudge Caja", gramosPorcion: 17, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Mint Fudge Creme", gramosPorcion: 12, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Double Fudge", gramosPorcion: 15, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Original", gramosPorcion: 9, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo TrioChoc", gramosPorcion: 9, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Cookies and Cream", gramosPorcion: 9, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Oreo Dorada", gramosPorcion: 9, faPorcion: 23, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Din Don", gramosPorcion: 13, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Quaker Sandwich Vainilla", gramosPorcion: 10, faPorcion: 40, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Quaker Sandwich Chocolate", gramosPorcion: 10, faPorcion: 45, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Quaker Avena Pasas", gramosPorcion: 10, faPorcion: 32, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Quaker Avena Manzana", gramosPorcion: 10, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Bon o Bon", gramosPorcion: 10, faPorcion: 46, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Rico Choc Frutos Rojos", gramosPorcion: 13, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Rico Choc Blanco y Negro", gramosPorcion: 13, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Rico Choc Clásico", gramosPorcion: 13, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Marilan Magic Toast", gramosPorcion: 4, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Formis Arcos", gramosPorcion: 6, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Great Value Chocolate Sandw", gramosPorcion: 15, faPorcion: 25, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Arrocitas", gramosPorcion: 7, faPorcion: 31, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Galletas Chuño Light", gramosPorcion: 8, faPorcion: 47, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Biscuit Quinoa", gramosPorcion: 4, faPorcion: 19, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Biscuit Salvado", gramosPorcion: 4, faPorcion: 17, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Emparedados Manzana", gramosPorcion: 13, faPorcion: 38, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Emparedados Maní", gramosPorcion: 13, faPorcion: 70, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Emparedados Ciruela", gramosPorcion: 13, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Emparedados Higo", gramosPorcion: 13, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Ecovida Emparedados Frutilla", gramosPorcion: 13, faPorcion: 35, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Cerealitas Salvado", gramosPorcion: 6, faPorcion: 33, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Mini Tostadas Melba", gramosPorcion: 3, faPorcion: 22, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "NoGlut preparado panificable", gramosPorcion: 20, faPorcion: 38, tipo: "permitido", medidaCasera: "1/2 taza Luminarc (tz.)", categoria: 'snack' },
+        { nombre: "Negrita", gramosPorcion: 30, faPorcion: 70, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Super 8", gramosPorcion: 29, faPorcion: 60, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'snack' },
+        { nombre: "Tuyo", gramosPorcion: 19, faPorcion: 40, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'snack' },
+
+        // --- ALIMENTOS RICOS EN GRASAS ---
+        { nombre: "Aceite toda variedad", gramosPorcion: 100, faPorcion: 0, tipo: "permitido", medidaCasera: "10 cdas", categoria: 'grasa' },
+        { nombre: "Crema Chantillí", gramosPorcion: 12, faPorcion: 13, tipo: "permitido", medidaCasera: "1 cda", categoria: 'grasa' },
+        { nombre: "Crema para el café", gramosPorcion: 1, faPorcion: 4, tipo: "permitido", medidaCasera: "1 medida Nestlé", categoria: 'grasa' },
+        { nombre: "Crema Nestlé La Lechera", gramosPorcion: 28, faPorcion: 35, tipo: "permitido", medidaCasera: "1 cda", categoria: 'grasa' },
+        { nombre: "Manteca de cerdo", gramosPorcion: 100, faPorcion: 0, tipo: "permitido", medidaCasera: "10 cdas", categoria: 'grasa' },
+        { nombre: "Manteca vegetal", gramosPorcion: 100, faPorcion: 0, tipo: "permitido", medidaCasera: "10 cdas", categoria: 'grasa' },
+        { nombre: "Mantequilla", gramosPorcion: 100, faPorcion: 10, tipo: "permitido", medidaCasera: "10 cdas", categoria: 'grasa' },
+        { nombre: "Mayonesa Light", gramosPorcion: 28, faPorcion: 14, tipo: "permitido", medidaCasera: "1 cda", categoria: 'grasa' },
+        { nombre: "Mayonesa normal", gramosPorcion: 28, faPorcion: 15, tipo: "permitido", medidaCasera: "1 cda", categoria: 'grasa' },
+        { nombre: "Almendra", gramosPorcion: 1, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'grasa' },
+        { nombre: "Avellana", gramosPorcion: 1, faPorcion: 6, tipo: "permitido", medidaCasera: "2 unidades", categoria: 'grasa' },
+        { nombre: "Maní", gramosPorcion: 1, faPorcion: 12, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'grasa' },
+        { nombre: "Nueces", gramosPorcion: 5, faPorcion: 61, tipo: "controlado", medidaCasera: "1 unidad", categoria: 'grasa' },
+        { nombre: "Pistacho", gramosPorcion: 1, faPorcion: 10, tipo: "permitido", medidaCasera: "1 unidad", categoria: 'grasa' }
     ];
 
     const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -720,6 +1289,61 @@
         }
     }
 
+    // --- ICONOS POR CATEGORÍA ---
+    const CATEGORIAS = {
+        hoja:     { color: '#27ae60', svg: '<path d="M12 21C12 21 4 17 4 9C4 5 7 3 12 3C17 3 20 5 20 9C20 17 12 21 12 21Z" fill="#fff"/><path d="M12 5V19" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>' },
+        raiz:     { color: '#e67e22', svg: '<path d="M12 22L8 10C7 6 9 2 12 2C15 2 17 6 16 10L12 22Z" fill="#fff"/><path d="M9 4L12 2L15 4" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>' },
+        broccoli: { color: '#16a085', svg: '<rect x="10" y="13" width="4" height="8" rx="1.5" fill="#fff"/><circle cx="9" cy="9" r="4" fill="#fff"/><circle cx="15" cy="9" r="4" fill="#fff"/><circle cx="12" cy="6" r="4" fill="#fff"/>' },
+        legumbre: { color: '#2ecc71', svg: '<path d="M3 12C3 9 5 8 7 9C8 7 11 7 12 9C13 7 16 7 17 9C19 8 21 9 21 12C21 15 19 16 17 15C16 17 13 17 12 15C11 17 8 17 7 15C5 16 3 15 3 12Z" fill="#fff"/>' },
+        veggie:   { color: '#e74c3c', svg: '<circle cx="12" cy="13" r="8" fill="#fff"/><path d="M9 6C9 6 12 3 15 6" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none" stroke-linecap="round"/>' },
+        fruta:    { color: '#e84393', svg: '<path d="M12 6C8 6 5 9 5 13.5C5 17.5 8 21 12 21C16 21 19 17.5 19 13.5C19 9 16 6 12 6Z" fill="#fff"/><path d="M12 6V3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><path d="M12 3C13 1.5 15.5 1.5 16 3.5" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none" stroke-linecap="round"/>' },
+        citrico:  { color: '#f39c12', svg: '<circle cx="12" cy="12" r="9" fill="#fff"/><g stroke="rgba(0,0,0,0.15)" stroke-width="1"><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"/></g>' },
+        baya:     { color: '#8e44ad', svg: '<circle cx="9" cy="10" r="3" fill="#fff"/><circle cx="15" cy="10" r="3" fill="#fff"/><circle cx="12" cy="15" r="3" fill="#fff"/><circle cx="7.5" cy="16" r="2.6" fill="#fff"/><circle cx="16.5" cy="16" r="2.6" fill="#fff"/><path d="M12 7V4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>' },
+        tropical: { color: '#f1c40f', svg: '<path d="M5 17C5 17 5.5 6 14 4C16 3.5 17 5 16 6.5C13 11.5 9.5 18 5 17Z" fill="#fff"/>' },
+        cereal:   { color: '#d35400', svg: '<line x1="12" y1="4" x2="12" y2="21" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M12 6L8.5 8.5M12 6L15.5 8.5M12 9.5L8.5 12M12 9.5L15.5 12M12 13L8.5 15.5M12 13L15.5 15.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>' },
+        queso:    { color: '#f4d03f', svg: '<path d="M3 17L16 5L21 19H3Z" fill="#fff"/><circle cx="9" cy="13" r="1.2" fill="rgba(0,0,0,0.15)"/><circle cx="13" cy="15" r="1.2" fill="rgba(0,0,0,0.15)"/><circle cx="17" cy="12" r="1.2" fill="rgba(0,0,0,0.15)"/>' },
+        grasa:    { color: '#8d6e63', svg: '<circle cx="12" cy="12" r="9" fill="#fff"/><circle cx="12" cy="12" r="4.5" fill="rgba(0,0,0,0.12)"/>' },
+        sopa:     { color: '#3498db', svg: '<path d="M3 12H21C21 17 17 20 12 20C7 20 3 17 3 12Z" fill="#fff"/><path d="M8 8C8 8 7 6 8 5M12 8C12 8 11 6 12 5M16 8C16 8 15 6 16 5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>' },
+        liquido:  { color: '#00acc1', svg: '<path d="M7 3H17L15.5 21H8.5L7 3Z" fill="#fff"/><path d="M7.7 10.5H16.3" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>' },
+        barrita:  { color: '#a1887f', svg: '<rect x="3" y="8" width="18" height="8" rx="2" fill="#fff"/><path d="M6 8L8.5 16M11 8L13.5 16M16 8L18.5 16" stroke="rgba(0,0,0,0.15)" stroke-width="1.3"/>' },
+        snack:    { color: '#c9a05c', svg: '<circle cx="12" cy="12" r="9" fill="#fff"/><circle cx="9" cy="9" r="1.3" fill="rgba(0,0,0,0.2)"/><circle cx="15" cy="10" r="1.3" fill="rgba(0,0,0,0.2)"/><circle cx="10" cy="15" r="1.3" fill="rgba(0,0,0,0.2)"/><circle cx="15" cy="15" r="1.3" fill="rgba(0,0,0,0.2)"/><circle cx="13" cy="12" r="1.3" fill="rgba(0,0,0,0.2)"/>' },
+        papas:    { color: '#fb8c00', svg: '<path d="M4 9C4 6 8 5 12 7C16 9 20 6 20 9C20 15 16 18 12 16C8 14 4 14 4 9Z" fill="#fff"/><path d="M7 9C9 11 11 8 13 10C15 12 16 10 17 12" stroke="rgba(0,0,0,0.12)" stroke-width="1" fill="none"/>' },
+        generico: { color: '#95a5a6', svg: '<circle cx="12" cy="12" r="9" fill="#fff"/><circle cx="12" cy="12" r="5" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1.5"/>' }
+    };
+
+    function obtenerCategoria(nombre) {
+        const n = nombre.toLowerCase();
+        const reglas = [
+            { kws: ['néctar', 'nectar', 'jugo', 'concentrado', 'bebida', 'leche líquida', 'leche liquida', 'sprim', 'kapo', 'ambrosoli', 'zuko', 'yupi', 'livean', 'nordic', 'bilz', 'pap zero', 'arizona', 'vitamin', 'gatorade', 'aquarius', 'powerade', 'lipton', 'té verde', 'te verde', 'andina', 'yuz', 'clear', 'colado', 'picado'], cat: 'liquido' },
+            { kws: ['violife', 'queso'], cat: 'queso' },
+            { kws: ['aproten', 'fideos', 'spaghetti', 'rigatini', 'fetuccine', 'tagliatelle', 'anelini', 'ditalini', 'pan de molde', 'galleta', 'oblea', 'avena', 'cebada', 'centeno', 'sémola', 'semola', 'harina', 'maicena', 'polenta', 'chuño', 'chuchoca', 'ñoquis', 'arroz', 'blevit', 'raff', 'trigo', 'cereales', 'cereal', 'maíz', 'maiz', 'colacao'], cat: 'cereal' },
+            { kws: ['sopa maggi'], cat: 'sopa' },
+            { kws: ['coco', 'palta', 'pasas', 'datil', 'huesillo'], cat: 'grasa' },
+            { kws: ['cereza', 'marrasquino', 'durazno', 'damasco', 'nectarin', 'ciruela', 'pera', 'membrillo', 'nispero', 'níspero', 'manzana', 'chirimoya', 'guayaba', 'lucuma', 'lúcuma', 'tunas', 'coktail', 'pepino dulce', 'higo'], cat: 'fruta' },
+            { kws: ['uva', 'grosella', 'frutilla', 'frambuesa', 'mora'], cat: 'baya' },
+            { kws: ['limon', 'limón', 'pomelo', 'naranja', 'mandarina', 'tangerina', 'kiwi'], cat: 'citrico' },
+            { kws: ['mango', 'papaya', 'piña', 'pina', 'plátano', 'platano', 'banana', 'sandia', 'sandía', 'melon', 'melón'], cat: 'tropical' },
+            { kws: ['tomate', 'ketchup', 'berenjena', 'pepino', 'zapallo', 'champiñ', 'champin', 'pimentón', 'pimenton'], cat: 'veggie' },
+            { kws: ['choclo', 'arvejas', 'habas', 'porotos', 'porrones'], cat: 'legumbre' },
+            { kws: ['brócoli', 'brocoli', 'coliflor', 'alcachofa', 'col bruselas', 'repollitos'], cat: 'broccoli' },
+            { kws: ['zanahoria', 'betarraga', 'rabanito', 'nabo', 'papa', 'camote', 'yuca', 'penca', 'puerro', 'cebolla', 'cebollin', 'ajo', 'jengibre'], cat: 'raiz' },
+            { kws: ['acelga', 'achicoria', 'lechuga', 'espinaca', 'berros', 'mostaza', 'repollo', 'col', 'endibia', 'perejil', 'albahaca', 'kale', 'chucrut', 'pickle', 'apio', 'espárrago', 'esparrago', 'ruibardo', 'palmito'], cat: 'hoja' },
+        ];
+        for (const r of reglas) {
+            if (r.kws.some(k => n.includes(k))) return r.cat;
+        }
+        return 'generico';
+    }
+
+    function obtenerIconoHTML(alimento, size) {
+        size = size || 24;
+        const cat = alimento.categoria || obtenerCategoria(alimento.nombre);
+        const datos = CATEGORIAS[cat] || CATEGORIAS.generico;
+        const tam = Math.round(size * 0.6);
+        return `<span class="icono-alimento" style="background:${datos.color}; width:${size}px; height:${size}px;"><svg viewBox="0 0 24 24" width="${tam}" height="${tam}" xmlns="http://www.w3.org/2000/svg">${datos.svg}</svg></span>`;
+    }
+
+
     // --- BUSCADOR ---
     function buscarAlimento() {
         const query = document.getElementById('buscador').value.toLowerCase();
@@ -741,7 +1365,7 @@
                 if(alimento.tipo === "controlado") { textoTag = "Al Límite"; claseTag = "tag-controlado"; }
                 if(alimento.tipo === "prohibido") { textoTag = "Prohibido"; claseTag = "tag-prohibido"; }
 
-                li.innerHTML = `<span>${alimento.nombre}</span><span class="tag-alimento ${claseTag}">${textoTag}</span>`;
+                li.innerHTML = `<span class="fila-alimento">${obtenerIconoHTML(alimento, 26)}<span class="nombre-alimento">${alimento.nombre}</span></span><span class="tag-alimento ${claseTag}">${textoTag}</span>`;
                 li.onclick = () => seleccionarAlimento(alimento);
                 lista.appendChild(li);
             });
@@ -759,18 +1383,28 @@
         document.getElementById('listaSugerencias').style.display = "none";
         document.getElementById('buscador').value = "";
 
+        const emojiCategoria = obtenerIconoHTML(alimento, 32);
+        let placeholder = "Gramos reales en la pesa";
+        if (alimento.unidad === 'ml') placeholder = "ml reales medidos";
+        else if (alimento.unidad === 'unidad') placeholder = "Cantidad de unidades (ej: 1, 2...)";
+        inputGramos.placeholder = placeholder;
+
+        const porcionTexto = alimento.unidad === 'ml' ? `${alimento.gramosPorcion}ml`
+            : alimento.unidad === 'unidad' ? `${alimento.gramosPorcion} unidad(es)`
+            : `${alimento.gramosPorcion}g`;
+
         if (alimento.tipo === "permitido") {
-            box.innerHTML = `🟢 OK: ${alimento.nombre} (${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span>`;
+            box.innerHTML = `<div class="fila-alimento" style="align-items:flex-start;">${emojiCategoria}<div>🟢 OK: ${alimento.nombre} (${porcionTexto} = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span></div></div>`;
             box.style.backgroundColor = "rgba(46, 204, 113, 0.15)"; box.style.color = "#1e7e34"; box.style.borderLeft = "4px solid var(--color-green)";
             inputGramos.disabled = false; btnCalc.disabled = false; inputGramos.focus();
         } 
         else if (alimento.tipo === "controlado") {
-            box.innerHTML = `🟡 AL LÍMITE: ${alimento.nombre} (${alimento.gramosPorcion}g = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span>`;
+            box.innerHTML = `<div class="fila-alimento" style="align-items:flex-start;">${emojiCategoria}<div>🟡 AL LÍMITE: ${alimento.nombre} (${porcionTexto} = ${alimento.faPorcion}mg FA)<span class="medida-sugerida-texto">📐 Ref: ${alimento.medidaCasera}</span></div></div>`;
             box.style.backgroundColor = "rgba(241, 196, 15, 0.15)"; box.style.color = "#744210"; box.style.borderLeft = "4px solid var(--color-yellow)";
             inputGramos.disabled = false; btnCalc.disabled = false; inputGramos.focus();
         } 
         else if (alimento.tipo === "prohibido") {
-            box.innerHTML = `🔴 PROHIBIDO: ${alimento.nombre}<span class="medida-sugerida-texto" style="color:#b71c1c;">⚠️ Advertencia: ${alimento.medidaCasera}</span>`;
+            box.innerHTML = `<div class="fila-alimento" style="align-items:flex-start;">${emojiCategoria}<div>🔴 PROHIBIDO: ${alimento.nombre}<span class="medida-sugerida-texto" style="color:#b71c1c;">⚠️ Advertencia: ${alimento.medidaCasera}</span></div></div>`;
             box.style.backgroundColor = "rgba(231, 76, 60, 0.15)"; box.style.color = "#b71c1c"; box.style.borderLeft = "4px solid var(--color-red)";
             inputGramos.value = ""; inputGramos.disabled = true; btnCalc.disabled = true;
         }
@@ -791,7 +1425,7 @@
         consumidoHoy += faRedondeada;
         localStorage.setItem('pku_consumido', consumidoHoy);
 
-        comidasHoy.push({ id: Date.now(), nombre: alimentoActual.nombre, gramos: gramosUsuario, fa: faRedondeada });
+        comidasHoy.push({ id: Date.now(), nombre: alimentoActual.nombre, gramos: gramosUsuario, fa: faRedondeada, unidad: alimentoActual.unidad || 'g', categoria: alimentoActual.categoria || obtenerCategoria(alimentoActual.nombre) });
         localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
 
         document.getElementById('gramos').value = '';
@@ -814,8 +1448,10 @@
         comidasHoy.forEach(item => {
             const li = document.createElement('li');
             li.className = "comida-item";
-            li.innerHTML = `<div><strong>${item.nombre}</strong> <span class="comida-detalles">(${item.gramos}g)</span></div>
-                            <div style="display: flex; align-items: center; gap: 10px;"><span style="font-weight: bold;">${item.fa} mg</span><button class="btn-del-item" onclick="borrarComidaIndividual(${item.id}, ${item.fa})">❌</button></div>`;
+            const iconoHTML = obtenerIconoHTML(item, 26);
+            const detalleTexto = item.unidad === 'unidad' ? `${item.gramos} unidad(es)` : `${item.gramos}${item.unidad || 'g'}`;
+            li.innerHTML = `<div class="fila-alimento">${iconoHTML}<div class="nombre-alimento"><strong>${item.nombre}</strong> <span class="comida-detalles">(${detalleTexto})</span></div></div>
+                            <div style="display: flex; align-items: center; gap: 10px; flex-shrink:0;"><span style="font-weight: bold;">${item.fa} mg</span><button class="btn-del-item" onclick="borrarComidaIndividual(${item.id}, ${item.fa})">❌</button></div>`;
             listaUI.appendChild(li);
         });
     }
@@ -953,6 +1589,115 @@
             } catch (err) { alert("Archivo no válido."); }
         };
         reader.readAsText(file);
+    }
+
+    // --- ESCÁNER DE PRODUCTOS (Open Food Facts) ---
+    let html5QrScanner = null;
+
+    function toggleScanner() {
+        const box = document.getElementById('qrReaderBox');
+        const btn = document.getElementById('btnScanner');
+
+        if (box.style.display === 'block') {
+            cerrarScanner();
+            return;
+        }
+
+        document.getElementById('resultadoEscaneo').innerHTML = '';
+        box.style.display = 'block';
+        btn.innerText = '✖️ Cerrar Cámara';
+
+        if (typeof Html5QrcodeScanner === 'undefined') {
+            document.getElementById('qr-reader').innerHTML = "<div class='error-box'>⚠️ No se pudo cargar el escáner. Verifica tu conexión a internet e inténtalo de nuevo.</div>";
+            return;
+        }
+
+        html5QrScanner = new Html5QrcodeScanner("qr-reader", {
+            fps: 10,
+            qrbox: 230,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E
+            ]
+        }, false);
+
+        html5QrScanner.render(onScanSuccess, () => {});
+    }
+
+    function cerrarScanner() {
+        const box = document.getElementById('qrReaderBox');
+        const btn = document.getElementById('btnScanner');
+        if (html5QrScanner) {
+            html5QrScanner.clear().catch(() => {});
+            html5QrScanner = null;
+        }
+        document.getElementById('qr-reader').innerHTML = '';
+        box.style.display = 'none';
+        btn.innerText = '📷 Abrir Cámara';
+    }
+
+    function onScanSuccess(decodedText) {
+        if (html5QrScanner) {
+            html5QrScanner.clear().catch(() => {});
+            html5QrScanner = null;
+        }
+        document.getElementById('qr-reader').innerHTML = '';
+        document.getElementById('qrReaderBox').style.display = 'none';
+        document.getElementById('btnScanner').innerText = '📷 Abrir Cámara';
+        buscarProductoOFF(decodedText.trim());
+    }
+
+    async function buscarProductoOFF(codigo) {
+        const resDiv = document.getElementById('resultadoEscaneo');
+        resDiv.innerHTML = `<p style="text-align:center; color:#7f8c8d; padding:10px; font-size:13px;">🔎 Buscando producto (código ${codigo})...</p>`;
+
+        try {
+            const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${codigo}.json?fields=product_name,brands,nutriments`);
+            const data = await resp.json();
+
+            if (data.status !== 1 || !data.product) {
+                resDiv.innerHTML = `<div class="error-box">❌ No se encontró información para el código <strong>${codigo}</strong>.<br><span style="font-size:11px;">Puedes buscarlo manualmente en el buscador de arriba.</span></div>`;
+                return;
+            }
+
+            const p = data.product;
+            const n = p.nutriments || {};
+            const proteinas = n['proteins_100g'];
+            const carbos = n['carbohydrates_100g'];
+            const azucares = n['sugars_100g'];
+            const grasas = n['fat_100g'];
+            const energia = n['energy-kcal_100g'];
+
+            let faEstimadoHtml = '';
+            if (typeof proteinas === 'number') {
+                const faEstimado = Math.round(proteinas * 50);
+                faEstimadoHtml = `
+                    <div class="fa-estimado-box">
+                        <strong>⚠️ FA estimado: ~${faEstimado} mg por cada 100g</strong>
+                        <small>Estimación basada en ${proteinas}g de proteína cada 100g (regla aproximada: 1g de proteína ≈ 50mg de FA). <strong>No es un valor oficial de tu tabla PKU.</strong> Verifica con tu nutricionista antes de consumir.</small>
+                    </div>`;
+            }
+
+            resDiv.innerHTML = `
+                <div class="producto-card">
+                    <strong style="font-size:15px;">${p.product_name || 'Producto sin nombre'}</strong>
+                    ${p.brands ? `<div style="font-size:12px; color:#7f8c8d;">${p.brands}</div>` : ''}
+                    <table>
+                        <tr><td>Energía</td><td>${energia ?? '—'} kcal</td></tr>
+                        <tr><td>Proteínas</td><td>${proteinas ?? '—'} g</td></tr>
+                        <tr><td>Carbohidratos</td><td>${carbos ?? '—'} g</td></tr>
+                        <tr><td>Azúcares</td><td>${azucares ?? '—'} g</td></tr>
+                        <tr><td>Grasas</td><td>${grasas ?? '—'} g</td></tr>
+                    </table>
+                    <div style="font-size:11px; color:#95a5a6; margin-top:6px;">Valores por cada 100g del producto (fuente: Open Food Facts)</div>
+                    ${faEstimadoHtml}
+                </div>
+            `;
+        } catch (err) {
+            resDiv.innerHTML = `<div class="error-box">❌ No se pudo conectar a internet para buscar el producto.</div>`;
+        }
     }
 </script>
 </body>
