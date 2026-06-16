@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.shikolope.twa",
+        "sha256_cert_fingerprints": ["F3:28:9D:D2:BE:8E:FB:71:F2:D7:88:82:3D:72:DF:E8:06:00:DD:0F:23:29:2D:8C:63:85:4C:B5:B4:6E:12:5A"]
+      }
+    }]
