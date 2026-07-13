@@ -1,13 +1,13 @@
 {
   "id": "/Control-pku/",
-  "name": "PKU Control Diario",
-  "short_name": "PKU Control",
+  "name": "Mi Control PKU",
+  "short_name": "Mi Control PKU",
   "description": "Aplicación intuitiva y silenciosa para el cálculo de niveles de FA",
   "start_url": "/Control-pku/",
   "scope": "/Control-pku/",
   "display": "standalone",
   "background_color": "#f4f7f6",
-  "theme_color": "#2ecc71",
+  "theme_color": "#1B5E5E",
   "orientation": "portrait",
   "icons": [
     {
