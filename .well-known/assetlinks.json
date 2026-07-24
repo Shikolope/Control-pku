@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.web.pku_control.twa",
+        "sha256_cert_fingerprints": ["7B:DF:D4:74:62:FA:C7:E4:68:E7:5F:1B:CD:71:F5:8F:D0:D9:FB:F7:19:C3:01:95:29:FA:18:FB:72:39:D0:0F"]
+      }
+    }]
