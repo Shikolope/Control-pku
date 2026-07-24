@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.web.pku_control.twa",
-        "sha256_cert_fingerprints": ["7B:DF:D4:74:62:FA:C7:E4:68:E7:5F:1B:CD:71:F5:8F:D0:D9:FB:F7:19:C3:01:95:29:FA:18:FB:72:39:D0:0F"]
+        "sha256_cert_fingerprints": ["64:2A:62:AC:E5:8C:D5:23:07:CD:86:BD:DD:2B:26:D2:EB:F2:18:12:C6:06:65:A0:B2:8E:80:A2:F5:2A:6E:B8"]
       }
     }]
