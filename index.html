@@ -8,7 +8,7 @@
          cuando reporta un problema.
          Formato sugerido: AAAA-MM-DD.N (N = deploy del día)
          ════════════════════════════════════════════════════ -->
-    <script>window.PKU_APP_VERSION = '2026-07-25.1';</script>
+    <script>window.PKU_APP_VERSION = '2026-07-04.6';</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- iOS PWA / Safari -->
@@ -1960,6 +1960,12 @@
         </div>
     </div>
 
+        <!-- Registro del Desglose diario -->
+    <div class="comidas-hoy-box">
+        <h3>📋 Comidas de Hoy</h3>
+        <ul id="listaComidasHoy" class="comidas-hoy-lista"></ul>
+    </div>
+
     <!-- Tarjeta: Exámenes de sangre / niveles de FA -->
     <a href="https://www.metabolicaschile.cl/pku_movil/#" target="_blank" rel="noopener noreferrer"
        style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(211,47,47,0.06), rgba(211,47,47,0.12)); border:1px solid rgba(211,47,47,0.18); border-radius:16px; padding:14px 16px; margin:0 16px 16px; text-decoration:none; transition:transform 0.15s;">
@@ -2219,12 +2225,6 @@
             • <strong>Cucharada (cda.):</strong> 10 gr<br>
             <small style="color:#7f8c8d; display:block; margin-top:5px;">* Pesos exactos integrados para la dosificación y cálculo de porciones.</small>
         </div>
-    </div>
-
-    <!-- Registro del Desglose diario -->
-    <div class="comidas-hoy-box">
-        <h3>📋 Comidas de Hoy</h3>
-        <ul id="listaComidasHoy" class="comidas-hoy-lista"></ul>
     </div>
 
     <!-- Sección: Escáner de Productos — OCULTA a pedido de INTA: "genera ruido" -->
