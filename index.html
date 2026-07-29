@@ -8169,6 +8169,7 @@
                 break;
             }
             case 'config':        await setDoc(doc(db, bpOp + '/config/principal'), { ...op.datos, _ts: serverTimestamp() }, { merge: true }); break;
+            case 'log':           await setDoc(doc(db, bpOp + '/log/' + op.datos.id), { ...op.datos.entrada, _ts: serverTimestamp() }); break;
             case 'historial':     await setDoc(doc(db, bpOp + '/historial/' + op.datos.fecha), { ...op.datos, _ts: serverTimestamp() }); break;
             case 'borrarHistorial': {
                 const refBH = doc(db, bpOp + '/historial/' + op.datos);
@@ -8317,28 +8318,43 @@
 
     window.registrarEnLog = async function(accion, comida, fechaCorrespondiente) {
         const user = auth.currentUser;
-        if (!user || modoOffline) return; // la auditoría es "best effort": no bloquea ni reintenta
+        if (!user) return; // sin sesión no hay a dónde escribir, ni cola que valga
         if (typeof _modoDemo !== 'undefined' && _modoDemo) return; // demo: nunca tocar Firestore
         // El log se guarda dentro del perfil activo para no mezclar el historial
         // de cambios entre las distintas personas PKU de la cuenta.
         if (!perfilActivo || !perfilActivo.id) return;
+
+        const idLog = String(Date.now()) + '_' + Math.random().toString(36).slice(2, 7);
+        const entrada = {
+            accion: accion, // 'agregada' | 'eliminada'
+            nombreAlimento: comida?.nombre || '(desconocido)',
+            fa: comida?.fa || 0,
+            gramos: comida?.gramos || 0,
+            fechaCorrespondiente: fechaCorrespondiente, // a qué día del registro pertenece
+            fechaHoraEvento: new Date().toISOString() // cuándo ocurrió realmente la acción
+        };
+
+        // FIX INTEGRIDAD (15 jul 2026): antes, si la app estaba en modo offline
+        // en el momento exacto de agregar/borrar una comida, este registro se
+        // descartaba para siempre — sin cola, sin reintento — aunque la comida
+        // en sí sí se guardaba (esa sí tiene su propio sistema de reintentos).
+        // Resultado: comidas visibles en el día, pero ausentes del historial de
+        // cambios. Ahora usa la misma cola de reintentos que comidas/citas —
+        // sigue sin bloquear la UI (por eso no hay try/catch alrededor de un
+        // await bloqueante aquí), pero ya no se pierde el dato.
+        if (modoOffline) {
+            // manejarFalloFirestore() se ignora a sí misma si modoOffline ya es
+            // true (evita duplicar el aviso de reconexión) — así que si ya
+            // estamos offline, hay que encolar directo, o este registro se
+            // perdería igual que antes del fix.
+            colaReintentos.push({ tipo: 'log', datos: { id: idLog, entrada }, perfilId: perfilActivo.id });
+            _persistirCola();
+            return;
+        }
         try {
-            const ahora = new Date();
-            await setDoc(
-                doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id, 'log',
-                    String(Date.now()) + '_' + Math.random().toString(36).slice(2, 7)),
-                {
-                    accion: accion, // 'agregada' | 'eliminada'
-                    nombreAlimento: comida?.nombre || '(desconocido)',
-                    fa: comida?.fa || 0,
-                    gramos: comida?.gramos || 0,
-                    fechaCorrespondiente: fechaCorrespondiente, // a qué día del registro pertenece
-                    fechaHoraEvento: ahora.toISOString(), // cuándo ocurrió realmente la acción
-                    _ts: serverTimestamp()
-                }
-            );
+            await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id, 'log', idLog), { ...entrada, _ts: serverTimestamp() });
         } catch(e) {
-            console.warn('No se pudo registrar en el historial de cambios (no crítico):', e);
+            manejarFalloFirestore('log', { id: idLog, entrada }, e);
         }
     };
 
