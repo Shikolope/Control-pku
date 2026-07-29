@@ -9020,6 +9020,15 @@
             ? `usuarios/${uid}/perfiles/${perfilActivo.id}`
             : `usuarios/${uid}`;
         try {
+            // FIX INTEGRIDAD: cerrar primero cualquier día viejo que haya quedado
+            // pendiente en Firestore (ultimoDia desactualizado), usando el mismo
+            // criterio que cargarDesdeFirestore. Si esto se hiciera después del
+            // merge de abajo, la colección "comidas" ya tendría las comidas de
+            // HOY recién subidas, y este cierre las archivaría por error en el
+            // historial de AYER (el día que sigue marcado como "último" en
+            // Firestore) — perdiéndolas de "Comidas de Hoy".
+            await cerrarDiaAnteriorEnFirestoreSiCorresponde(uid);
+
             // Respaldo automático antes de cualquier operación de merge/limpieza offline
             await crearRespaldoAutomatico(uid, 'reconexion_offline');
 
