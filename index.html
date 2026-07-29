@@ -1887,7 +1887,7 @@
         </div>
 
         <div id="formCitaBox" class="form-cita-box">
-            <input type="text" id="citaNota" placeholder="Ej: Control INTA, Examen...">
+            <input type="text" id="citaNota" maxlength="200" placeholder="Ej: Control INTA, Examen...">
             <input type="datetime-local" id="citaFechaHora">
             <div>
                 <button onclick="window.guardarNuevaCita()">Guardar</button>
@@ -2035,7 +2035,7 @@
             <div style="background:rgba(226,87,76,0.1); border-left:4px solid var(--color-red); border-radius:0 8px 8px 0; padding:10px; margin-bottom:12px; font-size:12px; color:#7b1a16;">
                 <strong>⚠️ Importante:</strong> Usa esta opción <strong>solo si el alimento no aparece en el Buscador de Alimentos PKU</strong> de arriba. La Tabla Oficial de Alimentos PKU de INTA Chile 2021 siempre tiene prioridad. Los valores estimados aquí son aproximaciones basadas en contenido proteico y <strong>no reemplazan los valores oficiales</strong>. Consulta siempre con tu nutricionista del INTA.
             </div>
-            <input type="text" id="customNombre" placeholder="Ej: Quinoa cocida" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
+            <input type="text" id="customNombre" maxlength="200" placeholder="Ej: Quinoa cocida" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
 
             <div id="customGrupoSection">
                 <label>Grupo del alimento <span style="font-weight:normal; color:#95a5a6;">(afecta el cálculo de FA)</span></label>
@@ -4021,6 +4021,9 @@
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para registrar comidas.', 'toast-warn'); return; }
         const nombre = document.getElementById('customNombre').value.trim();
         if (!nombre) { pkuToast('Ingresa el nombre del alimento.', 'toast-error'); return; }
+        // Límite alineado con firestore.rules (strValido(nombre, 200)): ver
+        // misma nota en _crearCitaInterna.
+        if (nombre.length > 200) { pkuToast('El nombre no puede superar los 200 caracteres.', 'toast-error'); return; }
 
         // Verificar cambio de día ANTES de guardar (ver nota en calcularFA)
         (window.verificarCambioDeDiaAutomatico || verificarCambioDeDiaAutomatico)();
@@ -4114,6 +4117,14 @@
     function _crearCitaInterna(nota, fechaHoraValue) {
         if (!nota || !fechaHoraValue) {
             pkuToast('Por favor, introduce una descripción y la fecha/hora.', 'toast-error');
+            return false;
+        }
+        // Límite alineado con firestore.rules (strValido(texto, 200)): si se
+        // guardara una nota más larga, Firestore la rechazaría con
+        // permission-denied y la app entera quedaría en modo solo lectura
+        // reintentando para siempre una operación que nunca puede tener éxito.
+        if (nota.length > 200) {
+            pkuToast('La nota no puede superar los 200 caracteres.', 'toast-error');
             return false;
         }
 
@@ -4427,7 +4438,7 @@
         const bloqueAgregar = _citaCalFormAbierta
             ? `
             <div style="${separador}">
-                <input type="text" id="citaCalNotaInline" placeholder="Ej: Control INTA, Examen de sangre..." style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:13px; margin-bottom:6px;">
+                <input type="text" id="citaCalNotaInline" maxlength="200" placeholder="Ej: Control INTA, Examen de sangre..." style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:13px; margin-bottom:6px;">
                 <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <input type="text" inputmode="numeric" id="citaCalHoraInline" value="09:00" placeholder="HH:MM" maxlength="5" oninput="formatearHoraCalInline(this)" style="flex:1; box-sizing:border-box; padding:8px; border:1px solid var(--border-color); border-radius:8px; font-size:13px;">
                     <div style="display:flex; border:1px solid var(--border-color); border-radius:8px; overflow:hidden; flex-shrink:0;">

@@ -1,0 +1,265 @@
+rules_version = '2';
+
+// ============================================================
+// REGLAS DE SEGURIDAD — Mi Control PKU
+// Proyecto Firebase: pku-control
+// Región: southamerica-west1
+// Última revisión: 2026-07-15
+//
+// ESTRUCTURA DE DATOS:
+//   usuarios/{uid}/
+//     perfiles/{perfilId}/
+//       config/principal       → metaDiaria, ultimoDia, nombrePaciente, codigoPerfil
+//       comidas/{comidaId}     → id, nombre, gramos, fa, unidad, categoria
+//       historial/{fecha}      → fecha, consumido, meta, comidas[]
+//       citas/{citaId}         → id, texto, fechaTexto, rawDateTime
+//       log/{logId}            → auditoría de cambios del perfil (append-only)
+//     papelera/{itemId}        → soft-delete (write-only desde la app)
+//     respaldos/{respaldoId}   → copias automáticas pre-cierre de día
+//     meta/migracion           → control de versión del esquema
+//   codigosPerfil/{codigo}     → mapeo PK-1234 -> ruta del perfil (identificador
+//                                no sensible, sin datos clínicos, para modo profesional)
+//   profesionales/{uid}        → cuentas de nutricionistas INTA con acceso institucional
+//                                (creadas manualmente en consola, no autoregistro)
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── DENEGACIÓN GLOBAL POR DEFECTO ──────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────
+    function esPropietario(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Una cuenta profesional es cualquier uid con documento en
+    // /profesionales/{uid}. La cuenta se crea manualmente desde la
+    // consola de Firebase — no hay autoregistro.
+    function esProfesional() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/profesionales/$(request.auth.uid));
+    }
+
+    // Verifica que la escritura solo toque los campos indicados
+    // (comparando el documento resultante contra el actual). Se usa
+    // para que un profesional solo pueda modificar el límite de FA,
+    // nunca otro campo del perfil o del config.
+    function soloCambiaCampos(camposPermitidos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(camposPermitidos);
+    }
+
+    function enRango(valor, minVal, maxVal) {
+      return valor is number && valor >= minVal && valor <= maxVal;
+    }
+
+    function strValido(s, maxLen) {
+      return s is string && s.size() > 0 && s.size() <= maxLen;
+    }
+
+    // ── USUARIOS ───────────────────────────────────────────────
+    match /usuarios/{uid} {
+
+      // El documento raíz del usuario (ruta legacy, pre-multiperfil).
+      allow read, write: if esPropietario(uid);
+
+      // ── PERFILES ─────────────────────────────────────────────
+      match /perfiles/{perfilId} {
+
+        // El dueño ve sus propios perfiles; un profesional puede leer
+        // cualquier perfil (acceso institucional, sin código de
+        // consentimiento) — necesario para el buscador por nombre.
+        allow read: if esPropietario(uid) || esProfesional();
+
+        // Crear un perfil: solo el dueño, con los campos completos.
+        allow create: if esPropietario(uid)
+          && strValido(request.resource.data.nombre, 80)
+          && enRango(request.resource.data.meta, 1, 9999)
+          && request.resource.data.colorIdx is int
+          && enRango(request.resource.data.colorIdx, 0, 9);
+
+        // Actualizar un perfil: el dueño puede tocar cualquier campo
+        // válido; un profesional SOLO puede tocar 'meta' (espejo del
+        // límite que vive en config/principal.metaDiaria) y '_ts'.
+        allow update: if (esPropietario(uid)
+            && strValido(request.resource.data.nombre, 80)
+            && enRango(request.resource.data.meta, 1, 9999)
+            && request.resource.data.colorIdx is int
+            && enRango(request.resource.data.colorIdx, 0, 9))
+          || (esProfesional()
+            && soloCambiaCampos(['meta', '_ts'])
+            && enRango(request.resource.data.meta, 1, 9999));
+
+        allow delete: if esPropietario(uid);
+
+        // ── CONFIG DEL PERFIL ───────────────────────────────────
+        match /config/{docId} {
+          allow read: if esPropietario(uid) || esProfesional();
+
+          // Solo el dueño crea el config inicial.
+          allow create: if esPropietario(uid)
+            && docId == 'principal'
+            && enRango(request.resource.data.metaDiaria, 1, 9999)
+            && request.resource.data.ultimoDia is string
+            && request.resource.data.ultimoDia.size() <= 10;
+
+          // El dueño actualiza cualquier campo válido; un profesional
+          // SOLO puede tocar 'metaDiaria' y '_ts', nunca nombrePaciente,
+          // favoritos, codigoPerfil ni ultimoDia.
+          allow update: if (esPropietario(uid)
+              && docId == 'principal'
+              && enRango(request.resource.data.metaDiaria, 1, 9999)
+              && request.resource.data.ultimoDia is string
+              && request.resource.data.ultimoDia.size() <= 10)
+            || (esProfesional()
+              && docId == 'principal'
+              && soloCambiaCampos(['metaDiaria', '_ts'])
+              && enRango(request.resource.data.metaDiaria, 1, 9999));
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── COMIDAS DEL DÍA ─────────────────────────────────────
+        match /comidas/{comidaId} {
+          allow read: if esPropietario(uid);
+
+          allow create, update: if esPropietario(uid)
+            && strValido(request.resource.data.nombre, 200)
+            && enRango(request.resource.data.fa, 0, 99999)
+            && enRango(request.resource.data.gramos, 0, 99999);
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── HISTORIAL (días cerrados) ────────────────────────────
+        match /historial/{fecha} {
+          allow read: if esPropietario(uid);
+
+          allow create, update: if esPropietario(uid)
+            && fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+            && enRango(request.resource.data.consumido, 0, 999999)
+            && enRango(request.resource.data.meta, 1, 9999)
+            && request.resource.data.comidas is list;
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── CITAS MÉDICAS ───────────────────────────────────────
+        // FIX 2026-07-15: la app guarda {id, texto, fechaTexto, rawDateTime}
+        // (ver _crearCitaInterna en index.html) — el esquema anterior de esta
+        // regla exigía 'descripcion' y 'fecha', campos que la app nunca
+        // envía. Eso hacía que strValido() siempre fallara sobre un campo
+        // undefined, rechazando el 100% de los guardados de citas con
+        // permission-denied, sin importar si venían del formulario de arriba
+        // o del calendario. rawDateTime tiene formato "YYYY-MM-DDTHH:MM"
+        // (16 caracteres); se deja margen hasta 25 por si el navegador
+        // llegara a incluir segundos.
+        match /citas/{citaId} {
+          allow read: if esPropietario(uid);
+
+          allow create, update: if esPropietario(uid)
+            && strValido(request.resource.data.texto, 200)
+            && strValido(request.resource.data.rawDateTime, 25);
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── LOG DE AUDITORÍA DEL PERFIL (append-only) ──────────
+        // Registra tanto cambios de comida (dueño) como cambios de
+        // límite de FA hechos por un profesional — nunca se modifica
+        // ni se borra una entrada existente.
+        match /log/{logId} {
+          allow read: if esPropietario(uid) || esProfesional();
+
+          allow create: if (esPropietario(uid)
+              && strValido(request.resource.data.nombreAlimento, 200)
+              && request.resource.data.accion in ['agregada', 'eliminada']
+              && enRango(request.resource.data.fa, 0, 99999))
+            || (esProfesional()
+              && request.resource.data.accion == 'limite_modificado'
+              && request.resource.data.profesionalUid == request.auth.uid
+              && enRango(request.resource.data.limiteNuevo, 1, 9999));
+
+          allow update, delete: if false;
+        }
+        // ── NOTIFICACIONES PARA LA FAMILIA ─────────────────────
+        // Un profesional crea una notificación al cambiar el límite;
+        // el dueño la lee y puede marcarla como leída (nunca borrarla
+        // ni editar el mensaje).
+        match /notificaciones/{notifId} {
+          allow read: if esPropietario(uid);
+
+          allow create: if esProfesional()
+            && strValido(request.resource.data.mensaje, 500)
+            && request.resource.data.leida == false;
+
+          allow update: if esPropietario(uid)
+            && soloCambiaCampos(['leida', 'vistaEn']);
+
+          allow delete: if false;
+        }
+      }
+
+      // ── PAPELERA (soft-delete, write-only desde la app) ─────
+      match /papelera/{itemId} {
+        allow read: if false;
+        allow create: if esPropietario(uid);
+        allow update, delete: if false;
+      }
+
+      // ── RESPALDOS AUTOMÁTICOS ───────────────────────────────
+      match /respaldos/{respaldoId} {
+        allow read: if false;
+        allow create: if esPropietario(uid);
+        allow update, delete: if false;
+      }
+
+      // ── META / MIGRACIÓN ────────────────────────────────────
+      match /meta/{docId} {
+        allow read: if esPropietario(uid);
+        allow create, update: if esPropietario(uid)
+          && docId == 'migracion';
+        allow delete: if false;
+      }
+
+    } // fin /usuarios/{uid}
+
+    // ── REGLA DE COLLECTION GROUP PARA EL BUSCADOR DE PROFESIONALES ──
+    // Las reglas anidadas de /usuarios/{uid}/perfiles/{perfilId} de más
+    // arriba solo aplican a consultas directas contra esa subcolección
+    // puntual. Una consulta collectionGroup('perfiles') (que trae
+    // perfiles de TODAS las cuentas a la vez, usada por el buscador de
+    // profesional.html) necesita esta regla aparte, a nivel raíz, con
+    // la sintaxis {path=**}. Sin esto, el buscador falla con
+    // "permission-denied" aunque el resto de las reglas esté bien.
+    match /{path=**}/perfiles/{perfilId} {
+      allow read: if esProfesional();
+    }
+
+    // ── CÓDIGOS DE PERFIL (identificador corto no sensible, PK-1234) ──
+    match /codigosPerfil/{codigo} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && codigo.matches('^PK-[0-9]{4}$')
+        && request.resource.data.ruta is string
+        && request.resource.data.ruta.matches('^usuarios/' + request.auth.uid + '/perfiles/[^/]+$');
+
+      allow update, delete: if false;
+    }
+
+    // ── CUENTAS PROFESIONALES (nutricionistas INTA) ───────────
+    // Se crean manualmente desde la consola de Firebase. La app de
+    // familias nunca escribe acá; el modo profesional solo lee su
+    // propio documento para confirmar que tiene acceso autorizado.
+    match /profesionales/{uid} {
+      allow read: if esPropietario(uid);
+      allow write: if false;
+    }
+
+  } // fin /databases/{database}/documents
+} // fin service cloud.firestore
