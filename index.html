@@ -7278,7 +7278,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot, writeBatch, serverTimestamp, query, orderBy, limit, where, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot, writeBatch, serverTimestamp, query, orderBy, limit, where, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDrbc8lH3x3E0GW9tILv2MffFhWoX0lBk0",
@@ -7291,7 +7291,22 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    // FASE 1 MIGRACIÓN OFFLINE: cache persistente nativo de Firestore (IndexedDB),
+    // con soporte multi-pestaña (persistentMultipleTabManager) para que dos
+    // pestañas/dispositivos del mismo perfil no se pisen escribiendo a la cola
+    // de reintentos manual (ver CLAUDE.md). Si el entorno no soporta IndexedDB
+    // (navegación privada de Safari, algunos WebViews restringidos), se cae a
+    // getFirestore(app) sin persistencia — el resto de la app sigue funcionando
+    // igual, solo sin cache entre reinicios.
+    let db;
+    try {
+        db = initializeFirestore(app, {
+            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
+    } catch (e) {
+        console.warn('Cache persistente de Firestore no disponible, usando memoria:', e);
+        db = getFirestore(app);
+    }
 
     // FIX CONFIABILIDAD: lectura defensiva de localStorage, igual que _lsJSON
     // del script principal. Sin esto, un JSON corrupto (escritura parcial por
