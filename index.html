@@ -3753,8 +3753,11 @@
         const hoy = fechaHoyLocal();
         if (!ultimoDiaAntes || ultimoDiaAntes === hoy) return;
 
-        const user = auth.currentUser;
-        if (!user || modoOffline) {
+        // auth solo existe en el <script type="module">; este bloque vive en
+        // el script clásico, así que usa el helper que el módulo expone en
+        // window (ver window.obtenerUidActivo junto a obtenerBasePathActivo).
+        const uid = window.obtenerUidActivo ? window.obtenerUidActivo() : null;
+        if (!uid || modoOffline) {
             // Sin sesión o sin conexión: el único cierre posible es el local.
             // Se reconcilia contra Firestore (fuente de verdad) la próxima
             // vez que haya conexión, vía cerrarDiaAnteriorEnFirestoreSiCorresponde.
@@ -3779,8 +3782,8 @@
         // si fueran del día nuevo. cerrarDiaAnteriorEnFirestoreSiCorresponde
         // lee la fecha y las comidas directo del servidor, evitando esto.
         try {
-            await cerrarDiaAnteriorEnFirestoreSiCorresponde(user.uid);
-            await cargarDesdeFirestore(user.uid);
+            await window.cerrarDiaAnteriorEnFirestoreSiCorresponde(uid);
+            await window.cargarDesdeFirestore(uid);
         } catch (e) {
             console.warn('Error en cierre de día vía Firestore (revisarYAplicarCambioDeDia):', e);
         }
@@ -7783,6 +7786,11 @@
             : `usuarios/${user.uid}`;
     };
 
+    window.obtenerUidActivo = function() {
+        const user = auth.currentUser;
+        return user ? user.uid : null;
+    };
+
     window.obtenerMensajesProfesional = async function(basePath) {
         const q = query(
             collection(db, basePath + '/notificaciones'),
@@ -8716,6 +8724,7 @@
             // comportamiento previo (mejor mostrar algo que bloquear la app).
         }
     }
+    window.cerrarDiaAnteriorEnFirestoreSiCorresponde = cerrarDiaAnteriorEnFirestoreSiCorresponde;
 
     async function cargarDesdeFirestore(uid) {
         // Usar ruta del perfil activo
@@ -8847,6 +8856,7 @@
             if (!document.getElementById('bannerOffline')) mostrarBannerOffline();
         }
     }
+    window.cargarDesdeFirestore = cargarDesdeFirestore;
 
     // ---- LISTENERS EN TIEMPO REAL (multi-dispositivo) ----
     function activarListenersTiempoReal(uid) {

@@ -12,10 +12,11 @@ Escala objetivo: ~534 familias con personas PKU en Chile.
 
 ## Archivos principales
 
-- `index.html` — app de familias, versión de producción (sin logo institucional)
-- `index-..._con_LOGO.html` — versión paralela con el sello INTA/Universidad de Chile,
-  para uso institucional. **Todo cambio de lógica/funcionalidad debe aplicarse a AMBOS
-  archivos** — solo difieren en el logo/sello visual. Los dos deben mantenerse en paridad.
+- `index.html` — app de familias, versión de producción única. Ya incluye el sello
+  institucional INTA/Universidad de Chile (login, sección "Sello institucional INTA").
+  Antes existía un archivo paralelo `index-..._con_LOGO.html` para la versión con logo,
+  pero ese archivo ya no existe en el repo — ahora se trabaja **solo sobre este único
+  `index.html`**, no hay que replicar cambios a ningún otro archivo de app de familias.
 - `profesional.html` — login y panel para nutricionistas del INTA (modo profesional).
   **El dueño del proyecto ya editó el texto/wording de este archivo a mano — no tocar
   el texto ahí salvo que lo pida explícitamente.**
