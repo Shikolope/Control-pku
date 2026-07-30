@@ -229,6 +229,22 @@ usuarios/{uid}/
     log/{logId}        → auditoría append-only (comidas del dueño + cambios de límite
                           del profesional). No tiene pantalla propia para los cambios
                           de límite — decisión consciente, ver más abajo.
+                          **`cargarYRenderizarHistorialCambios` (pantalla "Historial
+                          de cambios") lee esta colección con
+                          `orderBy('fechaHoraEvento', 'desc').limit(100)`. NO le
+                          quites el `orderBy`** — sin él, `limit(100)` no trae "los
+                          últimos 100", trae 100 en un orden no garantizado
+                          (en la práctica, ascendente por ID = los más VIEJOS
+                          primero, porque el ID empieza con `Date.now()`). Bug real
+                          encontrado el 2026-07-30 en una cuenta con 145 eventos
+                          acumulados: los 45 más recientes — incluido literalmente
+                          todo el día de hoy — nunca se descargaban, y la pantalla
+                          mostraba "Sin cambios este día" pese a que el registro sí
+                          se había guardado bien en Firestore. `orderBy` sobre un solo
+                          campo (`fechaHoraEvento`, un string ISO plano, no
+                          `serverTimestamp()`) no necesita índice compuesto — el
+                          comentario original que evitaba el `orderBy` "para no
+                          requerir índice" partía de una premisa equivocada.
     notificaciones/{id}→ mensajes del profesional a la familia
   papelera/{itemId}     → soft-delete, a nivel de CUENTA (no por perfil), write-only
                           desde la app (allow read: if false)
