@@ -6404,6 +6404,13 @@
             pkuToast('El generador de PDF aún está cargando, intenta en unos segundos.', 'toast-warn');
             return;
         }
+        // FIX INTEGRIDAD (2026-07-30): ver nota en cargarDesdeFirestore — si
+        // se acaba de cambiar de perfil, evitar generar un reporte que mezcle
+        // el nombre del paciente nuevo con los datos del paciente anterior.
+        if (window.cargandoDatosPerfil) {
+            pkuToast('⏳ Espera unos segundos a que terminen de cargar los datos de este paciente antes de generar el reporte.', 'toast-warn');
+            return;
+        }
         try {
         const { jsPDF } = window.jspdf;
         const docPdf = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -6862,6 +6869,13 @@
     function generarReporteExcel() {
         if (typeof XLSX === 'undefined') {
             pkuToast('El generador de Excel aún está cargando, intenta en unos segundos.', 'toast-warn');
+            return;
+        }
+        // FIX INTEGRIDAD (2026-07-30): ver nota en cargarDesdeFirestore — si
+        // se acaba de cambiar de perfil, evitar generar un reporte que mezcle
+        // el nombre del paciente nuevo con los datos del paciente anterior.
+        if (window.cargandoDatosPerfil) {
+            pkuToast('⏳ Espera unos segundos a que terminen de cargar los datos de este paciente antes de generar el reporte.', 'toast-warn');
             return;
         }
         try {
@@ -8820,6 +8834,17 @@
             ? `usuarios/${uid}/perfiles/${perfilActivo.id}`
             : `usuarios/${uid}`;
 
+        // FIX INTEGRIDAD (2026-07-30): mientras esta función está en vuelo
+        // (típicamente al cambiar de perfil), historialDias/comidasHoy/
+        // citasMedicas siguen siendo los del perfil ANTERIOR — recién se
+        // reemplazan cuando aplicarDatosRestaurados corre más abajo — pero
+        // el nombre del paciente en el header YA cambió al nuevo (lo hace
+        // seleccionarPerfil de forma síncrona, antes de este await). Si el
+        // usuario genera el reporte PDF/Excel justo en esa ventana, sale con
+        // el nombre del paciente nuevo pero los datos del paciente anterior.
+        // generarReporteNutricionista/generarReporteExcel chequean esta
+        // bandera antes de generar nada.
+        window.cargandoDatosPerfil = true;
         try {
             // Antes de tomar la colección "comidas" como "las comidas de hoy",
             // hay que asegurarse de que Firestore no tenga arrastrado un día
@@ -8942,6 +8967,8 @@
             modoOffline = true;
             mostrarNombrePacienteEnHeader(localStorage.getItem('pku_nombre_paciente'));
             if (!document.getElementById('bannerOffline')) mostrarBannerOffline();
+        } finally {
+            window.cargandoDatosPerfil = false;
         }
     }
     window.cargarDesdeFirestore = cargarDesdeFirestore;
