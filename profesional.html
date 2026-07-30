@@ -228,6 +228,24 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // FIX DISPONIBILIDAD (2026-07-30): a diferencia de index.html, este panel
+    // no usa persistentLocalCache (uso ocasional, no offline-first), así que
+    // una escritura (setDoc/updateDoc/batch.commit) que se inicia justo
+    // cuando se corta la conexión puede quedar colgada sin resolver NI
+    // rechazar de forma indefinida (comportamiento del SDK de Firestore,
+    // confirmado empíricamente en este proyecto). Sin un timeout explícito,
+    // el botón que dispara esa escritura queda en "Guardando…" para siempre,
+    // sin ningún aviso. conTimeout() fuerza que la operación falle de forma
+    // visible pasado un tiempo razonable, aunque la escritura original siga
+    // intentándose en segundo plano (si eventualmente conecta, se aplica
+    // igual — updates son idempotentes, no hay riesgo de duplicar nada).
+    function conTimeout(promesa, ms = 15000) {
+        return Promise.race([
+            promesa,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT: sin respuesta del servidor tras ' + ms + 'ms')), ms))
+        ]);
+    }
+
     let perfilSeleccionado = null; // { basePath, nombre, codigoPerfil, metaActual }
 
     // ---- LOGIN ----
@@ -583,10 +601,20 @@
                 meta: nuevoLimite,
                 _ts: serverTimestamp()
             });
-            await batchLimite.commit();
+            await conTimeout(batchLimite.commit());
 
-            // Registrar en el log de auditoría del perfil.
-            await addLogLimiteModificado(basePath, uidProfesional, limiteAnterior, nuevoLimite);
+            // Registrar en el log de auditoría del perfil. FIX INTEGRIDAD
+            // (2026-07-30): en su propio try/catch — el límite YA quedó
+            // guardado arriba, así que un fallo acá (ej. corte de señal
+            // justo entre ambas escrituras) no debe hacer creer al
+            // profesional que el cambio de límite completo falló (antes
+            // caía al catch general de más abajo, que mostraba "No se pudo
+            // guardar", un mensaje falso).
+            try {
+                await addLogLimiteModificado(basePath, uidProfesional, limiteAnterior, nuevoLimite);
+            } catch (e) {
+                console.warn('El límite se guardó pero no se pudo registrar en el log de auditoría:', e);
+            }
 
             perfilSeleccionado.metaActual = nuevoLimite;
             aviso.textContent = 'Límite actualizado correctamente.';

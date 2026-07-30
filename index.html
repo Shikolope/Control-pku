@@ -2680,6 +2680,10 @@
             } else {
                 const docs = await window.obtenerMensajesProfesional(basePath);
                 cont.innerHTML = _renderListaMensajesProfesional(docs);
+                // No se espera (await) — es un "marcar como leído" en
+                // segundo plano, no debe demorar que se muestren los
+                // mensajes. Ver nota en marcarMensajesProfesionalLeidos.
+                if (window.marcarMensajesProfesionalLeidos) window.marcarMensajesProfesionalLeidos(basePath);
             }
         } catch (e) {
             console.error('No se pudieron cargar los mensajes del profesional — código:', e.code, '— mensaje:', e.message);
@@ -7827,6 +7831,31 @@
         return snap.docs.map(d => d.data());
     };
 
+    // FIX INTEGRIDAD (2026-07-30): el modal completo de mensajes (✉️,
+    // mostrarMensajesProfesional en el script clásico) mostraba el
+    // historial pero nunca marcaba `leida: true` en Firestore — solo lo
+    // hacía el botón "Entendido" del banner puntual
+    // (mostrarNotificacionProfesional), que además solo actúa sobre 1
+    // mensaje a la vez. Si la familia leía sus mensajes desde el modal en
+    // vez del banner, quedaban "leida: false" para siempre y el
+    // profesional seguía viendo "Aún no visto" en profesional.html sin que
+    // eso reflejara la realidad.
+    window.marcarMensajesProfesionalLeidos = async function(basePath) {
+        try {
+            const q = query(
+                collection(db, basePath + '/notificaciones'),
+                where('leida', '==', false)
+            );
+            const snap = await getDocs(q);
+            if (snap.empty) return;
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.update(d.ref, { leida: true, vistaEn: serverTimestamp() }));
+            await batch.commit();
+        } catch (e) {
+            console.warn('No se pudieron marcar los mensajes como leídos:', e);
+        }
+    };
+
     async function verificarNotificacionesPendientes(basePath) {
         try {
             const q = query(
@@ -9289,15 +9318,25 @@
 
         } catch(e) {
             console.error('❌ Error en migración:', e);
-            // Crear perfil mínimo — datos originales siguen intactos en ruta antigua
-            try {
-                await setDoc(doc(db, 'usuarios', uid, 'perfiles', perfilId), {
-                    nombre, meta: metaDiaria, colorIdx: 0,
-                    creadoEn: Date.now(), _ts: serverTimestamp()
-                });
-            } catch(e2) { console.warn('Error creando perfil mínimo en migración:', e2); }
-            perfiles = [{ id: perfilId, nombre, meta: metaDiaria, colorIdx: 0 }];
-            pkuToast('⚠️ Error al actualizar cuenta. Tus datos están seguros — cierra y vuelve a abrir la app.', 'toast-warn', 5000);
+            // FIX INTEGRIDAD (2026-07-30): antes creábamos acá un "perfil_0"
+            // mínimo aunque la migración hubiera fallado a mitad de camino
+            // (ej. comidas/historial/citas sin copiar todavía). Eso era un
+            // bug real: en el próximo login, cargarPerfiles() encontraba ese
+            // perfil_0 y perfiles.length ya no era 0, así que
+            // onAuthStateChanged nunca volvía a llamar a esta función — los
+            // datos que quedaron sin copiar en la ruta legacy
+            // (usuarios/{uid}/comidas, etc.) quedaban huérfanos para
+            // siempre, invisibles para la app, pese a que el toast prometía
+            // que "cerrar y volver a abrir" lo arreglaba.
+            // Ahora NO creamos ningún perfil acá: dejamos perfiles vacío para
+            // que la migración se reintente completa en el próximo login (es
+            // idempotente — cada paso usa setDoc con IDs fijos derivados de
+            // los datos originales, así que repetirla no duplica nada). Si
+            // sigue fallando, onAuthStateChanged ya tiene un fallback ("caso
+            // extremo: migración falló — entrar igual sin perfil") que deja
+            // usar la app directo sobre la ruta legacy, donde los datos
+            // originales siguen intactos (la migración nunca los borra).
+            pkuToast('⚠️ Error al actualizar cuenta. Tus datos están seguros — se reintentará al volver a abrir la app.', 'toast-warn', 5000);
         }
     }
 
