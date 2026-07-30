@@ -188,9 +188,16 @@ service cloud.firestore {
         // ── NOTIFICACIONES PARA LA FAMILIA ─────────────────────
         // Un profesional crea una notificación al cambiar el límite;
         // el dueño la lee y puede marcarla como leída (nunca borrarla
-        // ni editar el mensaje).
+        // ni editar el mensaje). El profesional TAMBIÉN puede leerlas —
+        // profesional.html muestra el historial de mensajes enviados con
+        // su estado "Visto"/"Aún no visto" (cargarHistorialMensajes). Sin
+        // este permiso esa lectura fallaba con permission-denied y la
+        // tarjeta de historial quedaba oculta en silencio (bug real
+        // encontrado el 2026-07-30 al probar en vivo con una cuenta
+        // profesional real — nunca se había detectado porque el error se
+        // atrapaba sin avisar).
         match /notificaciones/{notifId} {
-          allow read: if esPropietario(uid);
+          allow read: if esPropietario(uid) || esProfesional();
 
           allow create: if esProfesional()
             && strValido(request.resource.data.mensaje, 500)
