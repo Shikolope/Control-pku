@@ -163,6 +163,37 @@ con un `console.warn` en vez de aplicarse (ya no hay drenaje real para esos 6 ti
    (auditoría) todavía los usa a propósito como red de
    seguridad.
 
+### Multi-sesión y multi-dispositivo
+
+El diseño evita colisiones sobre todo porque **cada cosa tiene su propio documento**,
+no por una lógica activa de resolución de conflictos:
+
+- **Multi-pestaña (mismo navegador):** `persistentMultipleTabManager` (parte de la
+  config de `persistentLocalCache`) hace que todas las pestañas compartan la misma
+  caché local en vez de pisarse la cola de escrituras entre sí.
+- **Multi-dispositivo (misma cuenta, celular + notebook, etc.):** cada dispositivo
+  tiene su propia caché local (IndexedDB no se comparte entre dispositivos), pero se
+  sincronizan por los 4 `onSnapshot` de `activarListenersTiempoReal` mientras estén
+  online (cambios se reflejan en segundos), y al reconectar, por el merge de
+  `sincronizarLocalAFirestore`.
+- **Comidas y citas:** cada una es su propio documento con ID propio (timestamp). Dos
+  dispositivos agregando al mismo tiempo generan dos documentos distintos — no hay
+  pisada posible.
+- **Historial (`historial/{fecha}`):** SÍ es un documento compartido para una misma
+  fecha entre dispositivos, pero nunca se sobreescribe entero — siempre se lee lo
+  existente, se filtran las comidas nuevas por ID, y se hace merge
+  (`comidasFinal = [...(existente.comidas || []), ...nuevasNoRepetidas]`, visto en
+  `cerrarDiaAnteriorEnFirestoreSiCorresponde` y `sincronizarLocalAFirestore`).
+- **Config (`config/principal`: `metaDiaria`/`favoritos`/etc.):** documento
+  compartido — ahí sí podría haber un last-write-wins si dos dispositivos cambian el
+  límite en el mismo instante, pero casi todas las escrituras usan `{ merge: true }`,
+  así que solo pisan los campos que efectivamente cambiaron.
+- **Papelera y respaldos:** viven a nivel de CUENTA, no por dispositivo — algo
+  borrado desde el celular es recuperable también desde la notebook.
+- **Profesional:** solo puede escribir el campo `meta` (reforzado por
+  `firestore.rules`), así que su única superficie de colisión con la familia es ese
+  campo puntual, también con `merge: true`.
+
 ## Estructura de datos en Firestore
 
 ```
