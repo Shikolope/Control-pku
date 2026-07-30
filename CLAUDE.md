@@ -51,6 +51,14 @@ estás poniendo.
 
 ## Sistema de sincronización con Firestore (offline-first)
 
+`db` se inicializa con `initializeFirestore` + `persistentLocalCache` (cache nativo en
+IndexedDB, con `persistentMultipleTabManager`), con fallback a `getFirestore(app)` si el
+entorno no soporta IndexedDB (navegación privada de Safari, WebViews restringidos). Esto
+significa que un `setDoc`/`deleteDoc` normal ya **no** rechaza su promesa por falta de
+red — el SDK lo deja en cache local y sincroniza solo al reconectar. Si un `catch(e)`
+alrededor de una escritura se dispara igual, es un error real (`permission-denied`, dato
+inválido, etc.), no un corte de conexión.
+
 Hay un patrón central: `patchGuardarConFirestore()` "envuelve" funciones específicas
 del script clásico (`guardarNuevaCita`, `borrarCitaIndividual`, `calcularFA`,
 `agregarAlimentoCustom`, `confirmarRegistroReceta`, `borrarComidaIndividual`, etc.) para
@@ -64,18 +72,41 @@ que llamar a `window.guardarCitaEnFirestore(...)` (o el equivalente) a mano. Est
 causó un bug real: `guardarCitaDesdeCalendario` no sincronizaba porque no pasaba por
 `guardarNuevaCita`.
 
-**Manejo de fallos:** `manejarFalloFirestore(tipo, datos, errorOriginal)` reintenta una
-vez de inmediato: si falla otra vez, recién ahí declara `modoOffline = true`, bloquea la
-edición, muestra el banner "modo solo lectura" (con el código de error real visible,
-ej. `permission-denied`), y encola la operación en `colaReintentos` para reintentar al
+**Manejo de fallos — angostado en la Fase 2 (migración offline):** las 7 funciones que
+escriben comidas/citas/config/historial (`guardarComidaEnFirestore`,
+`borrarComidaDeFirestore`, `guardarCitaEnFirestore`, `borrarCitaDeFirestore`,
+`guardarConfigEnFirestore`, `guardarDiaHistorialEnFirestore`,
+`borrarDiaHistorialDeFirestore`) YA NO llaman a `manejarFalloFirestore` en su `catch` —
+solo hacen `console.error`, porque el cache nativo ya cubre la durabilidad offline de
+esos datos, y bloquear la app (`modoOffline`) para un error real no ayuda (no se arregla
+reintentando). **El único llamado a `manejarFalloFirestore` que queda es en
+`registrarEnLog`** (auditoría) — se mantiene ahí a propósito como red de seguridad,
+porque el historial de cambios ya tuvo un bug real de pérdida silenciosa de registros.
+
+`manejarFalloFirestore(tipo, datos, errorOriginal)` reintenta una vez de inmediato: si
+falla otra vez, recién ahí declara `modoOffline = true`, bloquea la edición, muestra el
+banner "modo solo lectura" (con el código de error real visible, ej.
+`permission-denied`), y encola la operación en `colaReintentos` para reintentar al
 reconectar. **Importante:** `manejarFalloFirestore` se ignora a sí misma (`return`
 inmediato) si `modoOffline` ya es `true` — si necesitas encolar algo mientras ya se sabe
 que está offline, empuja directo a `colaReintentos` + `_persistirCola()`, no llames a
-`manejarFalloFirestore`.
+`manejarFalloFirestore` (así lo hace `registrarEnLog`).
 
-Todas las escrituras importantes (comidas, citas, historial, config, log) pasan por
-este sistema. Si agregas un tipo de escritura nuevo, agrégalo también al `switch` de
-`ejecutarOperacionFirestore`.
+El `switch` de `ejecutarOperacionFirestore` sigue manejando los 7 tipos igual que antes
+(no solo `log`) **a propósito** — instalaciones viejas de la app pueden tener ítems de
+esos tipos ya encolados en `localStorage` (`pku_cola_reintentos`) desde antes de esta
+migración, y hay que poder drenarlos igual. No lo reduzcas a menos que confirmes que ya
+no queda ninguna cola vieja circulando.
+
+**Plan de migración offline — 3 fases** (ver commits `e0ea121`/`6aee482` para Fase 1 y
+el commit de Fase 2):
+1. ✅ Fase 1: `persistentLocalCache` activo, sistema manual viejo intacto en paralelo.
+2. ✅ Fase 2: `manejarFalloFirestore`/`colaReintentos`/`modoOffline` angostado a solo
+   `registrarEnLog` — las demás escrituras ya no lo usan.
+3. ⏳ Fase 3: retirar formalmente lo que quede sin usar del sistema manual viejo
+   (`colaReintentos`, `procesarColaReintentos`, los casos ya no usados del `switch`,
+   etc.) — una vez que se confirme que no quedan colas viejas de usuarios reales
+   circulando (esperar un tiempo prudente tras publicar la Fase 2 antes de encarar esto).
 
 ## Estructura de datos en Firestore
 
@@ -149,8 +180,9 @@ firebase deploy --only firestore:rules   # publica firestore.rules (aparte)
 ## Pendientes conocidos
 
 - Subir el APK nuevo a Play Store (ya generado, apuntando a pku-control.web.app).
-- Migrar a persistencia offline nativa de Firestore (`persistentLocalCache`) —
-  pospuesto a propósito hasta después del lanzamiento.
+- Migración a persistencia offline nativa de Firestore: Fase 1 y Fase 2 ya hechas
+  (ver sección "Sistema de sincronización con Firestore" arriba). Falta la Fase 3
+  (retirar formalmente el sistema manual viejo ya no usado).
 - Evaluar pasar de plan Spark a Blaze antes del lanzamiento a las 534 familias.
 
 ## Guía de soporte completa

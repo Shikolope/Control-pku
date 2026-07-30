@@ -7854,7 +7854,12 @@
         const detalleError = _ultimoErrorFirestore
             ? ` <span style="opacity:0.75;">(código: ${_ultimoErrorFirestore.code})</span>`
             : '';
-        banner.innerHTML = `📖 Modo solo lectura — sin conexión. No se pueden registrar cambios nuevos.${detalleError}`;
+        // FASE 2: este banner ya solo se activa por falta real de conexión al
+        // inicio (entrarModoOffline) o por un fallo real al escribir el log de
+        // auditoría (manejarFalloFirestore) — ya no por comidas/citas/config,
+        // que ahora las cubre el cache nativo de Firestore sin bloquear nada.
+        // Por eso el texto ya no asume "sin conexión" como causa fija.
+        banner.innerHTML = `📖 Modo solo lectura. No se pueden registrar cambios nuevos.${detalleError}`;
         const header = document.querySelector('.app-container header');
         if (header) header.insertAdjacentElement('afterend', banner);
 
@@ -8550,7 +8555,15 @@
                 doc(db, bp1 + '/comidas/' + String(comida.id)),
                 { ...comida, _ts: serverTimestamp() }
             );
-        } catch(e) { manejarFalloFirestore('comida', comida, e); }
+        } catch(e) {
+            // FASE 2 MIGRACIÓN OFFLINE: con persistentLocalCache (Fase 1) esta
+            // escritura ya no falla por falta de red — el SDK la deja en cache
+            // local y sincroniza solo al reconectar. Si igual llega aquí, es un
+            // error real (permission-denied, dato inválido, etc.) que reintentar
+            // no arregla, así que ya no se activa modoOffline para esto — solo
+            // se deja visible en consola para diagnóstico.
+            console.error('Error real al guardar comida en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- BORRAR COMIDA INDIVIDUAL ----
@@ -8566,7 +8579,10 @@
             const snap = await getDoc(ref);
             if (snap.exists()) await archivarEnPapelera(user.uid, 'comidas', [snap]);
             await deleteDoc(ref);
-        } catch(e) { manejarFalloFirestore('borrarComida', idComida, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al borrar comida en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- GUARDAR CITA INDIVIDUAL ----
@@ -8581,7 +8597,10 @@
                 doc(db, bpCita + '/citas/' + String(cita.id)),
                 { ...cita, _ts: serverTimestamp() }
             );
-        } catch(e) { manejarFalloFirestore('cita', cita, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al guardar cita en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- BORRAR CITA INDIVIDUAL ----
@@ -8596,7 +8615,10 @@
             const snap = await getDoc(ref);
             if (snap.exists()) await archivarEnPapelera(user.uid, 'citas', [snap]);
             await deleteDoc(ref);
-        } catch(e) { manejarFalloFirestore('borrarCita', idCita, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al borrar cita en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- GUARDAR CONFIG (meta diaria, ultimoDia) ----
@@ -8623,7 +8645,10 @@
             if (nombreLocal) datosConfig.nombrePaciente = nombreLocal;
             const bpC = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
             await setDoc(doc(db, bpC + '/config/principal'), { ...datosConfig, _ts: serverTimestamp() }, { merge: true });
-        } catch(e) { manejarFalloFirestore('config', datosConfig, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al guardar config en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- GUARDAR DÍA HISTÓRICO ----
@@ -8638,7 +8663,10 @@
                 doc(db, bpH + '/historial/' + diaObj.fecha),
                 { ...diaObj, _ts: serverTimestamp() }
             );
-        } catch(e) { manejarFalloFirestore('historial', diaObj, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al guardar día histórico en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- BORRAR DÍA HISTÓRICO ----
@@ -8653,7 +8681,10 @@
             const snap = await getDoc(ref);
             if (snap.exists()) await archivarEnPapelera(user.uid, 'historial', [snap]);
             await deleteDoc(ref);
-        } catch(e) { manejarFalloFirestore('borrarHistorial', fecha, e); }
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al borrar día histórico en Firestore (no es problema de conexión):', e);
+        }
     };
 
     // ---- CARGAR TODO DESDE FIRESTORE AL INICIAR SESIÓN (o al reabrir con sesión activa) ----
