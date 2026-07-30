@@ -194,6 +194,29 @@ no por una lógica activa de resolución de conflictos:
   `firestore.rules`), así que su única superficie de colisión con la familia es ese
   campo puntual, también con `merge: true`.
 
+### Cambio de perfil y `window.cargandoDatosPerfil`
+
+`seleccionarPerfil` actualiza el nombre del paciente en el header de forma
+**síncrona** (`actualizarIndicadorPerfil`, incluye `localStorage.setItem('pku_nombre_paciente', ...)`)
+pero `historialDias`/`comidasHoy`/`citasMedicas` solo se reemplazan cuando
+`cargarDesdeFirestore` termina (`aplicarDatosRestaurados`), que es `async` y se
+espera *después*. Entre esos dos momentos hay una ventana real donde el header ya
+muestra el paciente nuevo pero las variables de datos siguen siendo las del paciente
+anterior — confirmado como bug real en el reporte PDF/Excel (2026-07-30): generarlo
+en esa ventana producía un archivo con el nombre correcto pero los datos del paciente
+equivocado.
+
+Fix: `window.cargandoDatosPerfil` es `true` mientras `cargarDesdeFirestore` está en
+vuelo (se pone en `true` al entrar, se limpia en un `finally`, cubre todo llamador —
+login inicial, cambio de perfil, reconexión). `generarReporteNutricionista` y
+`generarReporteExcel` lo chequean antes de generar nada. **Si agregas una función
+nueva que lee `historialDias`/`comidasHoy`/`citasMedicas`/`metaDiaria` fuera del ciclo
+normal de renderizado de pantalla** (otro export, un resumen, etc.), chequeá
+`window.cargandoDatosPerfil` primero — el renderizado de pantalla normal
+(`actualizarPantalla`/`renderizarComidasHoy`/etc.) no necesita este chequeo porque
+corre disparado por `aplicarDatosRestaurados` mismo, siempre después de que los datos
+ya están al día.
+
 ## Estructura de datos en Firestore
 
 ```
