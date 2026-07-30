@@ -248,12 +248,24 @@ comparar días, evita bugs de huso horario (Chile es UTC-3/UTC-4).
 
 - Cada familia solo lee/escribe sus propios datos.
 - Un profesional (documento en `profesionales/{uid}`) puede LEER cualquier perfil
-  (para buscar pacientes), pero solo ESCRIBIR el campo `meta`/`metaDiaria`.
+  (para buscar pacientes), CREAR notificaciones para la familia, y LEER las
+  notificaciones que él mismo creó (para ver el estado "Visto"/"Aún no visto" en
+  `profesional.html`) — pero solo ESCRIBIR el campo `meta`/`metaDiaria` de un perfil.
 - **Antes de agregar un campo nuevo a cualquier documento, verifica que el nombre
   coincida exactamente con lo que exige la regla correspondiente.** Un desajuste aquí
   produce `permission-denied` silencioso — así estuvo roto el guardado de citas desde
   que se implementaron por primera vez, sin que nadie lo notara, porque las reglas
-  pedían `descripcion`/`fecha` y el código guardaba `texto`/`rawDateTime`.
+  pedían `descripcion`/`fecha` y el código guardaba `texto`/`rawDateTime`. El mismo
+  patrón volvió a pasar el 2026-07-30 con `notificaciones`: el profesional podía
+  CREARLAS pero la regla nunca le dio permiso de LEERLAS de vuelta —
+  `cargarHistorialMensajes` en `profesional.html` fallaba con `permission-denied` en
+  cada carga de paciente, y como el `catch` solo ocultaba la tarjeta
+  (`tarjeta.style.display = 'none'`) sin ningún aviso, nadie lo notó hasta probar en
+  vivo con una cuenta profesional real (ver `firestore.rules` línea ~192, arreglado
+  en el commit `02bab37`). **Antes de escribir una regla de `allow read`/`allow
+  write` nueva, revisa TODOS los caminos que necesitan acceder a esos datos — no solo
+  el que estás implementando en ese momento —** un rol que puede crear un documento
+  casi siempre también necesita poder leerlo de vuelta.
 - El comentario-header al inicio de `firestore.rules` documenta el esquema esperado —
   mantenlo actualizado si cambias campos, para no repetir ese bug.
 
