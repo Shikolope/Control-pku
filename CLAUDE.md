@@ -59,6 +59,19 @@ red — el SDK lo deja en cache local y sincroniza solo al reconectar. Si un `ca
 alrededor de una escritura se dispara igual, es un error real (`permission-denied`, dato
 inválido, etc.), no un corte de conexión.
 
+**Matiz importante (validado con Playwright real, 2026-07-30, ver
+`plan-migracion-offline` en memoria para el detalle):** "no rechaza" no es lo mismo que
+"resuelve rápido". Si la conexión se corta *a mitad de sesión* (la app ya estaba online,
+activa) justo cuando se dispara una escritura, tanto un `setDoc`/`deleteDoc` individual
+como un `writeBatch().commit()` se quedan colgados **sin resolver ni rechazar**
+(probado hasta 30s sin liquidar ninguno) — no es un problema exclusivo de los batches
+como se pensaba antes. Sí funciona bien, en cambio, el caso más común: **abrir/recargar
+la app cuando YA está offline** (confirmado: sale de la pantalla de carga en <1s con
+datos de caché). El riesgo real es más angosto de lo que suena — corte de conexión en
+el instante exacto de una escritura en curso — pero si escribes código nuevo que hace
+`await` sobre una escritura en una función que puede correr con la app recién
+reconectándose o desconectándose, tenlo en cuenta.
+
 Hay un patrón central: `patchGuardarConFirestore()` "envuelve" funciones específicas
 del script clásico (`guardarNuevaCita`, `borrarCitaIndividual`, `calcularFA`,
 `agregarAlimentoCustom`, `confirmarRegistroReceta`, `borrarComidaIndividual`, etc.) para
