@@ -8744,7 +8744,10 @@
                 // Archivar en la papelera ANTES de borrar (soft-delete): aunque
                 // ya quedaron guardadas en el historial, esta es la segunda red
                 // de seguridad independiente.
-                await archivarEnPapelera(uid, 'comidas', snapComidas.docs);
+                // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no esperar
+                // (await) este archivado, para no colgar el borrado real (ni el
+                // arranque de la app, que llega hasta acá) si está offline.
+                archivarEnPapelera(uid, 'comidas', snapComidas.docs);
 
                 // Vaciar la colección "comidas" en Firestore: ya quedaron a salvo
                 // en el historial Y en la papelera.
@@ -8935,7 +8938,7 @@
             if (typeof window.actualizarComidasHoyDesdeFirestore === 'function') {
                 window.actualizarComidasHoyDesdeFirestore(comidas, totalFA);
             }
-        });
+        }, err => console.error('Listener de comidas en tiempo real dejó de funcionar:', err));
 
         // Escuchar cambios en historial
         const unsubHistorial = onSnapshot(collection(db, baseLP + '/historial'), snap => {
@@ -8969,7 +8972,7 @@
                     deleteDoc(doc(db, baseLP + '/historial/' + fecha)).catch(() => {});
                 });
             }
-        });
+        }, err => console.error('Listener de historial en tiempo real dejó de funcionar:', err));
 
         // Escuchar cambios en citas
         const unsubCitas = onSnapshot(collection(db, baseLP + '/citas'), snap => {
@@ -8979,7 +8982,7 @@
             if (typeof window.actualizarCitasDesdeFirestore === 'function') {
                 window.actualizarCitasDesdeFirestore(citas);
             }
-        });
+        }, err => console.error('Listener de citas en tiempo real dejó de funcionar:', err));
 
         // Escuchar cambios en config
         const unsubConfig = onSnapshot(doc(db, baseLP + '/config/principal'), snap => {
@@ -8995,7 +8998,7 @@
                 if (modoFavoritosActivo) mostrarFavoritos();
             }
             if (typeof window.actualizarPantalla === 'function') window.actualizarPantalla();
-        });
+        }, err => console.error('Listener de config en tiempo real dejó de funcionar:', err));
 
         unsubscribeListeners = [unsubComidas, unsubHistorial, unsubCitas, unsubConfig];
     }
@@ -9139,7 +9142,10 @@
                 }
             });
             if (docsComidasObsoletas.length > 0) {
-                await archivarEnPapelera(uid, 'comidas', docsComidasObsoletas);
+                // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no esperar
+                // (await) este archivado, para no colgar el merge de comidas/
+                // historial/citas nuevas que sigue más abajo.
+                archivarEnPapelera(uid, 'comidas', docsComidasObsoletas);
             }
 
             // Días de historial offline que Firestore no tiene
@@ -9600,8 +9606,11 @@
                     ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}`
                     : `usuarios/${user.uid}`;
                 getDocs(collection(db, bpRein + '/comidas')).then(async snap => {
+                    // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no
+                    // esperar (await) este archivado, para no colgar el borrado
+                    // real de abajo si está offline.
                     if (snap.docs.length > 0) {
-                        await archivarEnPapelera(user.uid, 'comidas', snap.docs);
+                        archivarEnPapelera(user.uid, 'comidas', snap.docs);
                     }
                     const batch = writeBatch(db);
                     snap.forEach(d => batch.delete(d.ref));
@@ -9659,7 +9668,10 @@
                                 const snap = await getDocs(collection(db, bpCierreAuto + '/comidas'));
                                 const docsDelDiaAnterior = snap.docs.filter(d => idsDelDiaAnterior.has(String(d.id)));
                                 if (docsDelDiaAnterior.length > 0) {
-                                    await archivarEnPapelera(user.uid, 'comidas', docsDelDiaAnterior);
+                                    // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore
+                                    // — no esperar (await) este archivado, para no colgar
+                                    // el borrado real de abajo si está offline.
+                                    archivarEnPapelera(user.uid, 'comidas', docsDelDiaAnterior);
                                     const batch = writeBatch(db);
                                     docsDelDiaAnterior.forEach(d => batch.delete(d.ref));
                                     await batch.commit();

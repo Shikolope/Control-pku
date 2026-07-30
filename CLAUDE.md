@@ -105,6 +105,26 @@ escribes una función de borrado nueva, sigue el patrón ya corregido: dispara
 `archivarEnPapelera(...)` SIN `await` (best-effort, en el mismo orden) y recién
 después haz `await deleteDoc(...)`.
 
+**Este mismo patrón (`await archivarEnPapelera` antes de un borrado real) reapareció
+en otros 4 lugares que el fix de la Fase 2 no cubrió** — encontrados en una auditoría
+de integridad/disponibilidad/confiabilidad (2026-07-30) y corregidos el mismo día:
+`cerrarDiaAnteriorEnFirestoreSiCorresponde` (el más grave — corre en el camino
+crítico del login, con el timeout de 5s a "modo offline" ya cancelado, así que podía
+colgar la pantalla de carga entera sin salida), `sincronizarLocalAFirestore`,
+y los parches de `reiniciarDiaManual` y `verificarCambioDeDiaAutomatico`. Si en el
+futuro aparece código nuevo que llama a `archivarEnPapelera`, revisa TODOS los
+call sites existentes (`grep -n archivarEnPapelera`), no solo las funciones de
+borrado "principales" — este bug demostró que el patrón se copia a mano en varios
+lugares y es fácil que alguno quede afuera de una corrección puntual.
+
+**Los 4 `onSnapshot` de `activarListenersTiempoReal`** (comidas/historial/citas/
+config) ahora tienen callback de error (`console.error`) — antes, si un listener
+fallaba a mitad de sesión (regla de Firestore mal alineada, token vencido, índice
+faltante), Firestore dejaba de invocarlo sin ninguna señal visible: el dispositivo
+dejaba de recibir cambios de otros dispositivos/del profesional en silencio,
+indistinguible de "no hay novedades". Si agregas un `onSnapshot` nuevo, pásale
+siempre un tercer argumento de error — no lo dejes con el callback de éxito solo.
+
 El `switch` de `ejecutarOperacionFirestore` se angostó en la Fase 3 para manejar solo
 el tipo `'log'` — los otros 6 casos (`comida`/`borrarComida`/`cita`/`borrarCita`/
 `config`/`historial`/`borrarHistorial`) ya no los genera nadie desde la Fase 2, así que
