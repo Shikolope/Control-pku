@@ -8180,6 +8180,17 @@
     // si falla. Compartida entre el reintento inmediato de manejarFalloFirestore
     // y el procesamiento por lotes de procesarColaReintentos, para no mantener
     // dos copias del mismo switch (y del mismo bug, si algo cambia).
+    //
+    // FASE 3: este switch manejaba 7 tipos (comida/borrarComida/cita/
+    // borrarCita/config/historial/borrarHistorial/log), heredados del
+    // sistema manual anterior a persistentLocalCache. Los 6 tipos que no son
+    // 'log' se retiraron porque ya no los genera nadie (Fase 2 dejó de llamar
+    // a manejarFalloFirestore para esas 7 funciones) y porque ya pasó tiempo
+    // prudente desde que se publicó Fase 2 para que las colas viejas que
+    // pudieran quedar en localStorage de instalaciones antiguas se drenaran
+    // solas (se drenan automáticamente en cada login, ver onAuthStateChanged).
+    // Si algún resto muy antiguo llegara a aparecer igual, cae al 'default' de
+    // abajo y se descarta con un warning en vez de aplicarse.
     async function ejecutarOperacionFirestore(op) {
         const user = auth.currentUser;
         if (!user) throw new Error('Sin sesión activa');
@@ -8190,36 +8201,8 @@
             ? `usuarios/${user.uid}/perfiles/${op.perfilId}`
             : `usuarios/${user.uid}`;
         switch (op.tipo) {
-            case 'comida':        await setDoc(doc(db, bpOp + '/comidas/' + String(op.datos.id)), { ...op.datos, _ts: serverTimestamp() }); break;
-            case 'borrarComida': {
-                // Archivar en papelera antes de borrar, igual que borrarComidaDeFirestore.
-                // FIX INTEGRIDAD: no se espera (await) el archivado — ver nota en
-                // borrarComidaDeFirestore, misma razón (no bloquear el borrado real).
-                const refBC = doc(db, bpOp + '/comidas/' + String(op.datos));
-                const snapBC = await getDoc(refBC);
-                if (snapBC.exists()) archivarEnPapelera(user.uid, 'comidas', [snapBC]);
-                await deleteDoc(refBC);
-                break;
-            }
-            case 'cita':          await setDoc(doc(db, bpOp + '/citas/' + String(op.datos.id)), { ...op.datos, _ts: serverTimestamp() }); break;
-            case 'borrarCita': {
-                const refBCi = doc(db, bpOp + '/citas/' + String(op.datos));
-                const snapBCi = await getDoc(refBCi);
-                if (snapBCi.exists()) archivarEnPapelera(user.uid, 'citas', [snapBCi]);
-                await deleteDoc(refBCi);
-                break;
-            }
-            case 'config':        await setDoc(doc(db, bpOp + '/config/principal'), { ...op.datos, _ts: serverTimestamp() }, { merge: true }); break;
-            case 'log':           await setDoc(doc(db, bpOp + '/log/' + op.datos.id), { ...op.datos.entrada, _ts: serverTimestamp() }); break;
-            case 'historial':     await setDoc(doc(db, bpOp + '/historial/' + op.datos.fecha), { ...op.datos, _ts: serverTimestamp() }); break;
-            case 'borrarHistorial': {
-                const refBH = doc(db, bpOp + '/historial/' + op.datos);
-                const snapBH = await getDoc(refBH);
-                if (snapBH.exists()) archivarEnPapelera(user.uid, 'historial', [snapBH]);
-                await deleteDoc(refBH);
-                break;
-            }
-            default: console.warn('Operación Firestore de tipo desconocido ignorada:', op.tipo);
+            case 'log':    await setDoc(doc(db, bpOp + '/log/' + op.datos.id), { ...op.datos.entrada, _ts: serverTimestamp() }); break;
+            default: console.warn('Operación Firestore de tipo desconocido u obsoleto, ignorada:', op.tipo);
         }
     }
 

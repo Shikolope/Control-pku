@@ -105,21 +105,30 @@ escribes una función de borrado nueva, sigue el patrón ya corregido: dispara
 `archivarEnPapelera(...)` SIN `await` (best-effort, en el mismo orden) y recién
 después haz `await deleteDoc(...)`.
 
-El `switch` de `ejecutarOperacionFirestore` sigue manejando los 7 tipos igual que antes
-(no solo `log`) **a propósito** — instalaciones viejas de la app pueden tener ítems de
-esos tipos ya encolados en `localStorage` (`pku_cola_reintentos`) desde antes de esta
-migración, y hay que poder drenarlos igual. No lo reduzcas a menos que confirmes que ya
-no queda ninguna cola vieja circulando.
+El `switch` de `ejecutarOperacionFirestore` se angostó en la Fase 3 para manejar solo
+el tipo `'log'` — los otros 6 casos (`comida`/`borrarComida`/`cita`/`borrarCita`/
+`config`/`historial`/`borrarHistorial`) ya no los genera nadie desde la Fase 2, así que
+se retiraron. Si algún resto muy viejo de esos tipos aparece igual en una cola de
+`localStorage` de una instalación antigua, cae al `default` del switch y se descarta
+con un `console.warn` en vez de aplicarse (ya no hay drenaje real para esos 6 tipos).
 
-**Plan de migración offline — 3 fases** (ver commits `e0ea121`/`6aee482` para Fase 1 y
-el commit de Fase 2):
+**Plan de migración offline — 3 fases** (ver commits `e0ea121`/`6aee482` para Fase 1,
+`cf81320`/`7d10c19` para Fase 2):
 1. ✅ Fase 1: `persistentLocalCache` activo, sistema manual viejo intacto en paralelo.
 2. ✅ Fase 2: `manejarFalloFirestore`/`colaReintentos`/`modoOffline` angostado a solo
    `registrarEnLog` — las demás escrituras ya no lo usan.
-3. ⏳ Fase 3: retirar formalmente lo que quede sin usar del sistema manual viejo
-   (`colaReintentos`, `procesarColaReintentos`, los casos ya no usados del `switch`,
-   etc.) — una vez que se confirme que no quedan colas viejas de usuarios reales
-   circulando (esperar un tiempo prudente tras publicar la Fase 2 antes de encarar esto).
+3. ✅ Fase 3 (2026-07-30): se retiraron del `switch` de `ejecutarOperacionFirestore` los
+   6 casos que ya no genera nadie desde la Fase 2, dejando solo `'log'`. Se publicó el
+   mismo día que la Fase 2, saltándose el tiempo prudente de espera originalmente
+   previsto — decisión consciente del dueño del proyecto, válida porque **la app
+   todavía no se lanzó oficialmente y todas las cuentas que existen hoy son de
+   prueba** (no hay usuarios reales con colas viejas de `localStorage` circulando
+   por ahí todavía). Si en el futuro se retoma este patrón de "esperar antes de
+   retirar código de compatibilidad", ya no aplica ese argumento una vez lanzada la
+   app a las 534 familias. `colaReintentos`/`procesarColaReintentos`/
+   `manejarFalloFirestore` NO se retiraron — siguen activos porque `registrarEnLog`
+   (auditoría) todavía los usa a propósito como red de
+   seguridad.
 
 ## Estructura de datos en Firestore
 
@@ -193,9 +202,8 @@ firebase deploy --only firestore:rules   # publica firestore.rules (aparte)
 ## Pendientes conocidos
 
 - Subir el APK nuevo a Play Store (ya generado, apuntando a pku-control.web.app).
-- Migración a persistencia offline nativa de Firestore: Fase 1 y Fase 2 ya hechas
-  (ver sección "Sistema de sincronización con Firestore" arriba). Falta la Fase 3
-  (retirar formalmente el sistema manual viejo ya no usado).
+- Migración a persistencia offline nativa de Firestore: las 3 fases ya están hechas
+  (ver sección "Sistema de sincronización con Firestore" arriba).
 - Evaluar pasar de plan Spark a Blaze antes del lanzamiento a las 534 familias.
 
 ## Guía de soporte completa
