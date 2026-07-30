@@ -272,6 +272,18 @@ firebase deploy --only hosting    # publica index.html/profesional.html/etc.
 firebase deploy --only firestore:rules   # publica firestore.rules (aparte)
 ```
 
+**`sw.js` se sirve con `Cache-Control: no-cache`** (config en `firebase.json` →
+`hosting.headers`, agregado 2026-07-30). Sin esto, Firebase Hosting lo servía con su
+default (`max-age=3600`), y el navegador podía tardar hasta 1 hora en darse cuenta de
+que había una versión nueva del Service Worker tras un deploy — retrasando el banner
+"🆕 Hay una nueva versión disponible" justo el tiempo que ese mecanismo existe para
+evitar. `index.html`/`manifest.json`/etc. se dejaron con el default de Firebase
+(`max-age=3600`) a propósito — el propio `sw.js` ya sirve esos archivos con estrategia
+network-first una vez instalado, así que ese cache HTTP normal no los deja
+"pegados"; `sw.js` es el único archivo cuya frescura HTTP es crítica porque es el
+mecanismo mismo que detecta actualizaciones. Si agregas headers nuevos a
+`firebase.json`, no le saques el `no-cache` a `/sw.js` sin una razón fuerte.
+
 ## Decisiones de producto a respetar
 
 - El modo profesional NO se menciona en ningún texto visible para las familias
