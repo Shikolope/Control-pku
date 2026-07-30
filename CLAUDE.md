@@ -92,6 +92,19 @@ inmediato) si `modoOffline` ya es `true` — si necesitas encolar algo mientras 
 que está offline, empuja directo a `colaReintentos` + `_persistirCola()`, no llames a
 `manejarFalloFirestore` (así lo hace `registrarEnLog`).
 
+**Soft-delete (`archivarEnPapelera`) nunca se espera (`await`) antes de un borrado
+real.** Bug real encontrado y arreglado en la propia Fase 2 (commit `7d10c19`): las
+funciones de borrado (comida/cita/historial) hacían `await archivarEnPapelera(...)`
+antes de `await deleteDoc(ref)`. Con `persistentLocalCache`, la promesa de una
+escritura (incluido `batch.commit` del archivado) no resuelve mientras no hay
+conexión — es comportamiento documentado del SDK de Firestore, no un bug propio
+(ver `firebase/firebase-js-sdk#6515`). Si el archivado quedaba colgado offline, el
+`deleteDoc` real nunca se alcanzaba a ejecutar, y si la app se cerraba antes de
+reconectar, el borrado se perdía para siempre — el alimento/cita/día reaparecía. Si
+escribes una función de borrado nueva, sigue el patrón ya corregido: dispara
+`archivarEnPapelera(...)` SIN `await` (best-effort, en el mismo orden) y recién
+después haz `await deleteDoc(...)`.
+
 El `switch` de `ejecutarOperacionFirestore` sigue manejando los 7 tipos igual que antes
 (no solo `log`) **a propósito** — instalaciones viejas de la app pueden tener ítems de
 esos tipos ya encolados en `localStorage` (`pku_cola_reintentos`) desde antes de esta
