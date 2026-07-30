@@ -8193,9 +8193,11 @@
             case 'comida':        await setDoc(doc(db, bpOp + '/comidas/' + String(op.datos.id)), { ...op.datos, _ts: serverTimestamp() }); break;
             case 'borrarComida': {
                 // Archivar en papelera antes de borrar, igual que borrarComidaDeFirestore.
+                // FIX INTEGRIDAD: no se espera (await) el archivado — ver nota en
+                // borrarComidaDeFirestore, misma razón (no bloquear el borrado real).
                 const refBC = doc(db, bpOp + '/comidas/' + String(op.datos));
                 const snapBC = await getDoc(refBC);
-                if (snapBC.exists()) await archivarEnPapelera(user.uid, 'comidas', [snapBC]);
+                if (snapBC.exists()) archivarEnPapelera(user.uid, 'comidas', [snapBC]);
                 await deleteDoc(refBC);
                 break;
             }
@@ -8203,7 +8205,7 @@
             case 'borrarCita': {
                 const refBCi = doc(db, bpOp + '/citas/' + String(op.datos));
                 const snapBCi = await getDoc(refBCi);
-                if (snapBCi.exists()) await archivarEnPapelera(user.uid, 'citas', [snapBCi]);
+                if (snapBCi.exists()) archivarEnPapelera(user.uid, 'citas', [snapBCi]);
                 await deleteDoc(refBCi);
                 break;
             }
@@ -8213,7 +8215,7 @@
             case 'borrarHistorial': {
                 const refBH = doc(db, bpOp + '/historial/' + op.datos);
                 const snapBH = await getDoc(refBH);
-                if (snapBH.exists()) await archivarEnPapelera(user.uid, 'historial', [snapBH]);
+                if (snapBH.exists()) archivarEnPapelera(user.uid, 'historial', [snapBH]);
                 await deleteDoc(refBH);
                 break;
             }
@@ -8577,7 +8579,17 @@
             const bpB = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
             const ref = doc(db, bpB + '/comidas/' + String(idComida));
             const snap = await getDoc(ref);
-            if (snap.exists()) await archivarEnPapelera(user.uid, 'comidas', [snap]);
+            // FIX INTEGRIDAD: NO se espera (await) a que termine el archivado en
+            // papelera antes de borrar. Es "best effort" por diseño (ver
+            // archivarEnPapelera) — pero con persistentLocalCache, la promesa de
+            // una escritura (batch.commit incluido) se queda colgada sin resolver
+            // mientras no hay conexión (comportamiento documentado del SDK, no un
+            // bug nuestro: https://github.com/firebase/firebase-js-sdk/issues/6515).
+            // Si este await bloqueaba el borrado real y la app se cerraba antes de
+            // reconectar, el deleteDoc de abajo nunca llegaba a ejecutarse — el
+            // alimento reaparecía como si nunca se hubiera borrado. Sin el await,
+            // el archivado se dispara igual (mismo orden) pero ya no bloquea nada.
+            if (snap.exists()) archivarEnPapelera(user.uid, 'comidas', [snap]);
             await deleteDoc(ref);
         } catch(e) {
             // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
@@ -8613,7 +8625,9 @@
             const bpCitaB = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
             const ref = doc(db, bpCitaB + '/citas/' + String(idCita));
             const snap = await getDoc(ref);
-            if (snap.exists()) await archivarEnPapelera(user.uid, 'citas', [snap]);
+            // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no esperar
+            // el archivado en papelera para no bloquear el borrado real offline.
+            if (snap.exists()) archivarEnPapelera(user.uid, 'citas', [snap]);
             await deleteDoc(ref);
         } catch(e) {
             // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
@@ -8679,7 +8693,9 @@
             const bpBH = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
             const ref = doc(db, bpBH + '/historial/' + fecha);
             const snap = await getDoc(ref);
-            if (snap.exists()) await archivarEnPapelera(user.uid, 'historial', [snap]);
+            // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no esperar
+            // el archivado en papelera para no bloquear el borrado real offline.
+            if (snap.exists()) archivarEnPapelera(user.uid, 'historial', [snap]);
             await deleteDoc(ref);
         } catch(e) {
             // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
