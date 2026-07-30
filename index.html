@@ -8472,8 +8472,24 @@
             return;
         }
         try {
-            // Traer los últimos 100 eventos y ordenar en memoria (evita requerir índice en Firestore)
-            const q = query(collection(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id, 'log'), limit(100));
+            // FIX INTEGRIDAD (2026-07-30): antes este query tenía limit(100)
+            // SIN orderBy. Sin orderBy, Firestore no trae "los últimos 100"
+            // — trae 100 documentos en un orden no garantizado (en la
+            // práctica, ascendente por ID, que acá equivale a los más
+            // VIEJOS primero, porque el ID es `Date.now()+sufijo`). Con más
+            // de 100 eventos acumulados en una cuenta real, los eventos más
+            // recientes — incluido literalmente todo lo de "hoy" — nunca
+            // llegaban a descargarse, y la pantalla mostraba "Sin cambios
+            // este día" aunque el usuario acabara de agregar/borrar algo.
+            // orderBy('fechaHoraEvento', 'desc') no necesita un índice
+            // compuesto (es un solo campo, con índice automático de
+            // Firestore) — el comentario original sobre "evitar índice" era
+            // el motivo equivocado para omitirlo.
+            const q = query(
+                collection(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id, 'log'),
+                orderBy('fechaHoraEvento', 'desc'),
+                limit(100)
+            );
             const snap = await getDocs(q);
             log7Eventos = [];
             snap.forEach(d => log7Eventos.push(d.data()));
