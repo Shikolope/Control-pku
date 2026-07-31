@@ -118,6 +118,7 @@
     .fila-nombre { font-size: 14.5px; font-weight: 600; }
     .fila-codigo { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .fila-limite { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+    .fila-actividad-detalle { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
 
     .detalle-nombre { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
     .detalle-codigo { font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; }
@@ -178,6 +179,10 @@
 
     <!-- ===== PANTALLA DE BÚSQUEDA ===== -->
     <div id="pantallaBusqueda" class="oculta">
+        <div class="tarjeta" id="tarjetaActividad" style="display:none;">
+            <div style="font-size:12.5px; font-weight:600; color:var(--text-muted); margin-bottom:10px;">Actividad reciente</div>
+            <div id="listaActividad"></div>
+        </div>
         <div class="tarjeta">
             <label for="inputBusqueda">Buscar por nombre o código de perfil</label>
             <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
@@ -213,7 +218,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, collectionGroup, query, where, orderBy, limit as limitar, getDocs, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, collectionGroup, query, where, orderBy, limit as limitar, getDocs, onSnapshot, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDrbc8lH3x3E0GW9tILv2MffFhWoX0lBk0",
@@ -247,6 +252,8 @@
     }
 
     let perfilSeleccionado = null; // { basePath, nombre, codigoPerfil, metaActual }
+    let unsubscribeActividad = null;
+    let nombreProfesionalActual = null; // profesionales/{uid}.nombre — para firmar el mensaje adicional
 
     // ---- LOGIN ----
     window.iniciarSesionProfesional = async function() {
@@ -276,6 +283,7 @@
                 errorDiv.style.display = 'block';
                 return;
             }
+            nombreProfesionalActual = snapProfesional.data().nombre || null;
             mostrarPantallaBusqueda();
         } catch (e) {
             errorDiv.textContent = 'Correo o contraseña incorrectos.';
@@ -287,6 +295,11 @@
     };
 
     window.cerrarSesionProfesional = async function() {
+        // Sin esto, un onSnapshot colgado sigue vivo después del signOut y
+        // dispara permission-denied en cuanto Firestore intenta reevaluar
+        // la regla con un usuario ya no autenticado.
+        if (unsubscribeActividad) { unsubscribeActividad(); unsubscribeActividad = null; }
+        nombreProfesionalActual = null;
         await signOut(auth);
         document.getElementById('pantallaBusqueda').classList.add('oculta');
         document.getElementById('pantallaDetalle').classList.add('oculta');
@@ -346,6 +359,8 @@
         document.getElementById('pantallaLogin').classList.add('oculta');
         document.getElementById('pantallaDetalle').classList.add('oculta');
         document.getElementById('pantallaBusqueda').classList.remove('oculta');
+        iniciarListenerActividad();
+        try { pedirPermisoNotificaciones(); } catch (e) { console.warn('Error pidiendo permiso de notificaciones (no crítico):', e); }
     }
 
     // Si ya había sesión iniciada (recarga de página), saltar directo a
@@ -355,7 +370,10 @@
         if (user) {
             try {
                 const snapProfesional = await getDoc(doc(db, 'profesionales', user.uid));
-                if (snapProfesional.exists()) mostrarPantallaBusqueda();
+                if (snapProfesional.exists()) {
+                    nombreProfesionalActual = snapProfesional.data().nombre || null;
+                    mostrarPantallaBusqueda();
+                }
             } catch (e) { /* sin conexión o sin permiso: se queda en login */ }
         }
     });
@@ -626,7 +644,7 @@
             // al profesional que el cambio de límite completo falló.
             try {
                 const mensajeExtra = document.getElementById('inputMensajeFamilia').value.trim();
-                await crearNotificacionFamilia(basePath, nuevoLimite, mensajeExtra);
+                await crearNotificacionFamilia(basePath, nuevoLimite, mensajeExtra, uidProfesional, perfilSeleccionado.nombre);
             } catch (e) {
                 console.warn('El límite se guardó pero no se pudo enviar el mensaje a la familia:', e);
                 aviso.textContent = 'Límite actualizado, pero no se pudo enviar el mensaje a la familia.';
@@ -651,14 +669,142 @@
         });
     }
 
-    async function crearNotificacionFamilia(basePath, limiteNuevo, mensajeExtra) {
+    async function crearNotificacionFamilia(basePath, limiteNuevo, mensajeExtra, profesionalUid, nombrePaciente) {
         let mensaje = `El equipo de INTA actualizó tu límite diario a ${limiteNuevo} mg.`;
-        if (mensajeExtra) mensaje += ' ' + mensajeExtra;
+        // La firma solo se agrega cuando el profesional efectivamente
+        // escribió algo de su parte — el mensaje automático de cambio de
+        // límite queda igual que siempre, sin firma, para no sonar a que
+        // "escribió" algo que en realidad generó la app. Si a la cuenta le
+        // falta el campo 'nombre' en profesionales/{uid} (se completa a mano
+        // en la consola), se omite la firma en vez de mostrar algo raro
+        // como "Atte: undefined".
+        if (mensajeExtra) {
+            mensaje += ' ' + mensajeExtra;
+            if (nombreProfesionalActual) mensaje += ` · Atte: ${nombreProfesionalActual}`;
+        }
         await addDoc(collection(db, basePath + '/notificaciones'), {
             mensaje,
             leida: false,
-            _ts: serverTimestamp()
+            _ts: serverTimestamp(),
+            // Denormalizados a propósito: el feed "Actividad reciente" del
+            // profesional es un collectionGroup cross-paciente — sin esto
+            // habría que hacer un join por cada item del feed, multiplicando
+            // lecturas (mismo motivo por el que buscarPacientes ya denormaliza
+            // 'meta' en vez de leer config/principal por cada fila).
+            profesionalUid,
+            nombrePaciente
         });
+    }
+
+    // ---- ACTIVIDAD RECIENTE ("visto" en vivo, sin tener que buscar) ----
+    function iniciarListenerActividad() {
+        if (unsubscribeActividad) return;
+        const uid = auth.currentUser && auth.currentUser.uid;
+        if (!uid) return;
+
+        // Requiere un índice compuesto la primera vez — Firestore muestra un
+        // enlace para crearlo automáticamente si falta (mismo mecanismo que
+        // usa buscarPacientes con el índice de collectionGroup('perfiles')).
+        const q = query(
+            collectionGroup(db, 'notificaciones'),
+            where('profesionalUid', '==', uid),
+            where('leida', '==', true),
+            orderBy('vistaEn', 'desc'),
+            limitar(15)
+        );
+
+        // El primer snapshot de una suscripción nueva siempre reporta TODOS
+        // los documentos existentes como 'added' — sin ignorar ese primer
+        // disparo, las últimas 15 notificaciones ya vistas de antes
+        // generarían una ráfaga de avisos del navegador apenas se abre la
+        // pantalla, justo lo que se quiere evitar.
+        let primerSnapshotActividad = true;
+        unsubscribeActividad = onSnapshot(q, snap => {
+            renderizarActividad(snap.docs);
+            if (!primerSnapshotActividad) {
+                snap.docChanges()
+                    .filter(c => c.type === 'added')
+                    .forEach(c => dispararNotificacionVisto(c.doc));
+            }
+            primerSnapshotActividad = false;
+        }, err => {
+            console.error('Error en el listener de actividad reciente:', err);
+            document.getElementById('tarjetaActividad').style.display = 'none';
+        });
+    }
+
+    function renderizarActividad(docs) {
+        const tarjeta = document.getElementById('tarjetaActividad');
+        const lista = document.getElementById('listaActividad');
+        if (!docs.length) {
+            tarjeta.style.display = 'none';
+            return;
+        }
+        lista.innerHTML = '';
+        docs.forEach(d => {
+            const data = d.data();
+            const mensajeCompleto = String(data.mensaje || '');
+            const mensajeCorto = escaparHtml(mensajeCompleto.slice(0, 70) + (mensajeCompleto.length > 70 ? '…' : ''));
+            const fila = document.createElement('div');
+            fila.className = 'fila-resultado';
+            fila.innerHTML = `
+                <div>
+                    <div class="fila-nombre">${escaparHtml(data.nombrePaciente || 'Paciente')} vio tu mensaje</div>
+                    <div class="fila-actividad-detalle">${formatearTiempoRelativo(data.vistaEn)} · ${mensajeCorto}</div>
+                </div>
+            `;
+            fila.onclick = () => {
+                const basePath = d.ref.path.split('/').slice(0, -2).join('/');
+                abrirDetalle({ basePath, nombre: data.nombrePaciente || 'Sin nombre', codigoPerfil: null, metaActual: 300 });
+            };
+            lista.appendChild(fila);
+        });
+        tarjeta.style.display = 'block';
+    }
+
+    function formatearTiempoRelativo(timestamp) {
+        if (!timestamp || !timestamp.toDate) return '';
+        const diffMin = Math.floor((Date.now() - timestamp.toDate().getTime()) / 60000);
+        if (diffMin < 1) return 'recién';
+        if (diffMin < 60) return `hace ${diffMin} min`;
+        const diffHoras = Math.floor(diffMin / 60);
+        if (diffHoras < 24) return `hace ${diffHoras} h`;
+        return `hace ${Math.floor(diffHoras / 24)} d`;
+    }
+
+    // ---- NOTIFICACIÓN DEL NAVEGADOR ----
+    // Mismo patrón que pedirPermisoNotificaciones/mostrarNotificacionSistema
+    // en index.html (recordatorios de citas): pedir permiso una vez, nunca
+    // bloqueante, y una notificación fallida (puede lanzar excepción en
+    // ciertos navegadores/Android aunque el permiso esté "granted") nunca
+    // debe romper el resto de la app.
+    function pedirPermisoNotificaciones() {
+        try {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        } catch (e) {
+            console.warn('No se pudo solicitar permiso de notificaciones (no crítico):', e);
+        }
+    }
+
+    function dispararNotificacionVisto(doc) {
+        try {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            const data = doc.data();
+            const mensajeCorto = String(data.mensaje || '').slice(0, 70);
+            // tag por evento (no uno fijo compartido como el de citas): cada
+            // "visto" es un evento distinto que no debe reemplazar a otro en
+            // la bandeja del sistema operativo.
+            new Notification(`${data.nombrePaciente || 'Un paciente'} vio tu mensaje`, {
+                body: mensajeCorto,
+                icon: 'icon-192.png',
+                badge: 'icon-192.png',
+                tag: 'pku-visto-' + doc.id
+            });
+        } catch (e) {
+            console.warn('No se pudo mostrar la notificación del sistema (no crítico):', e);
+        }
     }
 </script>
 </body>

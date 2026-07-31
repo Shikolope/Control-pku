@@ -14,13 +14,17 @@ rules_version = '2';
 //       historial/{fecha}      → fecha, consumido, meta, comidas[]
 //       citas/{citaId}         → id, texto, fechaTexto, rawDateTime
 //       log/{logId}            → auditoría de cambios del perfil (append-only)
+//       notificaciones/{id}    → mensaje, leida, vistaEn, _ts, profesionalUid, nombrePaciente
 //     papelera/{itemId}        → soft-delete (write-only desde la app)
 //     respaldos/{respaldoId}   → copias automáticas pre-cierre de día
 //     meta/migracion           → control de versión del esquema
 //   codigosPerfil/{codigo}     → mapeo PK-1234 -> ruta del perfil (identificador
 //                                no sensible, sin datos clínicos, para modo profesional)
 //   profesionales/{uid}        → cuentas de nutricionistas INTA con acceso institucional
-//                                (creadas manualmente en consola, no autoregistro)
+//                                (creadas manualmente en consola, no autoregistro). Campo
+//                                'nombre' (opcional, agregado a mano): firma los mensajes
+//                                que el profesional escribe a mano ("· Atte: {nombre}"),
+//                                se omite la firma si no está completado.
 // ============================================================
 
 service cloud.firestore {
@@ -201,7 +205,9 @@ service cloud.firestore {
 
           allow create: if esProfesional()
             && strValido(request.resource.data.mensaje, 500)
-            && request.resource.data.leida == false;
+            && request.resource.data.leida == false
+            && request.resource.data.profesionalUid == request.auth.uid
+            && strValido(request.resource.data.nombrePaciente, 80);
 
           allow update: if esPropietario(uid)
             && soloCambiaCampos(['leida', 'vistaEn']);
@@ -243,6 +249,24 @@ service cloud.firestore {
     // la sintaxis {path=**}. Sin esto, el buscador falla con
     // "permission-denied" aunque el resto de las reglas esté bien.
     match /{path=**}/perfiles/{perfilId} {
+      allow read: if esProfesional();
+    }
+
+    // ── REGLA DE COLLECTION GROUP PARA "ACTIVIDAD RECIENTE" DEL PROFESIONAL ──
+    // Mismo problema estructural que la regla de arriba para 'perfiles': la
+    // regla anidada de /usuarios/{uid}/perfiles/{perfilId}/notificaciones
+    // (más abajo) solo autoriza consultas directas contra esa subcolección
+    // puntual. El panel "Actividad reciente" de profesional.html usa
+    // collectionGroup(db, 'notificaciones') para ver los "vistos" de TODOS
+    // sus pacientes a la vez sin tener que buscarlos uno por uno — sin esta
+    // regla aparte, esa consulta falla con "permission-denied" aunque la
+    // regla anidada esté bien (igual que le pasó una vez a 'perfiles').
+    // El acceso es amplio (cualquier profesional puede leer el
+    // collection-group de cualquier paciente) — mismo modelo ya aceptado
+    // para 'perfiles'; lo que acota el feed a "mis propios mensajes
+    // enviados" es el filtro where('profesionalUid','==', uid) en la
+    // consulta, no esta regla.
+    match /{path=**}/notificaciones/{notifId} {
       allow read: if esProfesional();
     }
 

@@ -245,7 +245,10 @@ usuarios/{uid}/
                           `serverTimestamp()`) no necesita índice compuesto — el
                           comentario original que evitaba el `orderBy` "para no
                           requerir índice" partía de una premisa equivocada.
-    notificaciones/{id}→ mensajes del profesional a la familia
+    notificaciones/{id}→ mensajes del profesional a la familia. Campos: mensaje,
+                          leida, vistaEn, _ts, profesionalUid, nombrePaciente (los
+                          últimos dos, agregados 2026-07-31 para el feed "Actividad
+                          reciente" de profesional.html — ver más abajo).
   papelera/{itemId}     → soft-delete, a nivel de CUENTA (no por perfil), write-only
                           desde la app (allow read: if false)
   respaldos/{fecha}     → un documento POR DÍA (se sobrescribe con merge), solo con
@@ -284,6 +287,38 @@ comparar días, evita bugs de huso horario (Chile es UTC-3/UTC-4).
   casi siempre también necesita poder leerlo de vuelta.
 - El comentario-header al inicio de `firestore.rules` documenta el esquema esperado —
   mantenlo actualizado si cambias campos, para no repetir ese bug.
+- **2026-07-31 — feed "Actividad reciente" en `profesional.html`:** antes, el
+  profesional solo se enteraba de que una familia vio su mensaje si volvía a buscar a
+  ese paciente puntual y abría su ficha (`cargarHistorialMensajes`). Ahora la pantalla
+  de búsqueda tiene un panel en vivo (`onSnapshot` sobre
+  `collectionGroup(db, 'notificaciones')`, filtrado por `profesionalUid` propio y
+  `leida == true`, ordenado por `vistaEn`) que se actualiza solo, más una notificación
+  nativa del navegador (`Notification` API, mismo patrón que ya usaba `index.html`
+  para recordatorios de citas) cuando llega un "visto" nuevo. Requirió agregar
+  `profesionalUid`/`nombrePaciente` (denormalizado) a los documentos de
+  `notificaciones` al crearlos, y — **igual que le pasó una vez a
+  `collectionGroup('perfiles')`** — la regla anidada de `notificaciones` no alcanzaba
+  para autorizar la consulta `collectionGroup` nueva, así que se agregó una regla
+  aparte a nivel raíz con sintaxis `{path=**}` (mismo patrón ya usado para `perfiles`,
+  ver `firestore.rules`). El acceso de lectura sigue siendo amplio a nivel de regla
+  (cualquier profesional puede leer el collection-group de cualquier paciente); lo que
+  acota el feed a "mis propios mensajes enviados" es el filtro `profesionalUid` en la
+  consulta, no la regla. Requiere un índice compuesto (`profesionalUid` Asc, `leida`
+  Asc, `vistaEn` Desc, scope Collection group) — no hay `firestore.indexes.json` en
+  este repo, se crea con el enlace automático que muestra la consola la primera vez
+  que la consulta corre en producción, mismo mecanismo ya usado para el buscador de
+  pacientes por nombre. Deliberadamente fuera de alcance: push real con el navegador
+  cerrado (requeriría Cloud Functions + FCM + plan Blaze) — la notificación del
+  navegador de esta versión solo funciona mientras la pestaña de `profesional.html`
+  sigue abierta.
+- **2026-07-31 — firma del profesional en el mensaje adicional:** cuando el
+  profesional escribe texto libre para la familia (`inputMensajeFamilia`), ahora se le
+  agrega automáticamente `· Atte: {nombre}` al final, leyendo `profesionales/{uid}.nombre`
+  (campo opcional, se agrega a mano en la consola de Firebase junto con el resto de la
+  cuenta — no hay pantalla para que el profesional lo edite él mismo). Si el campo no
+  está completado, se omite la firma en silencio (nunca "Atte: undefined"). El mensaje
+  automático de cambio de límite (sin texto adicional) NO lleva firma — solo se firma lo
+  que el profesional efectivamente escribió a mano.
 
 ## Flujo de publicación
 
