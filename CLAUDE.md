@@ -319,20 +319,31 @@ comparar días, evita bugs de huso horario (Chile es UTC-3/UTC-4).
   está completado, se omite la firma en silencio (nunca "Atte: undefined"). El mensaje
   automático de cambio de límite (sin texto adicional) NO lleva firma — solo se firma lo
   que el profesional efectivamente escribió a mano.
-- **2026-07-31 — buscador de pacientes insensible a mayúsculas:** el buscador por nombre
-  de `profesional.html` (`buscarPacientes`) antes comparaba contra `nombre` tal cual está
-  guardado (case-sensitive, por cómo Firestore ordena strings) — buscar "maria" no
-  encontraba a "María". Ahora compara contra un campo nuevo, `nombreLower`
-  (`nombre.toLowerCase()`), guardado por `index.html` en los 5 lugares donde se escribe
-  `nombre` en un perfil (`guardarNuevoPerfil`, el flujo de completar/renombrar nombre,
-  el registro de pacientes adicionales, `migrarLocalStorageAFirestore` y
-  `migrarUsuarioAMultiperfil`). **Decisión consciente: no se hizo backfill** de los
-  perfiles ya existentes (a esa fecha todavía eran solo perfiles de prueba, confirmado
-  con el dueño del proyecto) — un perfil creado antes de este cambio no aparece en el
-  buscador por nombre hasta que la familia vuelva a guardar su nombre una vez (el
-  profesional igual puede encontrarlo por código PK-1234 mientras tanto). Si en el
-  futuro hace falta indexar perfiles reales viejos, hay que escribir ese backfill
-  aparte — no asumir que ya corrió.
+- **2026-07-31 — buscador de pacientes insensible a mayúsculas y tildes:** el buscador
+  por nombre de `profesional.html` (`buscarPacientes`) antes comparaba contra `nombre`
+  tal cual está guardado (case-sensitive, por cómo Firestore ordena strings) — buscar
+  "maria" no encontraba a "María". Ahora compara contra un campo nuevo, `nombreLower`,
+  guardado por `index.html` en los 5 lugares donde se escribe `nombre` en un perfil
+  (`guardarNuevoPerfil`, el flujo de completar/renombrar nombre, el registro de
+  pacientes adicionales, `migrarLocalStorageAFirestore` y `migrarUsuarioAMultiperfil`).
+  El valor no es solo `.toLowerCase()` — pasa por `normalizarNombreBusqueda(nombre)`
+  (definida igual en ambos archivos: `nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,
+  '').toLowerCase()`), que además saca tildes/diéresis, para que buscar "nino" encuentre
+  "Niño" y "jose" encuentre "José". **Si algún día se toca esta función, hay que
+  actualizarla en los dos archivos a la vez** — no comparten scope de JS, así que quedó
+  duplicada a propósito; si se desalinean, el buscador deja de encontrar nombres con
+  tilde/ñ en silencio (mismo tipo de bug de "dos lados que deben coincidir exactamente"
+  que ya pasó antes con los campos de `firestore.rules`). **Decisión consciente: no se
+  hizo backfill** de los perfiles ya existentes (a esa fecha todavía eran solo perfiles
+  de prueba, confirmado con el dueño del proyecto) — un perfil creado antes de este
+  cambio no aparece en el buscador por nombre hasta que la familia vuelva a guardar su
+  nombre una vez, o se le agregue `nombreLower` a mano en la consola (el profesional
+  igual puede encontrarlo por código PK-1234 mientras tanto). Requiere además una
+  **exención (field override)** en Firestore — Índices → Exenciones — para
+  `perfiles.nombreLower` con "Alcance del grupo de colecciones" → Ascendente habilitado
+  (mismo mecanismo ya usado para `perfiles.nombre` antes de este cambio, que queda
+  obsoleta y se puede borrar). Si en el futuro hace falta indexar perfiles reales
+  viejos, hay que escribir ese backfill aparte — no asumir que ya corrió.
 
 ## Flujo de publicación
 

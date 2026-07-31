@@ -474,7 +474,7 @@
             // guardado. Perfiles creados antes de este campo no quedan
             // buscables por nombre hasta que se renombren una vez \u2014 se
             // pueden seguir encontrando por c\u00f3digo (PK-1234).
-            const terminoLower = termino.toLowerCase();
+            const terminoLower = normalizarNombreBusqueda(termino);
             const q = query(
                 collectionGroup(db, 'perfiles'),
                 orderBy('nombreLower'),
@@ -522,6 +522,17 @@
             lista.innerHTML = `<div class="vacio">No se pudo buscar.<br><br><b>Código:</b> ${escaparHtml(e.code || 'desconocido')}<br><b>Detalle:</b> ${escaparHtml(e.message || String(e))}</div>`;
         }
     };
+
+    // Debe coincidir exactamente con normalizarNombreBusqueda de index.html
+    // (misma normalización con la que se guarda 'nombreLower') — si se
+    // desalinean, el buscador deja de encontrar nombres con tilde/ñ aunque
+    // ambos lados "se vean" bien.
+    function normalizarNombreBusqueda(nombre) {
+        return nombre
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    }
 
     function escaparHtml(s) {
         const div = document.createElement('div');

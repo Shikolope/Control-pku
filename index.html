@@ -7591,6 +7591,16 @@
         return nombre.trim().split(/\s+/).filter(Boolean).length >= 3;
     }
 
+    // Usado para 'nombreLower': normaliza mayúsculas/minúsculas Y tildes
+    // (María → maria) para que el buscador de profesional.html encuentre
+    // el perfil sin importar cómo se haya escrito el término de búsqueda.
+    function normalizarNombreBusqueda(nombre) {
+        return nombre
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    }
+
     async function guardarNuevoPerfil() {
         const nombre = document.getElementById('inputNuevoPerfil').value.trim();
         const meta = parseFloat(document.getElementById('inputMetaNuevoPerfil').value) || 300;
@@ -7609,7 +7619,7 @@
         try {
             await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilId), {
                 nombre, meta, colorIdx,
-                nombreLower: nombre.toLowerCase(),
+                nombreLower: normalizarNombreBusqueda(nombre),
                 creadoEn: Date.now(),
                 _ts: serverTimestamp()
             });
@@ -7780,7 +7790,7 @@
             // indicador del header vive en el documento del perfil (no en
             // config/principal) — hay que mantener ambos en sincro.
             if (perfilActivo) {
-                await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id), { nombre, nombreLower: nombre.toLowerCase() }, { merge: true });
+                await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id), { nombre, nombreLower: normalizarNombreBusqueda(nombre) }, { merge: true });
                 perfilActivo.nombre = nombre;
                 const idxPerfil = perfiles.findIndex(p => p.id === perfilActivo.id);
                 if (idxPerfil !== -1) perfiles[idxPerfil].nombre = nombre;
@@ -8057,7 +8067,7 @@
                     const perfilId = 'perfil_' + Date.now() + '_' + i;
                     await setDoc(doc(db, 'usuarios', cred.user.uid, 'perfiles', perfilId), {
                         nombre: nombres[i], meta: 300, colorIdx,
-                        nombreLower: nombres[i].toLowerCase(),
+                        nombreLower: normalizarNombreBusqueda(nombres[i]),
                         creadoEn: Date.now() + i,
                         _ts: serverTimestamp()
                     });
@@ -9088,7 +9098,7 @@
                 nombre: nombrePaciente || 'Paciente',
                 meta: parseFloat(localStorage.getItem('pku_meta')) || 300,
                 colorIdx: 0,
-                nombreLower: (nombrePaciente || 'Paciente').toLowerCase(),
+                nombreLower: normalizarNombreBusqueda(nombrePaciente || 'Paciente'),
                 creadoEn: Date.now(),
                 _ts: serverTimestamp()
             });
@@ -9304,7 +9314,7 @@
             // 2. Crear documento del perfil
             await setDoc(doc(db, 'usuarios', uid, 'perfiles', perfilId), {
                 nombre: nombreReal, meta: metaReal, colorIdx: 0,
-                nombreLower: nombreReal.toLowerCase(),
+                nombreLower: normalizarNombreBusqueda(nombreReal),
                 creadoEn: Date.now(), _ts: serverTimestamp()
             });
 
