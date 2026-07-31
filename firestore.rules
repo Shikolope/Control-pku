@@ -8,7 +8,10 @@ rules_version = '2';
 //
 // ESTRUCTURA DE DATOS:
 //   usuarios/{uid}/
-//     perfiles/{perfilId}/
+//     perfiles/{perfilId}/     → nombre, nombreLower (nombre.toLowerCase(), para búsqueda
+//                                insensible a mayúsculas de profesional.html — agregado
+//                                2026-07-31, perfiles previos a esa fecha no lo tienen y no
+//                                se backfillearon a propósito, ver CLAUDE.md), meta, colorIdx
 //       config/principal       → metaDiaria, ultimoDia, nombrePaciente, codigoPerfil
 //       comidas/{comidaId}     → id, nombre, gramos, fa, unidad, categoria
 //       historial/{fecha}      → fecha, consumido, meta, comidas[]

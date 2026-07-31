@@ -468,11 +468,18 @@
         }
 
         try {
+            // B\u00fasqueda insensible a may\u00fasculas/min\u00fasculas: se compara contra
+            // 'nombreLower' (el nombre guardado en min\u00fascula por index.html
+            // al crear/renombrar un perfil), no contra 'nombre' tal cual est\u00e1
+            // guardado. Perfiles creados antes de este campo no quedan
+            // buscables por nombre hasta que se renombren una vez \u2014 se
+            // pueden seguir encontrando por c\u00f3digo (PK-1234).
+            const terminoLower = termino.toLowerCase();
             const q = query(
                 collectionGroup(db, 'perfiles'),
-                orderBy('nombre'),
-                where('nombre', '>=', termino),
-                where('nombre', '<=', termino + '\uf8ff'),
+                orderBy('nombreLower'),
+                where('nombreLower', '>=', terminoLower),
+                where('nombreLower', '<=', terminoLower + '\uf8ff'),
                 limitar(20)
             );
             const snap = await getDocs(q);

@@ -7609,6 +7609,7 @@
         try {
             await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilId), {
                 nombre, meta, colorIdx,
+                nombreLower: nombre.toLowerCase(),
                 creadoEn: Date.now(),
                 _ts: serverTimestamp()
             });
@@ -7779,7 +7780,7 @@
             // indicador del header vive en el documento del perfil (no en
             // config/principal) — hay que mantener ambos en sincro.
             if (perfilActivo) {
-                await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id), { nombre }, { merge: true });
+                await setDoc(doc(db, 'usuarios', user.uid, 'perfiles', perfilActivo.id), { nombre, nombreLower: nombre.toLowerCase() }, { merge: true });
                 perfilActivo.nombre = nombre;
                 const idxPerfil = perfiles.findIndex(p => p.id === perfilActivo.id);
                 if (idxPerfil !== -1) perfiles[idxPerfil].nombre = nombre;
@@ -8056,6 +8057,7 @@
                     const perfilId = 'perfil_' + Date.now() + '_' + i;
                     await setDoc(doc(db, 'usuarios', cred.user.uid, 'perfiles', perfilId), {
                         nombre: nombres[i], meta: 300, colorIdx,
+                        nombreLower: nombres[i].toLowerCase(),
                         creadoEn: Date.now() + i,
                         _ts: serverTimestamp()
                     });
@@ -9086,6 +9088,7 @@
                 nombre: nombrePaciente || 'Paciente',
                 meta: parseFloat(localStorage.getItem('pku_meta')) || 300,
                 colorIdx: 0,
+                nombreLower: (nombrePaciente || 'Paciente').toLowerCase(),
                 creadoEn: Date.now(),
                 _ts: serverTimestamp()
             });
@@ -9301,6 +9304,7 @@
             // 2. Crear documento del perfil
             await setDoc(doc(db, 'usuarios', uid, 'perfiles', perfilId), {
                 nombre: nombreReal, meta: metaReal, colorIdx: 0,
+                nombreLower: nombreReal.toLowerCase(),
                 creadoEn: Date.now(), _ts: serverTimestamp()
             });
 
