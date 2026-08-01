@@ -213,7 +213,7 @@
         </div>
         <div class="tarjeta">
             <label for="inputBusqueda">Buscar por nombre o código de perfil</label>
-            <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
+            <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" oninput="onInputBusqueda()" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
             <button class="boton-principal" onclick="buscarPacientes()">Buscar</button>
             <button class="boton-secundario" onclick="cerrarSesionProfesional()">Cerrar sesión</button>
         </div>
@@ -231,6 +231,9 @@
             <div id="errorDetalle" class="error-box"></div>
             <label for="inputNuevoLimite">Límite diario de FA (mg)</label>
             <input type="number" id="inputNuevoLimite" min="1" max="9999" step="1" oninput="onCambioLimite()">
+            <div id="linkAbrirMensajeWrap" style="margin-bottom:14px;">
+                <a href="javascript:void(0)" onclick="abrirBloqueMensajeManual()" style="font-size:13px; color:var(--color-brand); font-weight:600; text-decoration:none;">✉️ Enviar un mensaje a la familia</a>
+            </div>
             <div id="preguntaEnviarMensaje" class="oculta" style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--color-brand-light); border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:13px; color:var(--text-primary);">
                 <span>¿Deseas enviar un mensaje a la familia sobre este cambio?</span>
                 <div style="display:flex; gap:6px; flex-shrink:0;">
@@ -239,8 +242,11 @@
                 </div>
             </div>
             <div id="bloqueMensajeFamilia" class="oculta">
-                <label for="inputMensajeFamilia">Mensaje para la familia (opcional)</label>
-                <textarea id="inputMensajeFamilia" rows="3" maxlength="440" placeholder="Ej: Recuerda aumentar las porciones de aproteicos esta semana." style="width:100%; padding:11px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <label for="inputMensajeFamilia" style="margin-bottom:0;">Mensaje para la familia</label>
+                    <a href="javascript:void(0)" onclick="cerrarBloqueMensaje()" style="font-size:12px; color:var(--text-muted); text-decoration:none;">✕ Cancelar</a>
+                </div>
+                <textarea id="inputMensajeFamilia" rows="3" maxlength="440" placeholder="Ej: Recuerda aumentar las porciones de aproteicos esta semana." style="width:100%; padding:11px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:14px; margin-top:6px; margin-bottom:14px; font-family:inherit; resize:vertical;" oninput="actualizarTextoBotonGuardar()"></textarea>
             </div>
             <button class="boton-principal" id="btnGuardarLimite" onclick="guardarNuevoLimite()">Guardar límite</button>
             <div class="aviso-exito" id="avisoExito">Límite actualizado correctamente.</div>
@@ -418,11 +424,26 @@
     });
 
     // ---- BÚSQUEDA POR NOMBRE ----
+    // Buscador "en vivo": dispara buscarPacientes() solo, con un pequeño
+    // debounce (no en cada tecla) para no encadenar una consulta a
+    // Firestore por cada letra escrita.
+    let debounceBusqueda = null;
+    window.onInputBusqueda = function() {
+        clearTimeout(debounceBusqueda);
+        const termino = document.getElementById('inputBusqueda').value.trim();
+        if (termino.length < 2) {
+            document.getElementById('tarjetaResultados').style.display = 'none';
+            return;
+        }
+        debounceBusqueda = setTimeout(() => buscarPacientes(), 350);
+    };
+
     // Búsqueda por prefijo (case-sensitive tal como está guardado el
     // nombre): nombre >= término && nombre < término + caracter límite.
     // Requiere un índice compuesto la primera vez — Firestore muestra
     // un enlace para crearlo automáticamente si falta.
     window.buscarPacientes = async function() {
+        clearTimeout(debounceBusqueda);
         const termino = document.getElementById('inputBusqueda').value.trim();
         const lista = document.getElementById('listaResultados');
         const tarjeta = document.getElementById('tarjetaResultados');
@@ -500,18 +521,29 @@
                 return;
             }
 
-            // Ya NO leemos config/principal de cada resultado acá (eso
-            // multiplicaba las lecturas por 2 en cada búsqueda). El campo
-            // 'meta' ya viene incluido gratis en el propio documento del
-            // perfil (es el espejo que se mantiene sincronizado con
-            // config.metaDiaria), así que alcanza para mostrar un valor
-            // aproximado en el listado. El código y el límite exacto se
-            // leen recién al abrir el detalle de un resultado puntual.
-            const resultados = snap.docs.map(d => ({
-                basePath: d.ref.path, // usuarios/{uid}/perfiles/{perfilId}
-                nombre: d.data().nombre || 'Sin nombre',
-                codigoPerfil: null, // se completa al abrir el detalle
-                metaActual: d.data().meta || 300
+            // El campo 'meta' ya viene incluido gratis en el propio
+            // documento del perfil (espejo sincronizado con
+            // config.metaDiaria). El código de perfil, en cambio, solo vive
+            // en config/principal — para mostrarlo en el desplegable sin
+            // hacerlo "a ciegas" (el profesional lo pidió para reconocer al
+            // paciente antes de tocarlo), se lee en paralelo para cada
+            // resultado. El límite exacto se sigue re-confirmando al abrir
+            // el detalle de un resultado puntual.
+            const resultados = await Promise.all(snap.docs.map(async d => {
+                const basePath = d.ref.path; // usuarios/{uid}/perfiles/{perfilId}
+                let codigoPerfil = null;
+                try {
+                    const snapConfig = await getDoc(doc(db, basePath + '/config/principal'));
+                    codigoPerfil = snapConfig.exists() ? (snapConfig.data().codigoPerfil || null) : null;
+                } catch (e) {
+                    console.warn('No se pudo leer el código de un resultado de búsqueda:', e);
+                }
+                return {
+                    basePath,
+                    nombre: d.data().nombre || 'Sin nombre',
+                    codigoPerfil,
+                    metaActual: d.data().meta || 300
+                };
             }));
 
             lista.innerHTML = '';
@@ -521,7 +553,7 @@
                 fila.innerHTML = `
                     <div>
                         <div class="fila-nombre">${escaparHtml(r.nombre)}</div>
-                        <div class="fila-codigo">Toca para ver el código y confirmar el límite</div>
+                        <div class="fila-codigo">${r.codigoPerfil ? escaparHtml(r.codigoPerfil) : 'Sin código asignado todavía'}</div>
                     </div>
                     <div class="fila-limite">${r.metaActual} mg</div>
                 `;
@@ -563,6 +595,8 @@
         preguntaMensajeRespondida = false;
         document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
         document.getElementById('bloqueMensajeFamilia').classList.add('oculta');
+        document.getElementById('linkAbrirMensajeWrap').classList.remove('oculta');
+        document.getElementById('btnGuardarLimite').textContent = 'Guardar límite';
 
         document.getElementById('pantallaBusqueda').classList.add('oculta');
         document.getElementById('pantallaDetalle').classList.remove('oculta');
@@ -599,10 +633,11 @@
         cargarHistorialMensajes(resultado.basePath);
     }
 
-    // Se dispara con cada tecla en el input de límite: si el valor difiere
-    // del original cargado, ofrece agregar un mensaje para la familia. Si
-    // el profesional vuelve a dejar el mismo valor de antes, se oculta de
-    // nuevo (no tiene sentido preguntar por un cambio que ya no existe).
+    // Se dispara con cada tecla en el input de límite: la primera vez que el
+    // valor difiere del original cargado, ofrece agregar un mensaje para la
+    // familia. A propósito NO se oculta si el profesional vuelve a dejar el
+    // mismo valor de antes — el mensaje (si ya lo empezó a escribir) no debe
+    // desaparecer solo porque el número volvió a coincidir con el original.
     window.onCambioLimite = function() {
         const input = document.getElementById('inputNuevoLimite');
         const pregunta = document.getElementById('preguntaEnviarMensaje');
@@ -610,28 +645,55 @@
         const nuevoValor = parseFloat(input.value);
         const cambio = !isNaN(nuevoValor) && nuevoValor !== limiteOriginalCargado;
 
-        if (!cambio) {
-            pregunta.classList.add('oculta');
-            bloqueMensaje.classList.add('oculta');
-            preguntaMensajeRespondida = false;
-            return;
-        }
-        if (!preguntaMensajeRespondida) {
+        if (cambio && !preguntaMensajeRespondida
+            && pregunta.classList.contains('oculta')
+            && bloqueMensaje.classList.contains('oculta')) {
             pregunta.classList.remove('oculta');
+            document.getElementById('linkAbrirMensajeWrap').classList.add('oculta');
         }
+        actualizarTextoBotonGuardar();
     };
 
     window.responderPreguntaMensaje = function(quiereEnviar) {
         preguntaMensajeRespondida = true;
         document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
-        const bloqueMensaje = document.getElementById('bloqueMensajeFamilia');
         if (quiereEnviar) {
-            bloqueMensaje.classList.remove('oculta');
+            document.getElementById('bloqueMensajeFamilia').classList.remove('oculta');
             document.getElementById('inputMensajeFamilia').focus();
         } else {
-            bloqueMensaje.classList.add('oculta');
-            document.getElementById('inputMensajeFamilia').value = '';
+            document.getElementById('linkAbrirMensajeWrap').classList.remove('oculta');
         }
+        actualizarTextoBotonGuardar();
+    };
+
+    // Link siempre visible (no depende de cambiar el límite): permite
+    // enviar un mensaje a la familia sin necesidad de tocar el límite.
+    window.abrirBloqueMensajeManual = function() {
+        preguntaMensajeRespondida = true;
+        document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
+        document.getElementById('linkAbrirMensajeWrap').classList.add('oculta');
+        document.getElementById('bloqueMensajeFamilia').classList.remove('oculta');
+        document.getElementById('inputMensajeFamilia').focus();
+        actualizarTextoBotonGuardar();
+    };
+
+    window.cerrarBloqueMensaje = function() {
+        preguntaMensajeRespondida = false;
+        document.getElementById('bloqueMensajeFamilia').classList.add('oculta');
+        document.getElementById('inputMensajeFamilia').value = '';
+        document.getElementById('linkAbrirMensajeWrap').classList.remove('oculta');
+        actualizarTextoBotonGuardar();
+    };
+
+    // El botón dice "Enviar mensaje" cuando lo único pendiente es el
+    // mensaje (el límite no cambió); en cualquier otro caso, "Guardar
+    // límite" (que además manda el mensaje si hay uno escrito).
+    window.actualizarTextoBotonGuardar = function() {
+        const nuevoValor = parseFloat(document.getElementById('inputNuevoLimite').value);
+        const limiteCambio = !isNaN(nuevoValor) && nuevoValor !== limiteOriginalCargado;
+        const bloqueAbierto = !document.getElementById('bloqueMensajeFamilia').classList.contains('oculta');
+        document.getElementById('btnGuardarLimite').textContent =
+            (!limiteCambio && bloqueAbierto) ? 'Enviar mensaje' : 'Guardar límite';
     };
 
     async function cargarHistorialMensajes(basePath) {
@@ -693,67 +755,91 @@
             return;
         }
 
+        const mensajeExtra = document.getElementById('inputMensajeFamilia').value.trim();
         const limiteAnterior = perfilSeleccionado.metaActual;
+        const limiteCambio = nuevoLimite !== limiteOriginalCargado;
+
+        // Nada que hacer: ni el límite cambió ni hay mensaje escrito.
+        if (!limiteCambio && !mensajeExtra) {
+            errorDiv.textContent = 'No hay cambios que guardar: modifica el límite o escribe un mensaje para la familia.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
         btn.disabled = true;
-        btn.textContent = 'Guardando…';
+        btn.textContent = limiteCambio ? 'Guardando…' : 'Enviando…';
 
         try {
             const uidProfesional = auth.currentUser.uid;
             const basePath = perfilSeleccionado.basePath;
 
-            // Actualizar config/principal.metaDiaria (fuente de verdad que
-            // usa la app de familias) y perfiles/{perfilId}.meta (espejo
-            // que usa la tarjeta del selector de perfil) en un solo batch:
-            // si uno de los dos fallara y el otro no, quedarían
-            // desincronizados (la app mostraría un límite y la tarjeta del
-            // selector otro) sin que nadie se diera cuenta.
-            const batchLimite = writeBatch(db);
-            batchLimite.update(doc(db, basePath + '/config/principal'), {
-                metaDiaria: nuevoLimite,
-                _ts: serverTimestamp()
-            });
-            batchLimite.update(doc(db, basePath), {
-                meta: nuevoLimite,
-                _ts: serverTimestamp()
-            });
-            await conTimeout(batchLimite.commit());
+            if (limiteCambio) {
+                // Actualizar config/principal.metaDiaria (fuente de verdad
+                // que usa la app de familias) y perfiles/{perfilId}.meta
+                // (espejo que usa la tarjeta del selector de perfil) en un
+                // solo batch: si uno de los dos fallara y el otro no,
+                // quedarían desincronizados (la app mostraría un límite y la
+                // tarjeta del selector otro) sin que nadie se diera cuenta.
+                const batchLimite = writeBatch(db);
+                batchLimite.update(doc(db, basePath + '/config/principal'), {
+                    metaDiaria: nuevoLimite,
+                    _ts: serverTimestamp()
+                });
+                batchLimite.update(doc(db, basePath), {
+                    meta: nuevoLimite,
+                    _ts: serverTimestamp()
+                });
+                await conTimeout(batchLimite.commit());
 
-            // Registrar en el log de auditoría del perfil. FIX INTEGRIDAD
-            // (2026-07-30): en su propio try/catch — el límite YA quedó
-            // guardado arriba, así que un fallo acá (ej. corte de señal
-            // justo entre ambas escrituras) no debe hacer creer al
-            // profesional que el cambio de límite completo falló (antes
-            // caía al catch general de más abajo, que mostraba "No se pudo
-            // guardar", un mensaje falso).
-            try {
-                await addLogLimiteModificado(basePath, uidProfesional, limiteAnterior, nuevoLimite);
-            } catch (e) {
-                console.warn('El límite se guardó pero no se pudo registrar en el log de auditoría:', e);
+                // Registrar en el log de auditoría del perfil. FIX INTEGRIDAD
+                // (2026-07-30): en su propio try/catch — el límite YA quedó
+                // guardado arriba, así que un fallo acá (ej. corte de señal
+                // justo entre ambas escrituras) no debe hacer creer al
+                // profesional que el cambio de límite completo falló (antes
+                // caía al catch general de más abajo, que mostraba "No se
+                // pudo guardar", un mensaje falso).
+                try {
+                    await addLogLimiteModificado(basePath, uidProfesional, limiteAnterior, nuevoLimite);
+                } catch (e) {
+                    console.warn('El límite se guardó pero no se pudo registrar en el log de auditoría:', e);
+                }
+
+                perfilSeleccionado.metaActual = nuevoLimite;
+                aviso.textContent = 'Límite actualizado correctamente.';
+                aviso.style.display = 'block';
             }
-
-            perfilSeleccionado.metaActual = nuevoLimite;
-            aviso.textContent = 'Límite actualizado correctamente.';
-            aviso.style.display = 'block';
 
             // La notificación a la familia es best-effort y va en su propio
-            // try/catch: el límite ya quedó guardado arriba, así que un
-            // fallo acá (ej. mensaje demasiado largo) no debe hacer creer
-            // al profesional que el cambio de límite completo falló.
-            try {
-                const mensajeExtra = document.getElementById('inputMensajeFamilia').value.trim();
-                await crearNotificacionFamilia(basePath, nuevoLimite, mensajeExtra, uidProfesional, perfilSeleccionado.nombre);
-            } catch (e) {
-                console.warn('El límite se guardó pero no se pudo enviar el mensaje a la familia:', e);
-                aviso.textContent = 'Límite actualizado, pero no se pudo enviar el mensaje a la familia.';
+            // try/catch: si el límite cambió, ya quedó guardado arriba, así
+            // que un fallo acá (ej. mensaje demasiado largo) no debe hacer
+            // creer al profesional que el cambio de límite completo falló.
+            // Si el límite NO cambió, esta es la única escritura de esta
+            // acción — y se envía SOLO el texto escrito, sin el aviso
+            // automático de "límite actualizado" (limiteNuevo=null le indica
+            // a crearNotificacionFamilia que no hubo cambio de límite).
+            if (limiteCambio || mensajeExtra) {
+                try {
+                    await crearNotificacionFamilia(basePath, limiteCambio ? nuevoLimite : null, mensajeExtra, uidProfesional, perfilSeleccionado.nombre);
+                    if (!limiteCambio) {
+                        aviso.textContent = 'Mensaje enviado a la familia.';
+                        aviso.style.display = 'block';
+                    }
+                } catch (e) {
+                    console.warn('No se pudo enviar el mensaje a la familia:', e);
+                    aviso.textContent = limiteCambio
+                        ? 'Límite actualizado, pero no se pudo enviar el mensaje a la familia.'
+                        : 'No se pudo enviar el mensaje. Intenta de nuevo.';
+                    aviso.style.display = 'block';
+                }
             }
 
-            // Guardado el límite, se cierra el flujo de pregunta/mensaje —
-            // el valor actual pasa a ser el nuevo "original" para detectar
-            // el próximo cambio real.
+            // Se cierra el flujo de pregunta/mensaje — el valor actual pasa
+            // a ser el nuevo "original" para detectar el próximo cambio real.
             limiteOriginalCargado = nuevoLimite;
             preguntaMensajeRespondida = false;
             document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
             document.getElementById('bloqueMensajeFamilia').classList.add('oculta');
+            document.getElementById('linkAbrirMensajeWrap').classList.remove('oculta');
             document.getElementById('inputMensajeFamilia').value = '';
         } catch (e) {
             console.warn('Error guardando el límite:', e);
@@ -775,8 +861,11 @@
         });
     }
 
+    // limiteNuevo === null significa "no hubo cambio de límite en esta
+    // acción": el mensaje enviado es SOLO lo que escribió el profesional,
+    // sin el aviso automático de "límite actualizado" (que no aplica).
     async function crearNotificacionFamilia(basePath, limiteNuevo, mensajeExtra, profesionalUid, nombrePaciente) {
-        let mensaje = `El equipo de INTA actualizó tu límite diario a ${limiteNuevo} mg.`;
+        let mensaje;
         // La firma solo se agrega cuando el profesional efectivamente
         // escribió algo de su parte — el mensaje automático de cambio de
         // límite queda igual que siempre, sin firma, para no sonar a que
@@ -784,9 +873,15 @@
         // falta el campo 'nombre' en profesionales/{uid} (se completa a mano
         // en la consola), se omite la firma en vez de mostrar algo raro
         // como "Atte: undefined".
-        if (mensajeExtra) {
-            mensaje += ' ' + mensajeExtra;
+        if (limiteNuevo === null) {
+            mensaje = mensajeExtra;
             if (nombreProfesionalActual) mensaje += ` · Atte: ${nombreProfesionalActual}`;
+        } else {
+            mensaje = `El equipo de INTA actualizó tu límite diario a ${limiteNuevo} mg.`;
+            if (mensajeExtra) {
+                mensaje += ' ' + mensajeExtra;
+                if (nombreProfesionalActual) mensaje += ` · Atte: ${nombreProfesionalActual}`;
+            }
         }
         await addDoc(collection(db, basePath + '/notificaciones'), {
             mensaje,
