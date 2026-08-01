@@ -2653,22 +2653,77 @@
         _recalcularDotNovedades();
     }
 
+    // Ocultar/limpiar mensajes en este modal es puramente local (localStorage,
+    // por perfil vía basePath) — a propósito NO borra los documentos de
+    // Firestore: 'notificaciones' es también el rastro que usa profesional.html
+    // para saber si la familia vio el mensaje (leida/vistaEn). Mismo patrón
+    // que "🧹 Limpiar" en la Actividad reciente de profesional.html.
+    let _ultimosMensajesProfesional = [];
+    let _basePathMensajesActual = null;
+
+    function _claveMensajesOcultos(basePath) { return 'pku_msgs_ocultos_' + basePath; }
+    function _claveMensajesLimpiados(basePath) { return 'pku_msgs_limpiados_' + basePath; }
+
+    function _idsMensajesOcultos(basePath) {
+        try { return JSON.parse(localStorage.getItem(_claveMensajesOcultos(basePath)) || '[]'); }
+        catch (e) { return []; }
+    }
+
+    function _corteMensajesLimpiados(basePath) {
+        return parseInt(localStorage.getItem(_claveMensajesLimpiados(basePath)) || '0', 10);
+    }
+
     // Arma el HTML de la lista de mensajes del profesional para el
     // modal propio del sobre ✉️ (independiente de la campana de Novedades).
-    function _renderListaMensajesProfesional(docs) {
+    function _renderListaMensajesProfesional(docsSinFiltrar, basePath) {
+        const ocultos = _idsMensajesOcultos(basePath);
+        const corte = _corteMensajesLimpiados(basePath);
+        const docs = docsSinFiltrar.filter(data => {
+            if (ocultos.includes(data.id)) return false;
+            const ms = (data._ts && data._ts.toDate) ? data._ts.toDate().getTime() : null;
+            return !(ms !== null && ms <= corte);
+        });
+
         if (!docs.length) return '<p style="font-size:13px; color:var(--text-muted);">Todavía no tienes mensajes de tu nutricionista.</p>';
-        return docs.map(data => {
+
+        const filas = docs.map(data => {
             const fecha = (data._ts && data._ts.toDate)
                 ? data._ts.toDate().toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                 : 'Fecha pendiente';
             const mensajeSeguro = String(data.mensaje || '').replace(/</g, '&lt;');
             return `
-                <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">
+                <div style="position:relative; margin-bottom:10px; padding:0 22px 10px 0; border-bottom:1px solid var(--border-color);">
+                    <button type="button" onclick="ocultarMensajeProfesional('${data.id}')" title="Ocultar este mensaje (no se borra, tu nutricionista lo sigue viendo)" style="position:absolute; top:0; right:0; background:none; border:none; cursor:pointer; font-size:14px; color:var(--text-muted); width:20px; height:20px; padding:0; margin:0; line-height:1;">✕</button>
                     <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">${fecha}${data.leida ? '' : ' · <span style="color:#E8A33D; font-weight:700;">nuevo</span>'}</div>
                     <div style="font-size:13px; color:var(--text-main); line-height:1.5;">${mensajeSeguro}</div>
                 </div>`;
         }).join('');
+
+        return `
+            <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                <a href="javascript:void(0)" onclick="limpiarTodosMensajesProfesional()" style="font-size:12px; color:var(--text-muted); text-decoration:none;">🧹 Limpiar</a>
+            </div>
+            ${filas}`;
     }
+
+    window.ocultarMensajeProfesional = function(id) {
+        if (!_basePathMensajesActual) return;
+        const clave = _claveMensajesOcultos(_basePathMensajesActual);
+        const ocultos = _idsMensajesOcultos(_basePathMensajesActual);
+        if (!ocultos.includes(id)) {
+            ocultos.push(id);
+            localStorage.setItem(clave, JSON.stringify(ocultos));
+        }
+        document.getElementById('contenidoMensajesINTA').innerHTML =
+            _renderListaMensajesProfesional(_ultimosMensajesProfesional, _basePathMensajesActual);
+    };
+
+    window.limpiarTodosMensajesProfesional = function() {
+        if (!_basePathMensajesActual) return;
+        localStorage.setItem(_claveMensajesLimpiados(_basePathMensajesActual), String(Date.now()));
+        document.getElementById('contenidoMensajesINTA').innerHTML =
+            _renderListaMensajesProfesional(_ultimosMensajesProfesional, _basePathMensajesActual);
+    };
 
     async function mostrarMensajesProfesional() {
         const cont = document.getElementById('contenidoMensajesINTA');
@@ -2686,7 +2741,9 @@
                 cont.innerHTML = '<p style="font-size:13px; color:var(--text-muted);">Inicia sesión para ver tus mensajes.</p>';
             } else {
                 const docs = await window.obtenerMensajesProfesional(basePath);
-                cont.innerHTML = _renderListaMensajesProfesional(docs);
+                _ultimosMensajesProfesional = docs;
+                _basePathMensajesActual = basePath;
+                cont.innerHTML = _renderListaMensajesProfesional(docs, basePath);
                 // No se espera (await) — es un "marcar como leído" en
                 // segundo plano, no debe demorar que se muestren los
                 // mensajes. Ver nota en marcarMensajesProfesionalLeidos.
@@ -7860,7 +7917,11 @@
             limit(30)
         );
         const snap = await getDocs(q);
-        return snap.docs.map(d => d.data());
+        // Se incluye el id del documento (antes se descartaba con
+        // d.data() a secas) porque el modal de mensajes ahora necesita
+        // identificar cada mensaje para poder ocultarlo individualmente
+        // (ver ocultarMensajeProfesional) sin tocar Firestore.
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     };
 
     // FIX INTEGRIDAD (2026-07-30): el modal completo de mensajes (✉️,
