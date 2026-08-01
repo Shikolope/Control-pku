@@ -51,6 +51,11 @@
             padding: 15px;
             display: flex;
             justify-content: center;
+            /* Sin esto, el stretch por defecto de align-items fuerza a .app-container
+               a la altura del viewport nomás: si el contenido es más alto, se desborda
+               por debajo de esa caja y queda fuera del fondo blanco (se ve el degradado
+               del body detrás, cortado a media página). */
+            align-items: flex-start;
             /* Deshabilitar pull-to-refresh en Android WebView / TWA */
             overscroll-behavior-y: contain;
             /* iOS Safari: el scroll real queda en .app-container, no en el body */
