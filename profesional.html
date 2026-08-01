@@ -114,7 +114,8 @@
         cursor: pointer;
     }
     .fila-resultado:last-child { border-bottom: none; }
-    .fila-resultado:hover { background: var(--bg-page); }
+    .fila-resultado:hover, .fila-resultado.seleccionado { background: var(--bg-page); }
+    .fila-resultado.seleccionado { box-shadow: inset 3px 0 0 var(--color-brand); }
     .fila-nombre { font-size: 14.5px; font-weight: 600; }
     .fila-codigo { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .fila-limite { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
@@ -237,7 +238,7 @@
         <div class="tarjeta">
             <label for="inputBusqueda">Buscar por nombre o código de perfil</label>
             <div style="position:relative;">
-                <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" autocorrect="off" oninput="onInputBusqueda()" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
+                <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" autocorrect="off" oninput="onInputBusqueda()" onkeydown="manejarTeclaBusqueda(event)">
                 <div id="listaResultados" class="sugerencias-lista"></div>
             </div>
             <button class="boton-secundario" onclick="cerrarSesionProfesional()">Cerrar sesión</button>
@@ -453,6 +454,7 @@
     let debounceBusqueda = null;
     window.onInputBusqueda = function() {
         clearTimeout(debounceBusqueda);
+        indiceActivoBusqueda = -1;
         const termino = document.getElementById('inputBusqueda').value.trim();
         if (termino.length < 2) {
             document.getElementById('listaResultados').style.display = 'none';
@@ -467,8 +469,61 @@
         if (!e.target.closest('#inputBusqueda') && !e.target.closest('#listaResultados')) {
             const lista = document.getElementById('listaResultados');
             if (lista) lista.style.display = 'none';
+            indiceActivoBusqueda = -1;
         }
     });
+
+    // ---- NAVEGACIÓN CON TECLADO EN EL DESPLEGABLE ----
+    // -1 significa "nada resaltado todavía" (ni una flecha tocada desde el
+    // último resultado nuevo).
+    let indiceActivoBusqueda = -1;
+
+    function filasBusquedaActuales() {
+        return Array.from(document.getElementById('listaResultados').querySelectorAll('.fila-resultado'));
+    }
+
+    function resaltarFilaBusquedaActiva() {
+        filasBusquedaActuales().forEach((fila, i) => {
+            if (i === indiceActivoBusqueda) {
+                fila.classList.add('seleccionado');
+                fila.scrollIntoView({ block: 'nearest' });
+            } else {
+                fila.classList.remove('seleccionado');
+            }
+        });
+    }
+
+    window.manejarTeclaBusqueda = function(event) {
+        const lista = document.getElementById('listaResultados');
+        const filas = filasBusquedaActuales();
+        const desplegado = lista.style.display === 'block' && filas.length > 0;
+
+        if (event.key === 'ArrowDown') {
+            if (!desplegado) return;
+            event.preventDefault();
+            indiceActivoBusqueda = Math.min(indiceActivoBusqueda + 1, filas.length - 1);
+            resaltarFilaBusquedaActiva();
+        } else if (event.key === 'ArrowUp') {
+            if (!desplegado) return;
+            event.preventDefault();
+            indiceActivoBusqueda = indiceActivoBusqueda <= 0 ? 0 : indiceActivoBusqueda - 1;
+            resaltarFilaBusquedaActiva();
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            // Con una fila resaltada por teclado, Enter la abre directo —
+            // igual que tocarla con el mouse. Si no hay nada resaltado
+            // (recién escribiendo, sin usar las flechas), Enter fuerza una
+            // búsqueda inmediata en vez de esperar el debounce.
+            if (desplegado && indiceActivoBusqueda >= 0 && filas[indiceActivoBusqueda]) {
+                filas[indiceActivoBusqueda].click();
+            } else {
+                buscarPacientes();
+            }
+        } else if (event.key === 'Escape') {
+            lista.style.display = 'none';
+            indiceActivoBusqueda = -1;
+        }
+    };
 
     // Búsqueda por prefijo (case-sensitive tal como está guardado el
     // nombre): nombre >= término && nombre < término + caracter límite.
@@ -476,6 +531,7 @@
     // un enlace para crearlo automáticamente si falta.
     window.buscarPacientes = async function() {
         clearTimeout(debounceBusqueda);
+        indiceActivoBusqueda = -1;
         const termino = document.getElementById('inputBusqueda').value.trim();
         const lista = document.getElementById('listaResultados');
         lista.style.display = 'block';
