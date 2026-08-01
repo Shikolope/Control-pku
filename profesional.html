@@ -120,6 +120,26 @@
     .fila-limite { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
     .fila-actividad-detalle { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
 
+    /* Desplegable de resultados de búsqueda: mismo patrón visual que el
+       buscador de alimentos de index.html (.sugerencias-lista) — flota
+       justo debajo del input en vez de empujar el resto de la pantalla. */
+    .sugerencias-lista {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 0 12px;
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        margin-top: 4px;
+    }
+
     #tarjetaActividad { border-left: 4px solid var(--color-brand); }
     .fila-actividad {
         display: flex;
@@ -213,12 +233,12 @@
         </div>
         <div class="tarjeta">
             <label for="inputBusqueda">Buscar por nombre o código de perfil</label>
-            <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" oninput="onInputBusqueda()" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
+            <div style="position:relative;">
+                <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" autocorrect="off" oninput="onInputBusqueda()" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
+                <div id="listaResultados" class="sugerencias-lista"></div>
+            </div>
             <button class="boton-principal" onclick="buscarPacientes()">Buscar</button>
             <button class="boton-secundario" onclick="cerrarSesionProfesional()">Cerrar sesión</button>
-        </div>
-        <div class="tarjeta" id="tarjetaResultados" style="display:none;">
-            <div id="listaResultados"></div>
         </div>
     </div>
 
@@ -432,11 +452,20 @@
         clearTimeout(debounceBusqueda);
         const termino = document.getElementById('inputBusqueda').value.trim();
         if (termino.length < 2) {
-            document.getElementById('tarjetaResultados').style.display = 'none';
+            document.getElementById('listaResultados').style.display = 'none';
             return;
         }
         debounceBusqueda = setTimeout(() => buscarPacientes(), 350);
     };
+
+    // Cerrar el desplegable al tocar fuera de él (mismo patrón que usa
+    // index.html con #listaSugerencias del buscador de alimentos).
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#inputBusqueda') && !e.target.closest('#listaResultados')) {
+            const lista = document.getElementById('listaResultados');
+            if (lista) lista.style.display = 'none';
+        }
+    });
 
     // Búsqueda por prefijo (case-sensitive tal como está guardado el
     // nombre): nombre >= término && nombre < término + caracter límite.
@@ -446,8 +475,7 @@
         clearTimeout(debounceBusqueda);
         const termino = document.getElementById('inputBusqueda').value.trim();
         const lista = document.getElementById('listaResultados');
-        const tarjeta = document.getElementById('tarjetaResultados');
-        tarjeta.style.display = 'block';
+        lista.style.display = 'block';
 
         if (!termino) {
             lista.innerHTML = '<div class="vacio">Escribí al menos una letra del nombre para buscar.</div>';
@@ -490,7 +518,7 @@
                     </div>
                     <div class="fila-limite">${resultado.metaActual} mg</div>
                 `;
-                fila.onclick = () => abrirDetalle(resultado);
+                fila.onclick = () => { lista.style.display = 'none'; abrirDetalle(resultado); };
                 lista.appendChild(fila);
             } catch (e) {
                 console.error('Error en la búsqueda por código — código:', e.code, '— mensaje:', e.message);
@@ -557,7 +585,7 @@
                     </div>
                     <div class="fila-limite">${r.metaActual} mg</div>
                 `;
-                fila.onclick = () => abrirDetalle(r);
+                fila.onclick = () => { lista.style.display = 'none'; abrirDetalle(r); };
                 lista.appendChild(fila);
             });
         } catch (e) {
