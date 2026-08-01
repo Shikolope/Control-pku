@@ -228,7 +228,10 @@
     <!-- ===== PANTALLA DE BÚSQUEDA ===== -->
     <div id="pantallaBusqueda" class="oculta">
         <div class="tarjeta" id="tarjetaActividad" style="display:none;">
-            <div style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--color-brand); margin-bottom:10px;"><span style="font-size:15px;">🔔</span> Actividad reciente</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--color-brand);"><span style="font-size:15px;">🔔</span> Actividad reciente</div>
+                <a href="javascript:void(0)" onclick="limpiarActividadReciente()" title="Limpiar de esta pantalla — no borra los mensajes" style="font-size:12px; color:var(--text-muted); text-decoration:none; flex-shrink:0;">🧹 Limpiar</a>
+            </div>
             <div id="listaActividad"></div>
         </div>
         <div class="tarjeta">
@@ -237,7 +240,6 @@
                 <input type="text" id="inputBusqueda" placeholder="Ej: María o PK-4827" autocomplete="off" autocorrect="off" oninput="onInputBusqueda()" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarPacientes();}">
                 <div id="listaResultados" class="sugerencias-lista"></div>
             </div>
-            <button class="boton-principal" onclick="buscarPacientes()">Buscar</button>
             <button class="boton-secundario" onclick="cerrarSesionProfesional()">Cerrar sesión</button>
         </div>
     </div>
@@ -318,6 +320,7 @@
     let limiteOriginalCargado = null; // valor del límite al abrir el detalle, para detectar cambios
     let preguntaMensajeRespondida = false; // evita re-mostrar la pregunta tras Sí/No hasta el próximo cambio real
     let unsubscribeActividad = null;
+    let ultimosDocsActividad = []; // último snapshot recibido, para poder re-renderizar tras "Limpiar" sin esperar un cambio nuevo
     let nombreProfesionalActual = null; // profesionales/{uid}.nombre — para firmar el mensaje adicional
 
     // ---- LOGIN ----
@@ -949,7 +952,8 @@
         // pantalla, justo lo que se quiere evitar.
         let primerSnapshotActividad = true;
         unsubscribeActividad = onSnapshot(q, snap => {
-            renderizarActividad(snap.docs);
+            ultimosDocsActividad = snap.docs;
+            renderizarActividad(ultimosDocsActividad);
             if (!primerSnapshotActividad) {
                 snap.docChanges()
                     .filter(c => c.type === 'added')
@@ -962,9 +966,34 @@
         });
     }
 
-    function renderizarActividad(docs) {
+    // Clave de localStorage (por profesional) con la fecha del último
+    // "Limpiar". Es un corte puramente local — NO borra ni modifica los
+    // documentos de notificaciones en Firestore, solo oculta de esta
+    // pantalla lo visto hasta ahora. Al ser local, es por dispositivo/
+    // navegador: si el profesional entra desde otro equipo, ahí todavía
+    // va a ver la lista sin limpiar (aceptable para un simple "no
+    // amontonar", no es una bandeja compartida).
+    function claveLimpiezaActividad() {
+        const uid = auth.currentUser && auth.currentUser.uid;
+        return uid ? ('pku_prof_actividad_limpiada_' + uid) : null;
+    }
+
+    window.limpiarActividadReciente = function() {
+        const clave = claveLimpiezaActividad();
+        if (!clave) return;
+        localStorage.setItem(clave, String(Date.now()));
+        renderizarActividad(ultimosDocsActividad);
+    };
+
+    function renderizarActividad(docsSinFiltrar) {
         const tarjeta = document.getElementById('tarjetaActividad');
         const lista = document.getElementById('listaActividad');
+        const clave = claveLimpiezaActividad();
+        const corte = clave ? parseInt(localStorage.getItem(clave) || '0', 10) : 0;
+        const docs = docsSinFiltrar.filter(d => {
+            const ts = d.data().vistaEn;
+            return !(ts && ts.toDate && ts.toDate().getTime() <= corte);
+        });
         if (!docs.length) {
             tarjeta.style.display = 'none';
             return;
