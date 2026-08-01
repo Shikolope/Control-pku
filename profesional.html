@@ -230,9 +230,18 @@
             <div class="detalle-codigo" id="detalleCodigo"></div>
             <div id="errorDetalle" class="error-box"></div>
             <label for="inputNuevoLimite">Límite diario de FA (mg)</label>
-            <input type="number" id="inputNuevoLimite" min="1" max="9999" step="1">
-            <label for="inputMensajeFamilia">Mensaje para la familia (opcional)</label>
-            <textarea id="inputMensajeFamilia" rows="3" maxlength="440" placeholder="Ej: Recuerda aumentar las porciones de aproteicos esta semana." style="width:100%; padding:11px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
+            <input type="number" id="inputNuevoLimite" min="1" max="9999" step="1" oninput="onCambioLimite()">
+            <div id="preguntaEnviarMensaje" class="oculta" style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--color-brand-light); border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:13px; color:var(--text-primary);">
+                <span>¿Deseas enviar un mensaje a la familia sobre este cambio?</span>
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <button type="button" onclick="responderPreguntaMensaje(true)" style="background:var(--color-brand); color:white; border:none; border-radius:8px; padding:6px 10px; font-size:12.5px; font-weight:600; cursor:pointer;">Sí</button>
+                    <button type="button" onclick="responderPreguntaMensaje(false)" style="background:none; border:1px solid var(--border-color); border-radius:8px; padding:6px 10px; font-size:12.5px; color:var(--text-muted); cursor:pointer;">No</button>
+                </div>
+            </div>
+            <div id="bloqueMensajeFamilia" class="oculta">
+                <label for="inputMensajeFamilia">Mensaje para la familia (opcional)</label>
+                <textarea id="inputMensajeFamilia" rows="3" maxlength="440" placeholder="Ej: Recuerda aumentar las porciones de aproteicos esta semana." style="width:100%; padding:11px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
+            </div>
             <button class="boton-principal" id="btnGuardarLimite" onclick="guardarNuevoLimite()">Guardar límite</button>
             <div class="aviso-exito" id="avisoExito">Límite actualizado correctamente.</div>
         </div>
@@ -280,6 +289,8 @@
     }
 
     let perfilSeleccionado = null; // { basePath, nombre, codigoPerfil, metaActual }
+    let limiteOriginalCargado = null; // valor del límite al abrir el detalle, para detectar cambios
+    let preguntaMensajeRespondida = false; // evita re-mostrar la pregunta tras Sí/No hasta el próximo cambio real
     let unsubscribeActividad = null;
     let nombreProfesionalActual = null; // profesionales/{uid}.nombre — para firmar el mensaje adicional
 
@@ -548,6 +559,10 @@
         document.getElementById('inputMensajeFamilia').value = '';
         document.getElementById('errorDetalle').style.display = 'none';
         document.getElementById('avisoExito').style.display = 'none';
+        limiteOriginalCargado = resultado.metaActual;
+        preguntaMensajeRespondida = false;
+        document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
+        document.getElementById('bloqueMensajeFamilia').classList.add('oculta');
 
         document.getElementById('pantallaBusqueda').classList.add('oculta');
         document.getElementById('pantallaDetalle').classList.remove('oculta');
@@ -573,6 +588,7 @@
             // actualizamos la pantalla si sigue siendo el perfil abierto.
             if (perfilSeleccionado === resultado) {
                 document.getElementById('inputNuevoLimite').value = resultado.metaActual;
+                limiteOriginalCargado = resultado.metaActual;
             }
         }
 
@@ -582,6 +598,41 @@
 
         cargarHistorialMensajes(resultado.basePath);
     }
+
+    // Se dispara con cada tecla en el input de límite: si el valor difiere
+    // del original cargado, ofrece agregar un mensaje para la familia. Si
+    // el profesional vuelve a dejar el mismo valor de antes, se oculta de
+    // nuevo (no tiene sentido preguntar por un cambio que ya no existe).
+    window.onCambioLimite = function() {
+        const input = document.getElementById('inputNuevoLimite');
+        const pregunta = document.getElementById('preguntaEnviarMensaje');
+        const bloqueMensaje = document.getElementById('bloqueMensajeFamilia');
+        const nuevoValor = parseFloat(input.value);
+        const cambio = !isNaN(nuevoValor) && nuevoValor !== limiteOriginalCargado;
+
+        if (!cambio) {
+            pregunta.classList.add('oculta');
+            bloqueMensaje.classList.add('oculta');
+            preguntaMensajeRespondida = false;
+            return;
+        }
+        if (!preguntaMensajeRespondida) {
+            pregunta.classList.remove('oculta');
+        }
+    };
+
+    window.responderPreguntaMensaje = function(quiereEnviar) {
+        preguntaMensajeRespondida = true;
+        document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
+        const bloqueMensaje = document.getElementById('bloqueMensajeFamilia');
+        if (quiereEnviar) {
+            bloqueMensaje.classList.remove('oculta');
+            document.getElementById('inputMensajeFamilia').focus();
+        } else {
+            bloqueMensaje.classList.add('oculta');
+            document.getElementById('inputMensajeFamilia').value = '';
+        }
+    };
 
     async function cargarHistorialMensajes(basePath) {
         const tarjeta = document.getElementById('tarjetaHistorialMensajes');
@@ -695,6 +746,15 @@
                 console.warn('El límite se guardó pero no se pudo enviar el mensaje a la familia:', e);
                 aviso.textContent = 'Límite actualizado, pero no se pudo enviar el mensaje a la familia.';
             }
+
+            // Guardado el límite, se cierra el flujo de pregunta/mensaje —
+            // el valor actual pasa a ser el nuevo "original" para detectar
+            // el próximo cambio real.
+            limiteOriginalCargado = nuevoLimite;
+            preguntaMensajeRespondida = false;
+            document.getElementById('preguntaEnviarMensaje').classList.add('oculta');
+            document.getElementById('bloqueMensajeFamilia').classList.add('oculta');
+            document.getElementById('inputMensajeFamilia').value = '';
         } catch (e) {
             console.warn('Error guardando el límite:', e);
             errorDiv.textContent = 'No se pudo guardar. Verifica tu conexión e intenta de nuevo.';
