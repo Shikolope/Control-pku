@@ -2192,8 +2192,9 @@
         <div id="planItemEditorBox" style="display:none; margin-top:10px; padding:10px; border:1.5px dashed var(--color-brand); border-radius:12px;">
             <div style="font-size:12px; font-weight:700; margin-bottom:8px;" id="planItemEditorTitulo">Agregando a: —</div>
             <div style="display:flex; gap:6px; margin-bottom:8px;">
-                <button type="button" class="grupo-btn activo" id="planModoAlimentoBtn" onclick="cambiarModoItemPlan('alimento')" style="flex:1;">🔎 Alimento</button>
-                <button type="button" class="grupo-btn" id="planModoRecetaBtn" onclick="cambiarModoItemPlan('receta')" style="flex:1;">🧑‍🍳 Mis Recetas</button>
+                <button type="button" class="grupo-btn activo" id="planModoAlimentoBtn" onclick="cambiarModoItemPlan('alimento')" style="flex:1; font-size:11px;">🔎 Alimento</button>
+                <button type="button" class="grupo-btn" id="planModoRecetaBtn" onclick="cambiarModoItemPlan('receta')" style="flex:1; font-size:11px;">🧑‍🍳 Mis Recetas</button>
+                <button type="button" class="grupo-btn" id="planModoRecetarioBtn" onclick="cambiarModoItemPlan('recetario')" style="flex:1; font-size:11px;">📖 Recetario PKU</button>
             </div>
 
             <div id="planAlimentoModoBox">
@@ -2211,6 +2212,11 @@
 
             <div id="planRecetaModoBox" style="display:none;">
                 <ul id="planListaMisRecetas" class="comidas-hoy-lista"></ul>
+            </div>
+
+            <div id="planRecetarioModoBox" style="display:none;">
+                <input type="text" id="planBuscadorRecetario" placeholder="🔎 Buscar en el Recetario PKU..." oninput="renderizarListaRecetarioPlan()" style="margin-bottom:8px;">
+                <ul id="planListaRecetarioPKU" class="comidas-hoy-lista" style="max-height:260px; overflow-y:auto;"></ul>
             </div>
 
             <button type="button" onclick="cerrarEditorItemPlan()" style="background:#e2e8f0; color:#475569; border:none; margin-top:6px;">Cerrar</button>
@@ -5876,9 +5882,15 @@
         planItemModo = modo;
         document.getElementById('planModoAlimentoBtn').classList.toggle('activo', modo === 'alimento');
         document.getElementById('planModoRecetaBtn').classList.toggle('activo', modo === 'receta');
+        document.getElementById('planModoRecetarioBtn').classList.toggle('activo', modo === 'recetario');
         document.getElementById('planAlimentoModoBox').style.display = modo === 'alimento' ? 'block' : 'none';
         document.getElementById('planRecetaModoBox').style.display = modo === 'receta' ? 'block' : 'none';
+        document.getElementById('planRecetarioModoBox').style.display = modo === 'recetario' ? 'block' : 'none';
         if (modo === 'receta') renderizarListaMisRecetasPlan();
+        if (modo === 'recetario') {
+            document.getElementById('planBuscadorRecetario').value = '';
+            renderizarListaRecetarioPlan();
+        }
     }
 
     function limpiarSeleccionItemPlan() {
@@ -6003,6 +6015,67 @@
             unidad: 'porción',
             categoria: receta.categoria || 'mis_recetas',
             origenRecetaId: receta.id
+        };
+        const { diaKey, bloqueKey } = planItemEditorActual;
+        planSemanal.dias[diaKey][bloqueKey].push(item);
+        guardarPlanSemanalLocal();
+        renderizarPlanSemanal();
+        pkuToast(`✅ ${item.nombre} agregada al plan.`, 'toast-ok');
+    }
+
+    // ── Recetario oficial INTA (baseDatosRecetario) como tercera fuente de
+    // ítems del plan — distinto de "Mis Recetas": son recetas estáticas
+    // predefinidas por INTA, no creadas por la familia. Se identifican por
+    // nombre (mismo criterio que ya usa seleccionarEnMiniAgregador para
+    // encontrar la receta oficial correspondiente a un ítem del buscador). ──
+    function renderizarListaRecetarioPlan() {
+        const lista = document.getElementById('planListaRecetarioPKU');
+        if (!lista) return;
+        const texto = (document.getElementById('planBuscadorRecetario').value || '').trim().toLowerCase();
+        const datos = baseDatosRecetario || [];
+        const filtradas = texto.length < 2 ? datos : datos.filter(r => r.nombre.toLowerCase().includes(texto));
+        if (filtradas.length === 0) {
+            lista.innerHTML = "<li style='padding:8px 0; font-size:12px; color:#95a5a6; text-align:center; list-style:none;'>No se encontraron recetas.</li>";
+            return;
+        }
+        lista.innerHTML = '';
+        filtradas.forEach(receta => {
+            const li = document.createElement('li');
+            li.className = 'comida-item';
+            li.style.cursor = 'pointer';
+            li.innerHTML = `
+                <div class="fila-alimento">
+                    <div style="display:flex; flex-direction:column; gap:1px; min-width:0; flex:1;">
+                        <span style="font-size:12.5px; font-weight:600;">${_esc(receta.nombre)}</span>
+                        <span class="comida-detalles">${receta.faPorcion} mg FA · ${receta.tipo_porcion === 'unidad' ? 'por unidad' : 'por porción'}</span>
+                    </div>
+                </div>`;
+            li.onclick = () => agregarRecetarioABloquePlan(receta.nombre);
+            lista.appendChild(li);
+        });
+    }
+
+    async function agregarRecetarioABloquePlan(nombreReceta) {
+        if (!planItemEditorActual) return;
+        const receta = (baseDatosRecetario || []).find(r => r.nombre === nombreReceta);
+        if (!receta) return;
+
+        const esUnidad = receta.tipo_porcion === 'unidad';
+        const etiqueta = esUnidad ? 'unidades' : 'porciones';
+        const respuesta = await pkuPrompt(`¿Cuántas ${etiqueta} de "${receta.nombre}" vas a planificar? (${receta.faPorcion} mg FA c/u)`, 1);
+        if (respuesta === null) return;
+        const cantidad = parseFloat(respuesta);
+        if (!cantidad || cantidad <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        const fa = redondearFA(receta.faPorcion * cantidad);
+        const item = {
+            nombre: receta.nombre,
+            gramos: Math.round(cantidad * 10) / 10,
+            fa: fa,
+            unidad: esUnidad ? 'unidad' : 'porción',
+            categoria: 'recetario'
         };
         const { diaKey, bloqueKey } = planItemEditorActual;
         planSemanal.dias[diaKey][bloqueKey].push(item);
@@ -10613,6 +10686,14 @@
         const _agregarRecetaPlan = window.agregarRecetaABloquePlan;
         if (_agregarRecetaPlan) window.agregarRecetaABloquePlan = async function(...args) {
             const r = await _agregarRecetaPlan.apply(this, args);
+            window.guardarPlanSemanalEnFirestore();
+            return r;
+        };
+
+        // agregarRecetarioABloquePlan (Recetario oficial INTA) — también async.
+        const _agregarRecetarioPlan = window.agregarRecetarioABloquePlan;
+        if (_agregarRecetarioPlan) window.agregarRecetarioABloquePlan = async function(...args) {
+            const r = await _agregarRecetarioPlan.apply(this, args);
             window.guardarPlanSemanalEnFirestore();
             return r;
         };
