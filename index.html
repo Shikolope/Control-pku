@@ -2125,7 +2125,10 @@
                     <ul id="recListaSugerencias" class="sugerencias-lista"></ul>
                 </div>
                 <div id="recIngredienteSeleccionadoBox" class="alimento-seleccionado" style="display:none;"></div>
-                <input type="number" id="recGramos" placeholder="Gramos / ml reales" min="0" style="display:none;">
+                <div id="recGramosRow" style="display:none; align-items:center; gap:8px;">
+                    <input type="number" id="recGramos" placeholder="Cantidad" min="0" style="flex:1; margin:0;">
+                    <span id="recGramosUnidadBadge" style="font-size:13px; font-weight:700; color:var(--color-brand); background:var(--color-brand-light); padding:11px 14px; border-radius:10px; white-space:nowrap; flex-shrink:0;">g</span>
+                </div>
                 <button type="button" id="recBtnAgregarIngrediente" onclick="agregarIngredienteAReceta()" style="display:none;">Agregar ingrediente</button>
 
                 <!-- Ingrediente que no está en la Tabla PKU: mismo estimado por proteína
@@ -5322,7 +5325,7 @@
     function limpiarSeleccionIngredienteReceta() {
         document.getElementById('recBuscador').value = '';
         document.getElementById('recGramos').value = '';
-        document.getElementById('recGramos').style.display = 'none';
+        document.getElementById('recGramosRow').style.display = 'none';
         document.getElementById('recIngredienteSeleccionadoBox').style.display = 'none';
         document.getElementById('recBtnAgregarIngrediente').style.display = 'none';
         ingredienteRecetaActual = null;
@@ -5397,9 +5400,13 @@
         box.innerHTML = `${_esc(ingredienteRecetaActual.nombre)}<span class="medida-sugerida-texto">📏 ${ingredienteRecetaActual.medidaCasera} (${ingredienteRecetaActual.gramosPorcion}${unidad} ≈ ${ingredienteRecetaActual.faPorcion} mg FA)</span>`;
 
         const grInput = document.getElementById('recGramos');
-        grInput.style.display = 'block';
+        document.getElementById('recGramosRow').style.display = 'flex';
         grInput.placeholder = unidad === 'ml' ? 'Mililitros reales' : 'Gramos reales';
         grInput.value = '';
+        // Etiqueta fija junto al input — a diferencia del placeholder, no
+        // desaparece al escribir, así queda siempre visible si la cantidad
+        // que se está pidiendo es en gramos o en mililitros (volumen).
+        document.getElementById('recGramosUnidadBadge').textContent = unidad === 'ml' ? '🥤 ml' : '⚖️ g';
         document.getElementById('recBtnAgregarIngrediente').style.display = 'block';
         grInput.focus();
     }
