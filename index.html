@@ -5845,7 +5845,7 @@
                     <ul class="comidas-hoy-lista">${itemsHTML}</ul>
                     <div style="display:flex; gap:6px; margin-top:6px;">
                         <button type="button" class="btn-toggle-custom" style="flex:1; margin:0;" onclick="abrirEditorItemPlan('${diaPlanActivo}','${b.key}')">➕ Agregar</button>
-                        ${mostrarRegistrar ? `<button type="button" style="flex-shrink:0; background:var(--color-brand); color:white; border:none; border-radius:10px; padding:0 14px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="registrarBloquePlanComoComidas('${diaPlanActivo}','${b.key}')">🍽️ Registrar hoy</button>` : ''}
+                        ${mostrarRegistrar ? `<button type="button" style="flex:1; background:var(--color-brand); color:white; border:none; border-radius:8px; padding:7px 4px; font-size:12px; font-weight:bold; cursor:pointer; margin:0;" onclick="registrarBloquePlanComoComidas('${diaPlanActivo}','${b.key}')">🍽️ Registrar hoy</button>` : ''}
                     </div>
                 </div>`;
         }).join('');
