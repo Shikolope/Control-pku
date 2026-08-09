@@ -2058,7 +2058,6 @@
             <div style="display:flex; gap:6px; margin-bottom:10px;">
                 <button class="grupo-btn activo" id="btnModoEstimar" onclick="setModoCustom('estimar')" style="flex:1; font-size:11px;">📊 Estimar</button>
                 <button class="grupo-btn" id="btnModoExacto" onclick="setModoCustom('exacto')" style="flex:1; font-size:11px;">✅ FA exacto</button>
-                <button class="grupo-btn" id="btnModoReceta" onclick="setModoCustom('receta')" style="flex:1; font-size:11px;">🍲 Receta</button>
             </div>
 
             <!-- Modo estimado -->
@@ -2087,51 +2086,6 @@
                 <input type="number" id="customGramosExacto" placeholder="Gramos reales en la pesa" min="0" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
             </div>
 
-            <!-- Modo Receta de la comunidad -->
-            <div id="customFaRecetaBox" style="display:none;">
-                <div style="background:rgba(46,204,113,0.1); border-left:3px solid #2ecc71; border-radius:0 6px 6px 0; padding:8px; margin-bottom:8px; font-size:11px; color:#1a6e3c;">
-                    🍲 <strong>Receta de la comunidad PKU</strong><br>
-                    Usa esta opción para recetas de fuentes comunitarias (como <strong>Corporación PKU Chile</strong> u otras) donde ya conoces el FA total de la preparación. Estas recetas no están en la base de datos oficial INTA, pero puedes registrarlas ingresando el FA total que indica la fuente.
-                </div>
-                <!-- Toggle peso/volumen/unidades -->
-                <div style="display:flex; gap:6px; margin-bottom:8px;">
-                    <button class="grupo-btn activo" id="btnRecetaPeso" onclick="setRecetaUnidad('peso')" style="flex:1; font-size:11px;">⚖️ Porciones</button>
-                    <button class="grupo-btn" id="btnRecetaVolumen" onclick="setRecetaUnidad('volumen')" style="flex:1; font-size:11px;">🥣 Volumen (ml)</button>
-                    <button class="grupo-btn" id="btnRecetaUnidades" onclick="setRecetaUnidad('unidades')" style="flex:1; font-size:11px;">🍪 Unidades</button>
-                </div>
-                <label>FA total de la receta (mg)</label>
-                <input type="number" id="customFaRecetaTotal" placeholder="Ej: 320" min="0" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
-                <!-- Modo porciones -->
-                <div id="customRecetaPesoBox">
-                    <label>Porciones que rinde la receta</label>
-                    <input type="number" id="customRecetaPorciones" placeholder="Ej: 4" min="1" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
-                    <label>Porciones que comiste</label>
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                        <button onclick="cambiarPorcionesReceta(-1)" style="background:#e2e8f0; border:none; border-radius:8px; width:36px; height:36px; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
-                        <input type="number" id="customRecetaComidas" value="1" min="1" oninput="calcularCustomFA()" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; text-align:center;">
-                        <button onclick="cambiarPorcionesReceta(1)" style="background:#e2e8f0; border:none; border-radius:8px; width:36px; height:36px; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
-                    </div>
-                </div>
-                <!-- Modo volumen -->
-                <div id="customRecetaVolumenBox" style="display:none;">
-                    <label>Volumen total que rinde la receta (ml)</label>
-                    <input type="number" id="customRecetaVolTotal" placeholder="Ej: 1000" min="1" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
-                    <label>Volumen que consumiste (ml)</label>
-                    <input type="number" id="customRecetaVolConsumo" placeholder="Ej: 250" min="0" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
-                </div>
-                <!-- Modo unidades -->
-                <div id="customRecetaUnidadesBox" style="display:none;">
-                    <label>Unidades que rinde la receta</label>
-                    <input type="number" id="customRecetaUniTotal" placeholder="Ej: 10" min="1" oninput="calcularCustomFA()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; margin-bottom:4px;">
-                    <label>Unidades que comiste</label>
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                        <button onclick="cambiarUnidadesReceta(-1)" style="background:#e2e8f0; border:none; border-radius:8px; width:36px; height:36px; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
-                        <input type="number" id="customRecetaUniComidas" value="1" min="1" oninput="calcularCustomFA()" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; text-align:center;">
-                        <button onclick="cambiarUnidadesReceta(1)" style="background:#e2e8f0; border:none; border-radius:8px; width:36px; height:36px; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
-                    </div>
-                </div>
-            </div>
-
             <div id="customFaResult" class="custom-fa-result"></div>
 
             <button onclick="window.agregarAlimentoCustom()" style="background:var(--color-brand); color:white; border:none; border-radius:10px; padding:10px; font-size:14px; font-weight:bold; cursor:pointer; width:100%; margin-top:6px;">✅ Agregar a mi registro de hoy</button>
@@ -2155,48 +2109,66 @@
 
             <input type="number" id="recPorciones" min="1" step="1" value="1" placeholder="Porciones sugeridas (ej: 4)">
 
-            <div style="font-size:12px; font-weight:700; color:var(--text-main); margin:10px 0 6px;">Ingredientes</div>
-            <ul id="listaIngredientesReceta" class="comidas-hoy-lista" style="margin-bottom:10px;"></ul>
-            <div style="font-size:13px; font-weight:700; text-align:right; color:var(--color-brand); margin-bottom:10px;" id="recFaTotalTexto">Total: 0 mg FA</div>
-
-            <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; position:relative;">
-                <input type="text" id="recBuscador" placeholder="🔎 Buscar ingrediente por nombre..." oninput="buscarIngredienteReceta()" style="flex:1; margin:0;">
-                <ul id="recListaSugerencias" class="sugerencias-lista"></ul>
+            <div style="display:flex; gap:6px; margin:10px 0 4px;">
+                <button type="button" class="grupo-btn activo" id="recModoIngredientesBtn" onclick="setModoRecetaFa('ingredientes')" style="flex:1;">🧾 Con ingredientes</button>
+                <button type="button" class="grupo-btn" id="recModoTotalBtn" onclick="setModoRecetaFa('total')" style="flex:1;">🍲 Ya sé el FA total</button>
             </div>
-            <div id="recIngredienteSeleccionadoBox" class="alimento-seleccionado" style="display:none;"></div>
-            <input type="number" id="recGramos" placeholder="Gramos / ml reales" min="0" style="display:none;">
-            <button type="button" id="recBtnAgregarIngrediente" onclick="agregarIngredienteAReceta()" style="display:none;">Agregar ingrediente</button>
 
-            <!-- Ingrediente que no está en la Tabla PKU: mismo estimado por proteína
-                 que ya usa "Mi alimento no está en la lista" del buscador principal. -->
-            <button type="button" class="btn-toggle-custom" onclick="toggleIngredienteCustomReceta()">➕ Mi ingrediente no está en la lista</button>
-            <div id="recIngredienteCustomBox" class="alimento-custom-box">
-                <div style="background:rgba(226,87,76,0.1); border-left:4px solid var(--color-red); border-radius:0 8px 8px 0; padding:10px; font-size:12px; color:#7b1a16;">
-                    <strong>⚠️ Importante:</strong> Los valores estimados aquí son aproximaciones basadas en contenido proteico y <strong>no reemplazan los valores oficiales</strong> de la Tabla PKU. Consulta siempre con tu nutricionista del INTA.
+            <div style="font-size:13px; font-weight:700; text-align:right; color:var(--color-brand); margin:6px 0 10px;" id="recFaTotalTexto">Total: 0 mg FA</div>
+
+            <div id="recIngredientesModoBox">
+                <div style="font-size:12px; font-weight:700; color:var(--text-main); margin:0 0 6px;">Ingredientes</div>
+                <ul id="listaIngredientesReceta" class="comidas-hoy-lista" style="margin-bottom:10px;"></ul>
+
+                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; position:relative;">
+                    <input type="text" id="recBuscador" placeholder="🔎 Buscar ingrediente por nombre..." oninput="buscarIngredienteReceta()" style="flex:1; margin:0;">
+                    <ul id="recListaSugerencias" class="sugerencias-lista"></ul>
                 </div>
-                <label>Nombre del ingrediente</label>
-                <input type="text" id="recCustomNombre" maxlength="200" placeholder="Ej: Quinoa cocida">
+                <div id="recIngredienteSeleccionadoBox" class="alimento-seleccionado" style="display:none;"></div>
+                <input type="number" id="recGramos" placeholder="Gramos / ml reales" min="0" style="display:none;">
+                <button type="button" id="recBtnAgregarIngrediente" onclick="agregarIngredienteAReceta()" style="display:none;">Agregar ingrediente</button>
 
-                <label>Grupo del alimento <span style="font-weight:normal; color:#95a5a6;">(afecta el cálculo de FA)</span></label>
-                <div class="grupo-btns">
-                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('farinaceo', this)">🌾 Farináceo / Cereal<br><small>×40 mg FA/g prot.</small></button>
-                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('verdura', this)">🥦 Verdura / Hortaliza<br><small>×33 mg FA/g prot.</small></button>
-                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('fruta', this)">🍎 Fruta / Jugo<br><small>×26 mg FA/g prot.</small></button>
+                <!-- Ingrediente que no está en la Tabla PKU: mismo estimado por proteína
+                     que ya usa "Mi alimento no está en la lista" del buscador principal. -->
+                <button type="button" class="btn-toggle-custom" onclick="toggleIngredienteCustomReceta()">➕ Mi ingrediente no está en la lista</button>
+                <div id="recIngredienteCustomBox" class="alimento-custom-box">
+                    <div style="background:rgba(226,87,76,0.1); border-left:4px solid var(--color-red); border-radius:0 8px 8px 0; padding:10px; font-size:12px; color:#7b1a16;">
+                        <strong>⚠️ Importante:</strong> Los valores estimados aquí son aproximaciones basadas en contenido proteico y <strong>no reemplazan los valores oficiales</strong> de la Tabla PKU. Consulta siempre con tu nutricionista del INTA.
+                    </div>
+                    <label>Nombre del ingrediente</label>
+                    <input type="text" id="recCustomNombre" maxlength="200" placeholder="Ej: Quinoa cocida">
+
+                    <label>Grupo del alimento <span style="font-weight:normal; color:#95a5a6;">(afecta el cálculo de FA)</span></label>
+                    <div class="grupo-btns">
+                        <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('farinaceo', this)">🌾 Farináceo / Cereal<br><small>×40 mg FA/g prot.</small></button>
+                        <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('verdura', this)">🥦 Verdura / Hortaliza<br><small>×33 mg FA/g prot.</small></button>
+                        <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('fruta', this)">🍎 Fruta / Jugo<br><small>×26 mg FA/g prot.</small></button>
+                    </div>
+
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button type="button" class="grupo-btn activo" id="recCustomBtnGramos" onclick="setUnidadIngredienteCustomReceta('g')" style="flex:1;">⚖️ Gramos (g)</button>
+                        <button type="button" class="grupo-btn" id="recCustomBtnMl" onclick="setUnidadIngredienteCustomReceta('ml')" style="flex:1;">🥤 Mililitros (ml)</button>
+                    </div>
+                    <label>Proteína por 100<span id="recCustomUnidadLabel1">g</span> del envase (g)</label>
+                    <input type="number" id="recCustomProteina" placeholder="Ej: 3.5" min="0" step="0.1" oninput="calcularPreviewIngredienteCustomReceta()">
+                    <label>Cantidad que vas a usar en la receta (<span id="recCustomUnidadLabel2">g</span>)</label>
+                    <input type="number" id="recCustomGramos" placeholder="Gramos reales en la pesa" min="0" oninput="calcularPreviewIngredienteCustomReceta()">
+
+                    <div id="recCustomFaResult" class="custom-fa-result"></div>
+
+                    <button type="button" onclick="agregarIngredienteCustomAReceta()" style="background:var(--color-brand); color:white; border:none; font-weight:bold; margin-top:6px;">✅ Agregar ingrediente estimado</button>
+                    <button type="button" onclick="toggleIngredienteCustomReceta()" style="background:#7f8c8d; color:white; border:none; margin-top:4px;">Cancelar</button>
                 </div>
+            </div>
 
-                <div style="display:flex; gap:6px; margin-top:8px;">
-                    <button type="button" class="grupo-btn activo" id="recCustomBtnGramos" onclick="setUnidadIngredienteCustomReceta('g')" style="flex:1;">⚖️ Gramos (g)</button>
-                    <button type="button" class="grupo-btn" id="recCustomBtnMl" onclick="setUnidadIngredienteCustomReceta('ml')" style="flex:1;">🥤 Mililitros (ml)</button>
+            <div id="recTotalManualBox" style="display:none;">
+                <div style="background:rgba(46,204,113,0.1); border-left:3px solid #2ecc71; border-radius:0 6px 6px 0; padding:8px; margin-bottom:8px; font-size:11px; color:#1a6e3c;">
+                    🍲 <strong>Receta de la comunidad PKU</strong><br>
+                    Úsalo para recetas de fuentes comunitarias (como <strong>Corporación PKU Chile</strong> u otras) donde ya conoces el FA total de la preparación — no necesitas desglosar los ingredientes uno por uno.
                 </div>
-                <label>Proteína por 100<span id="recCustomUnidadLabel1">g</span> del envase (g)</label>
-                <input type="number" id="recCustomProteina" placeholder="Ej: 3.5" min="0" step="0.1" oninput="calcularPreviewIngredienteCustomReceta()">
-                <label>Cantidad que vas a usar en la receta (<span id="recCustomUnidadLabel2">g</span>)</label>
-                <input type="number" id="recCustomGramos" placeholder="Gramos reales en la pesa" min="0" oninput="calcularPreviewIngredienteCustomReceta()">
-
-                <div id="recCustomFaResult" class="custom-fa-result"></div>
-
-                <button type="button" onclick="agregarIngredienteCustomAReceta()" style="background:var(--color-brand); color:white; border:none; font-weight:bold; margin-top:6px;">✅ Agregar ingrediente estimado</button>
-                <button type="button" onclick="toggleIngredienteCustomReceta()" style="background:#7f8c8d; color:white; border:none; margin-top:4px;">Cancelar</button>
+                <label style="font-size:12px; font-weight:600; color:var(--text-main);">FA total de la receta (mg)</label>
+                <input type="number" id="recFaTotalManual" min="0" placeholder="Ej: 320" oninput="actualizarFaTotalManual(this.value)">
+                <div style="font-size:11px; color:var(--text-muted); margin-top:-4px; margin-bottom:8px;">Junto con "Porciones sugeridas" de arriba, esto define cuánto FA corresponde a cada porción.</div>
             </div>
 
             <div style="display:flex; gap:8px; margin-top:12px;">
@@ -2668,6 +2640,22 @@
     };
 
     const HISTORIAL_NOVEDADES = [
+        {
+            fecha: "2026-08-09",
+            categorias: {
+                funcionalidad: [
+                    "Nueva sección 'Mis Recetas': arma tus propias preparaciones combinando alimentos de la Tabla PKU, y la app calcula el FA total automáticamente.",
+                    "En 'Mis Recetas' puedes ajustar el gramaje de cada ingrediente en cualquier momento — el FA se recalcula solo, sin tener que borrar y volver a agregarlo.",
+                    "Si un ingrediente no está en la Tabla PKU, puedes agregarlo estimado por proteína, igual que en 'Mi alimento no está en la lista'.",
+                    "Nuevo modo 'Ya sé el FA total' dentro de 'Mis Recetas', para recetas de la comunidad PKU (como Corporación PKU Chile) donde ya conoces el valor total sin necesidad de desglosar ingredientes.",
+                    "Puedes registrar cualquiera de tus recetas guardadas como una comida de hoy, indicando cuántas porciones comiste.",
+                    "El buscador de comida de días pasados (dentro del calendario) ahora también permite agregar tus propias recetas, no solo alimentos sueltos.",
+                ],
+                otros: [
+                    "El modo 'Receta' del formulario 'Mi alimento no está en la lista' se retiró — esa opción ahora vive, mejorada, dentro de 'Mis Recetas'.",
+                ],
+            },
+        },
         {
             fecha: "2026-07-13",
             categorias: {
@@ -3997,13 +3985,11 @@
         customModoActual = modo;
         document.getElementById('customFaEstimadoBox').style.display = modo === 'estimar' ? 'block' : 'none';
         document.getElementById('customFaExactoBox').style.display   = modo === 'exacto'  ? 'block' : 'none';
-        document.getElementById('customFaRecetaBox').style.display   = modo === 'receta'  ? 'block' : 'none';
         // Grupos de alimento: solo visibles en modo estimar
         const grupoSection = document.getElementById('customGrupoSection');
         if (grupoSection) grupoSection.style.display = modo === 'estimar' ? 'block' : 'none';
         document.getElementById('btnModoEstimar').classList.toggle('activo', modo === 'estimar');
         document.getElementById('btnModoExacto').classList.toggle('activo', modo === 'exacto');
-        document.getElementById('btnModoReceta').classList.toggle('activo', modo === 'receta');
         document.getElementById('customFaResult').style.display = 'none';
         if (modo !== 'estimar') customGrupoActual = null;
     }
@@ -4036,20 +4022,6 @@
     }
 
 
-    function cambiarPorcionesReceta(delta) {
-        const input = document.getElementById('customRecetaComidas');
-        const val = Math.max(1, (parseFloat(input.value) || 1) + delta);
-        input.value = val;
-        calcularCustomFA();
-    }
-
-    function cambiarUnidadesReceta(delta) {
-        const input = document.getElementById('customRecetaUniComidas');
-        const val = Math.max(1, (parseFloat(input.value) || 1) + delta);
-        input.value = val;
-        calcularCustomFA();
-    }
-
     function cambiarMiniUnidadesReceta(fecha, delta) {
         const input = document.getElementById(`miniRecetaUniComidas-${fecha}`);
         const val = Math.max(1, (parseFloat(input.value) || 1) + delta);
@@ -4067,15 +4039,6 @@
         document.getElementById('customFaExacto').value = '';
         document.getElementById('customGrPorcionExacto').value = '';
         document.getElementById('customGramosExacto').value = '';
-        document.getElementById('customFaRecetaTotal').value = '';
-        document.getElementById('customRecetaPorciones').value = '';
-        document.getElementById('customRecetaComidas').value = '1';
-        document.getElementById('customRecetaVolTotal').value = '';
-        document.getElementById('customRecetaVolConsumo').value = '';
-        document.getElementById('customRecetaUniTotal').value = '';
-        document.getElementById('customRecetaUniComidas').value = '1';
-        customRecetaUnidad = 'peso';
-        setRecetaUnidad('peso');
         document.getElementById('customFaResult').style.display = 'none';
         document.querySelectorAll('#alimentoCustomBox .grupo-btn').forEach(b => b.classList.remove('activo'));
         setModoCustom('estimar');
@@ -4108,35 +4071,7 @@
     function calcularCustomFA() {
         const resultDiv = document.getElementById('customFaResult');
 
-        if (customModoActual === 'receta') {
-            const faTotal = parseFloat(document.getElementById('customFaRecetaTotal').value);
-            if (!faTotal) { resultDiv.style.display = 'none'; return; }
-            let fa, desc;
-            if (customRecetaUnidad === 'volumen') {
-                const volTotal   = parseFloat(document.getElementById('customRecetaVolTotal').value);
-                const volConsumo = parseFloat(document.getElementById('customRecetaVolConsumo').value);
-                if (!volTotal || !volConsumo || volTotal <= 0) { resultDiv.style.display = 'none'; return; }
-                fa = redondearFA((faTotal / volTotal) * volConsumo);
-                desc = `${volConsumo} ml de ${Math.round(faTotal/volTotal*10)/10} mg FA/ml`;
-            } else if (customRecetaUnidad === 'unidades') {
-                const uniTotal  = parseFloat(document.getElementById('customRecetaUniTotal').value);
-                const uniComidas = parseFloat(document.getElementById('customRecetaUniComidas').value) || 1;
-                if (!uniTotal || uniTotal <= 0) { resultDiv.style.display = 'none'; return; }
-                const faPorUnidad = faTotal / uniTotal;
-                fa = redondearFA(faPorUnidad * uniComidas);
-                desc = `${uniComidas} unidad${uniComidas !== 1 ? 'es' : ''} de ${Math.round(faPorUnidad)} mg c/u`;
-            } else {
-                const porciones = parseFloat(document.getElementById('customRecetaPorciones').value);
-                const comidas   = parseFloat(document.getElementById('customRecetaComidas').value) || 1;
-                if (!porciones || porciones <= 0) { resultDiv.style.display = 'none'; return; }
-                const faPorPorcion = faTotal / porciones;
-                fa = redondearFA(faPorPorcion * comidas);
-                desc = `${comidas} porción${comidas !== 1 ? 'es' : ''} de ${Math.round(faPorPorcion)} mg c/u`;
-            }
-            resultDiv.innerHTML = `<strong>${fa} mg FA</strong> · ${desc} <span style="font-size:10px; color:#475569;">(receta comunidad)</span>`;
-            resultDiv.style.display = 'block';
-
-        } else if (customModoActual === 'exacto') {
+        if (customModoActual === 'exacto') {
             const faExacto  = parseFloat(document.getElementById('customFaExacto').value);
             const grPorcion = parseFloat(document.getElementById('customGrPorcionExacto').value);
             const gramos    = parseFloat(document.getElementById('customGramosExacto').value);
@@ -4170,32 +4105,7 @@
 
         let fa, esExacto, gramos, categoria;
 
-        if (customModoActual === 'receta') {
-            const faTotal = parseFloat(document.getElementById('customFaRecetaTotal').value);
-            if (!faTotal) { pkuToast('Ingresa el FA total de la receta.', 'toast-error'); return; }
-            esExacto = true;
-            categoria = 'receta_comunidad';
-            if (customRecetaUnidad === 'volumen') {
-                const volTotal   = parseFloat(document.getElementById('customRecetaVolTotal').value);
-                const volConsumo = parseFloat(document.getElementById('customRecetaVolConsumo').value);
-                if (!volTotal || !volConsumo || volTotal <= 0) { pkuToast('Ingresa el volumen total y el volumen consumido.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / volTotal) * volConsumo);
-                gramos = volConsumo;
-            } else if (customRecetaUnidad === 'unidades') {
-                const uniTotal   = parseFloat(document.getElementById('customRecetaUniTotal').value);
-                const uniComidas = parseFloat(document.getElementById('customRecetaUniComidas').value) || 1;
-                if (!uniTotal || uniTotal <= 0) { pkuToast('Ingresa las unidades que rinde la receta.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / uniTotal) * uniComidas);
-                gramos = uniComidas;
-            } else {
-                const porciones = parseFloat(document.getElementById('customRecetaPorciones').value);
-                const comidas   = parseFloat(document.getElementById('customRecetaComidas').value) || 1;
-                if (!porciones || porciones <= 0) { pkuToast('Ingresa el FA total de la receta y las porciones que rinde.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / porciones) * comidas);
-                gramos = comidas;
-            }
-
-        } else if (customModoActual === 'exacto') {
+        if (customModoActual === 'exacto') {
             const faExacto  = parseFloat(document.getElementById('customFaExacto').value);
             const grPorcion = parseFloat(document.getElementById('customGrPorcionExacto').value);
             gramos          = parseFloat(document.getElementById('customGramosExacto').value);
@@ -4216,13 +4126,13 @@
             categoria = customGrupoActual;
         }
 
-        const etiqueta = customModoActual === 'receta' ? ' (receta comunidad)' : (!esExacto ? ' (estimado)' : '');
+        const etiqueta = !esExacto ? ' (estimado)' : '';
         const nuevaComidaCustom = {
             id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
             nombre: nombre,
             gramos: gramos,
             fa: fa,
-            unidad: customModoActual === 'receta' ? (customRecetaUnidad === 'volumen' ? 'ml' : customRecetaUnidad === 'unidades' ? 'unidad' : 'porción') : (customModoActual === 'exacto' ? customExactoUnidad : customEstimarUnidad),
+            unidad: customModoActual === 'exacto' ? customExactoUnidad : customEstimarUnidad,
             categoria: categoria,
             estimado: !esExacto,
             personalizado: true
@@ -5380,11 +5290,33 @@
     let ingredienteRecetaActual = null; // alimento elegido en el buscador de ingredientes, antes de confirmar gramos
 
     function nuevaRecetaDraftVacio() {
-        return { id: null, nombre: '', categoria: 'mis_recetas', porciones: 1, ingredientes: [] };
+        return { id: null, nombre: '', categoria: 'mis_recetas', porciones: 1, ingredientes: [], modoFa: 'ingredientes', faTotalManual: 0 };
     }
 
+    // modoFa 'ingredientes': el total es la suma de recetaDraft.ingredientes.
+    // modoFa 'total': el total es un valor que la familia ya conoce de una
+    // fuente externa (ej. Corporación PKU Chile) — no hay ingredientes que sumar.
     function calcularFaTotalDraft() {
-        return recetaDraft ? recetaDraft.ingredientes.reduce((s, i) => s + (i.fa || 0), 0) : 0;
+        if (!recetaDraft) return 0;
+        return recetaDraft.modoFa === 'total'
+            ? (recetaDraft.faTotalManual || 0)
+            : recetaDraft.ingredientes.reduce((s, i) => s + (i.fa || 0), 0);
+    }
+
+    function setModoRecetaFa(modo) {
+        if (!recetaDraft) return;
+        recetaDraft.modoFa = modo;
+        document.getElementById('recIngredientesModoBox').style.display = modo === 'ingredientes' ? 'block' : 'none';
+        document.getElementById('recTotalManualBox').style.display = modo === 'total' ? 'block' : 'none';
+        document.getElementById('recModoIngredientesBtn').classList.toggle('activo', modo === 'ingredientes');
+        document.getElementById('recModoTotalBtn').classList.toggle('activo', modo === 'total');
+        document.getElementById('recFaTotalTexto').textContent = `Total: ${Math.round(calcularFaTotalDraft())} mg FA`;
+    }
+
+    function actualizarFaTotalManual(valorStr) {
+        if (!recetaDraft) return;
+        recetaDraft.faTotalManual = parseFloat(valorStr) || 0;
+        document.getElementById('recFaTotalTexto').textContent = `Total: ${Math.round(calcularFaTotalDraft())} mg FA`;
     }
 
     function limpiarSeleccionIngredienteReceta() {
@@ -5407,8 +5339,10 @@
             recetaDraft = nuevaRecetaDraftVacio();
             document.getElementById('recNombre').value = '';
             document.getElementById('recPorciones').value = 1;
+            document.getElementById('recFaTotalManual').value = '';
             limpiarSeleccionIngredienteReceta();
             cerrarIngredienteCustomReceta();
+            setModoRecetaFa('ingredientes');
             renderizarIngredientesDraft();
             box.style.display = 'block';
         } else {
@@ -5630,7 +5564,11 @@
 
         if (!nombre) { pkuToast('Ingresa un nombre para la receta.', 'toast-error'); return; }
         if (!porciones || porciones < 1) { pkuToast('Ingresa una cantidad válida de porciones.', 'toast-error'); return; }
-        if (recetaDraft.ingredientes.length === 0) { pkuToast('Agrega al menos un ingrediente.', 'toast-error'); return; }
+        if (recetaDraft.modoFa === 'total') {
+            if (!recetaDraft.faTotalManual || recetaDraft.faTotalManual <= 0) { pkuToast('Ingresa el FA total de la receta.', 'toast-error'); return; }
+        } else if (recetaDraft.ingredientes.length === 0) {
+            pkuToast('Agrega al menos un ingrediente.', 'toast-error'); return;
+        }
 
         const faTotal = redondearFA(calcularFaTotalDraft());
         const esEdicion = !!recetaDraft.id;
@@ -5639,7 +5577,10 @@
             nombre: nombre,
             categoria: categoria,
             porciones: porciones,
-            ingredientes: recetaDraft.ingredientes,
+            modoFa: recetaDraft.modoFa,
+            // En modo 'total' no hay ingredientes que guardar — la receta vive
+            // solo como FA total + porciones (ver calcularFaTotalDraft).
+            ingredientes: recetaDraft.modoFa === 'total' ? [] : recetaDraft.ingredientes,
             faTotal: faTotal
         };
         // Igual que window.idUltimaCitaCreada: misRecetas no se reordena, pero
@@ -5665,17 +5606,22 @@
     function editarReceta(id) {
         const receta = misRecetas.find(r => String(r.id) === String(id));
         if (!receta) return;
+        const modoFa = receta.modoFa === 'total' ? 'total' : 'ingredientes';
         recetaDraft = {
             id: receta.id,
             nombre: receta.nombre,
             categoria: receta.categoria,
             porciones: receta.porciones,
-            ingredientes: receta.ingredientes.map(i => ({ ...i }))
+            ingredientes: receta.ingredientes.map(i => ({ ...i })),
+            modoFa: modoFa,
+            faTotalManual: modoFa === 'total' ? receta.faTotal : 0
         };
         document.getElementById('recNombre').value = receta.nombre;
         document.getElementById('recPorciones').value = receta.porciones;
+        document.getElementById('recFaTotalManual').value = modoFa === 'total' ? receta.faTotal : '';
         limpiarSeleccionIngredienteReceta();
         cerrarIngredienteCustomReceta();
+        setModoRecetaFa(modoFa);
         renderizarIngredientesDraft();
         document.getElementById('formularioRecetaBox').style.display = 'block';
         document.getElementById('misRecetasBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -5750,7 +5696,7 @@
                     ${obtenerIconoHTML(receta.categoria || 'mis_recetas', 26)}
                     <div style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;">
                         <strong style="white-space:normal; line-height:1.3;">${_esc(receta.nombre)}</strong>
-                        <span class="comida-detalles">${receta.porciones} porción(es) · ${receta.ingredientes.length} ingrediente(s) · <strong>${receta.faTotal} mg FA</strong></span>
+                        <span class="comida-detalles">${receta.porciones} porción(es) · ${receta.modoFa === 'total' ? '🍲 FA total conocido' : receta.ingredientes.length + ' ingrediente(s)'} · <strong>${receta.faTotal} mg FA</strong></span>
                     </div>
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
@@ -6146,6 +6092,7 @@
         const cats = [
             { key: 'favoritos',         emoji: '⭐', label: 'Favoritos' },
             { key: 'recetario',         emoji: '📖', label: 'Recetas' },
+            { key: 'mis_recetas',       emoji: '🧑‍🍳', label: 'Mis Recetas' },
             { key: 'verduras_crudas',   emoji: '🥦', label: 'Verduras' },
             { key: 'verduras_cocidas',  emoji: '🍲', label: 'Cocidas' },
             { key: 'frutas',            emoji: '🍎', label: 'Frutas' },
@@ -6163,9 +6110,11 @@
             { key: 'violife',           emoji: '🧀', label: 'VIOLIFE' },
         ];
         // Solo mostrar categorías que tengan al menos un alimento (Favoritos siempre se muestra)
-        const catsConAlimentos = cats.filter(c =>
-            c.key === 'favoritos' || baseDatosPKU.some(item => obtenerCategoria(item) === c.key)
-        );
+        const catsConAlimentos = cats.filter(c => {
+            if (c.key === 'favoritos') return true;
+            if (c.key === 'mis_recetas') return misRecetas.length > 0;
+            return baseDatosPKU.some(item => obtenerCategoria(item) === c.key);
+        });
         const btns = catsConAlimentos.map(c =>
             `<button class="mini-cat-btn" onclick="seleccionarMiniCategoria('${fecha}', '${c.key}', this)" title="${c.label}">
                 ${c.emoji}
@@ -6200,12 +6149,31 @@
             document.getElementById(`miniSug-${fecha}`).style.display = 'none';
             return;
         }
+        const lista = document.getElementById(`miniSug-${fecha}`);
+        lista.innerHTML = '';
+
+        // "Mis Recetas" no vive en baseDatosPKU — es un array aparte, y cada
+        // ítem se registra directo (pide porciones), no pasa por el flujo de
+        // gramos/medida casera del resto de la grilla.
+        if (cat === 'mis_recetas') {
+            if (misRecetas.length === 0) {
+                lista.innerHTML = '<li style="padding:8px 6px; color:var(--text-muted); font-size:12px; list-style:none;">🧑‍🍳 Aún no tienes recetas propias. Créalas en "Mis Recetas".</li>';
+            } else {
+                misRecetas.forEach(receta => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${_esc(receta.nombre)}</span><span style="font-size:10px; color:#475569;">${receta.faTotal} mg FA · ${receta.porciones} porc.</span>`;
+                    li.onclick = () => seleccionarRecetaEnMiniAgregador(fecha, receta.id);
+                    lista.appendChild(li);
+                });
+            }
+            lista.style.display = 'block';
+            return;
+        }
+
         const resultados = baseDatosPKU
             .map((item, idx) => ({ item, idx }))
             .filter(({ item }) => cat === 'favoritos' ? esFavorito(item.nombre) : obtenerCategoria(item) === cat)
             .slice(0, 40);
-        const lista = document.getElementById(`miniSug-${fecha}`);
-        lista.innerHTML = '';
         if (resultados.length === 0) {
             lista.innerHTML = cat === 'favoritos'
                 ? '<li style="padding:8px 6px; color:var(--text-muted); font-size:12px; list-style:none;">⭐ Aún no tienes favoritos. Márcalos desde el buscador principal.</li>'
@@ -6515,20 +6483,8 @@
         calcularMiniCustomFA(fecha);
     }
 
-    // Estado unidad receta: 'peso' | 'volumen'
-    let customRecetaUnidad = 'peso';
+    // Estado unidad receta (mini-agregador del calendario): 'peso' | 'volumen' | 'unidades'
     let miniRecetaUnidad = {};
-
-    function setRecetaUnidad(unidad) {
-        customRecetaUnidad = unidad;
-        document.getElementById('customRecetaPesoBox').style.display     = unidad === 'peso'     ? 'block' : 'none';
-        document.getElementById('customRecetaVolumenBox').style.display   = unidad === 'volumen'  ? 'block' : 'none';
-        document.getElementById('customRecetaUnidadesBox').style.display  = unidad === 'unidades' ? 'block' : 'none';
-        document.getElementById('btnRecetaPeso').classList.toggle('activo',     unidad === 'peso');
-        document.getElementById('btnRecetaVolumen').classList.toggle('activo',  unidad === 'volumen');
-        document.getElementById('btnRecetaUnidades').classList.toggle('activo', unidad === 'unidades');
-        document.getElementById('customFaResult').style.display = 'none';
-    }
 
     function setMiniRecetaUnidad(fecha, unidad) {
         miniRecetaUnidad[fecha] = unidad;
@@ -6703,6 +6659,61 @@
         delete miniExactoUnidad[fecha];
         delete miniEstimarUnidad[fecha];
         pkuToast(`✅ ${nombre} · ${fa} mg FA${etiqueta} al ${fecha === hoyStr ? 'hoy' : fecha}`, 'toast-success');
+        seleccionarDiaCalendario(fecha);
+        renderizarCalendario();
+    }
+
+    // Registrar una receta de "Mis Recetas" en un día del calendario (hoy o
+    // pasado) — mismo cálculo proporcional que registrarRecetaComoComida,
+    // pero con el mismo branching hoy/historialDias que ya usa el resto del
+    // mini-agregador (confirmarAgregarEnCalendario/agregarMiniCustomAlCalendario).
+    async function seleccionarRecetaEnMiniAgregador(fecha, recetaId) {
+        if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para agregar comidas.', 'toast-warn'); return; }
+        const receta = misRecetas.find(r => String(r.id) === String(recetaId));
+        if (!receta) return;
+        document.getElementById(`miniSug-${fecha}`).style.display = 'none';
+
+        const respuesta = await pkuPrompt(`¿Cuántas porciones de "${receta.nombre}" vas a registrar el ${fecha}? (la receta rinde ${receta.porciones})`, 1);
+        if (respuesta === null) return;
+        const porcionesConsumidas = parseFloat(respuesta);
+        if (!porcionesConsumidas || porcionesConsumidas <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+
+        const fa = redondearFA((receta.faTotal * porcionesConsumidas) / receta.porciones);
+        const hoyStr = fechaHoyLocal();
+        const nuevaComida = {
+            id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            nombre: receta.nombre,
+            gramos: Math.round(porcionesConsumidas * 10) / 10,
+            fa: fa,
+            unidad: 'porción',
+            categoria: receta.categoria || 'mis_recetas',
+            origenRecetaId: receta.id
+        };
+
+        if (fecha === hoyStr) {
+            comidasHoy.push(nuevaComida);
+            consumidoHoy += fa;
+            localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
+            localStorage.setItem('pku_consumido', consumidoHoy);
+            actualizarPantalla();
+            renderizarComidasHoy();
+        } else {
+            let diaIdx = historialDias.findIndex(d => d.fecha === fecha);
+            if (diaIdx === -1) {
+                historialDias.push({ fecha: fecha, consumido: 0, meta: metaDiaria, comidas: [] });
+                historialDias.sort((a, b) => a.fecha.localeCompare(b.fecha));
+                diaIdx = historialDias.findIndex(d => d.fecha === fecha);
+            }
+            if (!historialDias[diaIdx].comidas) historialDias[diaIdx].comidas = [];
+            historialDias[diaIdx].comidas.push(nuevaComida);
+            historialDias[diaIdx].consumido += fa;
+            localStorage.setItem('pku_historial', JSON.stringify(historialDias));
+        }
+
+        pkuToast(`✅ ${receta.nombre} · ${fa} mg FA al ${fecha === hoyStr ? 'hoy' : fecha}`, 'toast-success');
         seleccionarDiaCalendario(fecha);
         renderizarCalendario();
     }
@@ -10229,6 +10240,32 @@
                     window.guardarDiaHistorialEnFirestore(dia);
                     const ultimaDelDia = dia.comidas?.[dia.comidas.length - 1];
                     if (ultimaDelDia) window.registrarEnLog('agregada', ultimaDelDia, fecha);
+                }
+            }
+            return r;
+        };
+
+        // seleccionarRecetaEnMiniAgregador → registrar una receta de "Mis Recetas"
+        // en un día del calendario (hoy o pasado). Es async (usa pkuPrompt), así
+        // que hay que esperarla — igual que borrarComidaIndividual/borrarCitaIndividual.
+        const _seleccionarRecetaMini = window.seleccionarRecetaEnMiniAgregador;
+        if (_seleccionarRecetaMini) window.seleccionarRecetaEnMiniAgregador = async function(fecha, ...args) {
+            const hoyStr = fechaHoyLocal();
+            const r = await _seleccionarRecetaMini.apply(this, [fecha, ...args]);
+            if (fecha === hoyStr) {
+                const comidas = _lsJSON('pku_comidas_hoy', []);
+                const ultima = comidas[comidas.length - 1];
+                if (ultima && ultima.origenRecetaId) {
+                    window.guardarComidaEnFirestore(ultima);
+                    window.registrarEnLog('agregada', ultima, fecha);
+                }
+            } else {
+                const historial = _lsJSON('pku_historial', []);
+                const dia = historial.find(d => d.fecha === fecha);
+                if (dia) {
+                    window.guardarDiaHistorialEnFirestore(dia);
+                    const ultimaDelDia = dia.comidas?.[dia.comidas.length - 1];
+                    if (ultimaDelDia && ultimaDelDia.origenRecetaId) window.registrarEnLog('agregada', ultimaDelDia, fecha);
                 }
             }
             return r;
