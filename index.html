@@ -4072,13 +4072,6 @@
     }
 
 
-    function cambiarMiniUnidadesReceta(fecha, delta) {
-        const input = document.getElementById(`miniRecetaUniComidas-${fecha}`);
-        const val = Math.max(1, (parseFloat(input.value) || 1) + delta);
-        input.value = val;
-        calcularMiniCustomFA(fecha);
-    }
-
     function resetCustomForm() {
         customGrupoActual = null;
         customFaExactoMode = false;
@@ -5681,6 +5674,38 @@
         document.getElementById('misRecetasBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    // Igual que editarReceta, pero con id: null — al guardar crea una receta
+    // NUEVA en vez de sobreescribir la original. Pensada para variantes de un
+    // mismo plato (cambiar uno o dos ingredientes) sin tener que rearmarla
+    // desde cero, ingrediente por ingrediente.
+    function duplicarReceta(id) {
+        const receta = misRecetas.find(r => String(r.id) === String(id));
+        if (!receta) return;
+        const modoFa = receta.modoFa === 'total' ? 'total' : 'ingredientes';
+        const nombreCopia = receta.nombre + ' (copia)';
+        recetaDraft = {
+            id: null,
+            nombre: nombreCopia,
+            categoria: receta.categoria,
+            porciones: receta.porciones,
+            ingredientes: receta.ingredientes.map(i => ({ ...i })),
+            modoFa: modoFa,
+            faTotalManual: modoFa === 'total' ? receta.faTotal : 0
+        };
+        document.getElementById('recNombre').value = nombreCopia;
+        document.getElementById('recPorciones').value = receta.porciones;
+        document.getElementById('recFaTotalManual').value = modoFa === 'total' ? receta.faTotal : '';
+        limpiarSeleccionIngredienteReceta();
+        cerrarIngredienteCustomReceta();
+        setModoRecetaFa(modoFa);
+        renderizarIngredientesDraft();
+        document.getElementById('formularioRecetaBox').style.display = 'block';
+        document.getElementById('misRecetasBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const inputNombre = document.getElementById('recNombre');
+        inputNombre.focus();
+        inputNombre.select();
+    }
+
     async function eliminarRecetaIndividual(id) {
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para continuar.', 'toast-warn'); return; }
         const receta = misRecetas.find(r => String(r.id) === String(id));
@@ -5706,6 +5731,10 @@
         const porcionesConsumidas = parseFloat(respuesta);
         if (!porcionesConsumidas || porcionesConsumidas <= 0) {
             pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        if (porcionesConsumidas > receta.porciones) {
+            pkuToast(`⚠️ La receta rinde ${receta.porciones} porciones — no puedes registrar más que eso.`, 'toast-error');
             return;
         }
 
@@ -5756,6 +5785,7 @@
                 <div style="display:flex; gap:4px; flex-shrink:0;">
                     <button class="btn-del-item" title="Registrar hoy" onclick="registrarRecetaComoComida('${receta.id}')">🍽️</button>
                     <button class="btn-del-item" title="Editar" onclick="editarReceta('${receta.id}')">✏️</button>
+                    <button class="btn-del-item" title="Duplicar" onclick="duplicarReceta('${receta.id}')">📋</button>
                     <button class="btn-del-item" title="Eliminar" onclick="eliminarRecetaIndividual('${receta.id}')">❌</button>
                 </div>`;
             listaUI.appendChild(li);
@@ -6015,6 +6045,10 @@
             pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
             return;
         }
+        if (porciones > receta.porciones) {
+            pkuToast(`⚠️ La receta rinde ${receta.porciones} porciones — no puedes agregar más que eso.`, 'toast-error');
+            return;
+        }
         const fa = redondearFA((receta.faTotal * porciones) / receta.porciones);
         const item = {
             nombre: receta.nombre,
@@ -6090,6 +6124,10 @@
         const cantidad = parseFloat(respuesta);
         if (!cantidad || cantidad <= 0) {
             pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        if (cantidad > receta.raciones) {
+            pkuToast(`⚠️ La receta rinde ${receta.raciones} ${plural} — no puedes agregar más que eso.`, 'toast-error');
             return;
         }
         const fa = redondearFA(receta.faPorcion * cantidad);
@@ -6805,7 +6843,6 @@
                 <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <button class="grupo-btn activo" id="miniModoEstimar-${fecha}" onclick="setMiniModo('${fecha}','estimar')" style="flex:1; font-size:10px;">📊 Estimar</button>
                     <button class="grupo-btn" id="miniModoExacto-${fecha}" onclick="setMiniModo('${fecha}','exacto')" style="flex:1; font-size:10px;">✅ FA exacto</button>
-                    <button class="grupo-btn" id="miniModoReceta-${fecha}" onclick="setMiniModo('${fecha}','receta')" style="flex:1; font-size:10px;">🍲 Receta</button>
                 </div>
 
                 <!-- Modo estimado -->
@@ -6841,51 +6878,6 @@
                     <input type="number" id="miniGramosExacto-${fecha}" placeholder="Gramos reales" min="0" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
                 </div>
 
-                <!-- Modo Receta comunidad -->
-                <div id="miniFaRecetaBox-${fecha}" style="display:none;">
-                    <div style="background:rgba(46,204,113,0.1); border-left:3px solid #2ecc71; border-radius:0 6px 6px 0; padding:7px; margin-bottom:7px; font-size:10px; color:#1a6e3c;">
-                        🍲 <strong>Receta de la comunidad PKU</strong><br>
-                        Para recetas de <strong>Corporación PKU Chile</strong> u otras fuentes comunitarias donde ya conoces el FA total. Ingresa ese valor y cuánto consumiste.
-                    </div>
-                    <!-- Toggle peso/volumen/unidades mini -->
-                    <div style="display:flex; gap:5px; margin-bottom:7px;">
-                        <button class="grupo-btn activo" id="miniBtnRecetaPeso-${fecha}" onclick="setMiniRecetaUnidad('${fecha}','peso')" style="flex:1; font-size:10px;">⚖️ Porciones</button>
-                        <button class="grupo-btn" id="miniBtnRecetaVolumen-${fecha}" onclick="setMiniRecetaUnidad('${fecha}','volumen')" style="flex:1; font-size:10px;">🥣 Volumen</button>
-                        <button class="grupo-btn" id="miniBtnRecetaUnidades-${fecha}" onclick="setMiniRecetaUnidad('${fecha}','unidades')" style="flex:1; font-size:10px;">🍪 Unidades</button>
-                    </div>
-                    <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">FA total de la receta (mg)</label>
-                    <input type="number" id="miniFaRecetaTotal-${fecha}" placeholder="Ej: 320" min="0" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
-                    <!-- Modo porciones mini -->
-                    <div id="miniRecetaPesoBox-${fecha}">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Porciones que rinde la receta</label>
-                        <input type="number" id="miniRecetaPorciones-${fecha}" placeholder="Ej: 4" min="1" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Porciones que comió</label>
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                            <button onclick="cambiarMiniPorcionesReceta('${fecha}',-1)" style="background:#e2e8f0; border:none; border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; font-weight:bold;">−</button>
-                            <input type="number" id="miniRecetaComidas-${fecha}" value="1" min="1" oninput="calcularMiniCustomFA('${fecha}')" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; text-align:center;">
-                            <button onclick="cambiarMiniPorcionesReceta('${fecha}',1)" style="background:#e2e8f0; border:none; border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; font-weight:bold;">+</button>
-                        </div>
-                    </div>
-                    <!-- Modo volumen mini -->
-                    <div id="miniRecetaVolumenBox-${fecha}" style="display:none;">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Volumen total que rinde (ml)</label>
-                        <input type="number" id="miniRecetaVolTotal-${fecha}" placeholder="Ej: 1000" min="1" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Volumen que consumió (ml)</label>
-                        <input type="number" id="miniRecetaVolConsumo-${fecha}" placeholder="Ej: 250" min="0" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
-                    </div>
-                    <!-- Modo unidades mini -->
-                    <div id="miniRecetaUnidadesBox-${fecha}" style="display:none;">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Unidades que rinde la receta</label>
-                        <input type="number" id="miniRecetaUniTotal-${fecha}" placeholder="Ej: 10" min="1" oninput="calcularMiniCustomFA('${fecha}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
-                        <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Unidades que comió</label>
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                            <button onclick="cambiarMiniUnidadesReceta('${fecha}',-1)" style="background:#e2e8f0; border:none; border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; font-weight:bold;">−</button>
-                            <input type="number" id="miniRecetaUniComidas-${fecha}" value="1" min="1" oninput="calcularMiniCustomFA('${fecha}')" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; text-align:center;">
-                            <button onclick="cambiarMiniUnidadesReceta('${fecha}',1)" style="background:#e2e8f0; border:none; border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; font-weight:bold;">+</button>
-                        </div>
-                    </div>
-                </div>
-
                 <div id="miniCustomResult-${fecha}" style="background:rgba(232,163,61,0.15); border-left:3px solid var(--color-yellow); border-radius:6px; padding:8px; font-size:12px; margin-bottom:6px; display:none;"></div>
 
                 <button onclick="agregarMiniCustomAlCalendario('${fecha}')" style="background:var(--color-brand); color:white; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:bold; cursor:pointer; width:100%;">✅ Agregar a este día</button>
@@ -6911,10 +6903,8 @@
         miniCustomModo[fecha] = modo;
         document.getElementById(`miniFaEstimadoBox-${fecha}`).style.display = modo === 'estimar' ? 'block' : 'none';
         document.getElementById(`miniFaExactoBox-${fecha}`).style.display   = modo === 'exacto'  ? 'block' : 'none';
-        document.getElementById(`miniFaRecetaBox-${fecha}`).style.display   = modo === 'receta'  ? 'block' : 'none';
         document.getElementById(`miniModoEstimar-${fecha}`).classList.toggle('activo', modo === 'estimar');
         document.getElementById(`miniModoExacto-${fecha}`).classList.toggle('activo', modo === 'exacto');
-        document.getElementById(`miniModoReceta-${fecha}`).classList.toggle('activo', modo === 'receta');
         document.getElementById(`miniCustomResult-${fecha}`).style.display = 'none';
         if (modo !== 'estimar') miniCustomGrupo[fecha] = null;
     }
@@ -6946,27 +6936,6 @@
         calcularMiniCustomFA(fecha);
     }
 
-    function cambiarMiniPorcionesReceta(fecha, delta) {
-        const input = document.getElementById(`miniRecetaComidas-${fecha}`);
-        const val = Math.max(1, (parseFloat(input.value) || 1) + delta);
-        input.value = val;
-        calcularMiniCustomFA(fecha);
-    }
-
-    // Estado unidad receta (mini-agregador del calendario): 'peso' | 'volumen' | 'unidades'
-    let miniRecetaUnidad = {};
-
-    function setMiniRecetaUnidad(fecha, unidad) {
-        miniRecetaUnidad[fecha] = unidad;
-        document.getElementById(`miniRecetaPesoBox-${fecha}`).style.display     = unidad === 'peso'     ? 'block' : 'none';
-        document.getElementById(`miniRecetaVolumenBox-${fecha}`).style.display   = unidad === 'volumen'  ? 'block' : 'none';
-        document.getElementById(`miniRecetaUnidadesBox-${fecha}`).style.display  = unidad === 'unidades' ? 'block' : 'none';
-        document.getElementById(`miniBtnRecetaPeso-${fecha}`).classList.toggle('activo',     unidad === 'peso');
-        document.getElementById(`miniBtnRecetaVolumen-${fecha}`).classList.toggle('activo',  unidad === 'volumen');
-        document.getElementById(`miniBtnRecetaUnidades-${fecha}`).classList.toggle('activo', unidad === 'unidades');
-        document.getElementById(`miniCustomResult-${fecha}`).style.display = 'none';
-    }
-
     // Compatibilidad con llamadas antiguas
     function toggleMiniFaExacto(fecha, exacto) { setMiniModo(fecha, exacto ? 'exacto' : 'estimar'); }
 
@@ -6981,36 +6950,7 @@
         const resultDiv = document.getElementById(`miniCustomResult-${fecha}`);
         const modo = miniCustomModo[fecha] || 'estimar';
 
-        if (modo === 'receta') {
-            const faTotal = parseFloat(document.getElementById(`miniFaRecetaTotal-${fecha}`).value);
-            if (!faTotal) { resultDiv.style.display = 'none'; return; }
-            const unidad = miniRecetaUnidad[fecha] || 'peso';
-            let fa, desc;
-            if (unidad === 'volumen') {
-                const volTotal   = parseFloat(document.getElementById(`miniRecetaVolTotal-${fecha}`).value);
-                const volConsumo = parseFloat(document.getElementById(`miniRecetaVolConsumo-${fecha}`).value);
-                if (!volTotal || !volConsumo || volTotal <= 0) { resultDiv.style.display = 'none'; return; }
-                fa = redondearFA((faTotal / volTotal) * volConsumo);
-                desc = `${volConsumo} ml de ${Math.round(faTotal/volTotal*10)/10} mg FA/ml`;
-            } else if (unidad === 'unidades') {
-                const uniTotal   = parseFloat(document.getElementById(`miniRecetaUniTotal-${fecha}`).value);
-                const uniComidas = parseFloat(document.getElementById(`miniRecetaUniComidas-${fecha}`).value) || 1;
-                if (!uniTotal || uniTotal <= 0) { resultDiv.style.display = 'none'; return; }
-                const faPorUnidad = faTotal / uniTotal;
-                fa = redondearFA(faPorUnidad * uniComidas);
-                desc = `${uniComidas} unidad${uniComidas !== 1 ? 'es' : ''} de ${Math.round(faPorUnidad)} mg c/u`;
-            } else {
-                const porciones = parseFloat(document.getElementById(`miniRecetaPorciones-${fecha}`).value);
-                const comidas   = parseFloat(document.getElementById(`miniRecetaComidas-${fecha}`).value) || 1;
-                if (!porciones || porciones <= 0) { resultDiv.style.display = 'none'; return; }
-                const faPorPorcion = faTotal / porciones;
-                fa = redondearFA(faPorPorcion * comidas);
-                desc = `${comidas} porción${comidas !== 1 ? 'es' : ''} de ${Math.round(faPorPorcion)} mg c/u`;
-            }
-            resultDiv.innerHTML = `<strong>${fa} mg FA</strong> · ${desc} <span style="font-size:10px; color:#475569;">(receta comunidad)</span>`;
-            resultDiv.style.display = 'block';
-
-        } else if (modo === 'exacto') {
+        if (modo === 'exacto') {
             const faExacto  = parseFloat(document.getElementById(`miniFaExacto-${fecha}`).value);
             const grPorcion = parseFloat(document.getElementById(`miniGrPorcionExacto-${fecha}`).value);
             const gramos    = parseFloat(document.getElementById(`miniGramosExacto-${fecha}`).value);
@@ -7041,33 +6981,7 @@
         const modo = miniCustomModo[fecha] || 'estimar';
         let fa, gramos, categoria, esExacto;
 
-        if (modo === 'receta') {
-            const faTotal = parseFloat(document.getElementById(`miniFaRecetaTotal-${fecha}`).value);
-            if (!faTotal) { pkuToast('Ingresa el FA total de la receta.', 'toast-error'); return; }
-            esExacto = true;
-            categoria = 'receta_comunidad';
-            const unidad = miniRecetaUnidad[fecha] || 'peso';
-            if (unidad === 'volumen') {
-                const volTotal   = parseFloat(document.getElementById(`miniRecetaVolTotal-${fecha}`).value);
-                const volConsumo = parseFloat(document.getElementById(`miniRecetaVolConsumo-${fecha}`).value);
-                if (!volTotal || !volConsumo || volTotal <= 0) { pkuToast('Ingresa el volumen total y el volumen consumido.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / volTotal) * volConsumo);
-                gramos = volConsumo;
-            } else if (unidad === 'unidades') {
-                const uniTotal   = parseFloat(document.getElementById(`miniRecetaUniTotal-${fecha}`).value);
-                const uniComidas = parseFloat(document.getElementById(`miniRecetaUniComidas-${fecha}`).value) || 1;
-                if (!uniTotal || uniTotal <= 0) { pkuToast('Ingresa las unidades que rinde la receta.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / uniTotal) * uniComidas);
-                gramos = uniComidas;
-            } else {
-                const porciones = parseFloat(document.getElementById(`miniRecetaPorciones-${fecha}`).value);
-                const comidas   = parseFloat(document.getElementById(`miniRecetaComidas-${fecha}`).value) || 1;
-                if (!porciones || porciones <= 0) { pkuToast('Ingresa el FA total de la receta y las porciones que rinde.', 'toast-error'); return; }
-                fa = redondearFA((faTotal / porciones) * comidas);
-                gramos = comidas;
-            }
-
-        } else if (modo === 'exacto') {
+        if (modo === 'exacto') {
             const faExacto  = parseFloat(document.getElementById(`miniFaExacto-${fecha}`).value);
             const grPorcion = parseFloat(document.getElementById(`miniGrPorcionExacto-${fecha}`).value);
             gramos          = parseFloat(document.getElementById(`miniGramosExacto-${fecha}`).value);
@@ -7090,13 +7004,13 @@
         }
 
         const hoyStr = fechaHoyLocal();
-        const etiqueta = modo === 'receta' ? ' (receta comunidad)' : (!esExacto ? ' (estimado)' : '');
+        const etiqueta = !esExacto ? ' (estimado)' : '';
         const nuevaComida = {
             id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
             nombre: nombre,
             gramos: gramos,
             fa: fa,
-            unidad: modo === 'receta' ? ((miniRecetaUnidad[fecha] || 'peso') === 'volumen' ? 'ml' : (miniRecetaUnidad[fecha] === 'unidades' ? 'unidad' : 'porción')) : (modo === 'exacto' ? (miniExactoUnidad[fecha] || 'g') : (miniEstimarUnidad[fecha] || 'g')),
+            unidad: modo === 'exacto' ? (miniExactoUnidad[fecha] || 'g') : (miniEstimarUnidad[fecha] || 'g'),
             categoria: categoria,
             estimado: !esExacto,
             personalizado: true
@@ -7125,7 +7039,6 @@
         delete miniCustomGrupo[fecha];
         delete miniCustomFaExactoMode[fecha];
         delete miniCustomModo[fecha];
-        delete miniRecetaUnidad[fecha];
         delete miniExactoUnidad[fecha];
         delete miniEstimarUnidad[fecha];
         pkuToast(`✅ ${nombre} · ${fa} mg FA${etiqueta} al ${fecha === hoyStr ? 'hoy' : fecha}`, 'toast-success');
@@ -7148,6 +7061,10 @@
         const porcionesConsumidas = parseFloat(respuesta);
         if (!porcionesConsumidas || porcionesConsumidas <= 0) {
             pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        if (porcionesConsumidas > receta.porciones) {
+            pkuToast(`⚠️ La receta rinde ${receta.porciones} porciones — no puedes registrar más que eso.`, 'toast-error');
             return;
         }
 
@@ -7616,6 +7533,12 @@
     window.cambiarCantidadReceta = function(delta) {
         const nueva = _cantidadRecetaActual + delta;
         if (nueva < 1) return;
+        const receta = (window.baseDatosRecetario || [])[_recetaActualIdx];
+        if (receta && receta.raciones && nueva > receta.raciones) {
+            const { plural } = _etiquetasPorcionReceta(receta);
+            pkuToast(`⚠️ La receta rinde ${receta.raciones} ${plural} — no puedes agregar más que eso.`, 'toast-warn');
+            return;
+        }
         _cantidadRecetaActual = nueva;
         _actualizarTotalReceta();
     };
