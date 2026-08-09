@@ -2141,6 +2141,74 @@
         <button class="btn-reset" onclick="window.reiniciarDiaManual()">Reiniciar Día Actual</button>
     </div>
 
+    <!-- Sección: Mis Recetas (combinar alimentos de la Tabla PKU en una preparación reutilizable) -->
+    <div class="calculadora-box" id="misRecetasBox">
+        <h3>🧑‍🍳 Mis Recetas</h3>
+        <p style="font-size:11.5px; color:var(--text-muted); margin:-6px 0 12px;">Combina varios alimentos de la Tabla PKU en una preparación que puedas reutilizar (ej. "Sopa de verduras"). No reemplaza el Recetario oficial INTA del buscador de arriba.</p>
+
+        <ul id="listaMisRecetas" class="comidas-hoy-lista"></ul>
+
+        <button type="button" class="btn-toggle-custom" onclick="toggleFormularioReceta()">➕ Nueva receta</button>
+
+        <div id="formularioRecetaBox" style="display:none; margin-top:12px;">
+            <input type="text" id="recNombre" maxlength="200" placeholder="Nombre de la receta (ej: Sopa de verduras)">
+
+            <label style="font-size:12px; font-weight:600; color:var(--text-main);">Categoría</label>
+            <select id="recCategoria"></select>
+
+            <input type="number" id="recPorciones" min="1" step="1" value="1" placeholder="Porciones sugeridas (ej: 4)">
+
+            <div style="font-size:12px; font-weight:700; color:var(--text-main); margin:10px 0 6px;">Ingredientes</div>
+            <ul id="listaIngredientesReceta" class="comidas-hoy-lista" style="margin-bottom:10px;"></ul>
+            <div style="font-size:13px; font-weight:700; text-align:right; color:var(--color-brand); margin-bottom:10px;" id="recFaTotalTexto">Total: 0 mg FA</div>
+
+            <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; position:relative;">
+                <input type="text" id="recBuscador" placeholder="🔎 Buscar ingrediente por nombre..." oninput="buscarIngredienteReceta()" style="flex:1; margin:0;">
+                <ul id="recListaSugerencias" class="sugerencias-lista"></ul>
+            </div>
+            <div id="recIngredienteSeleccionadoBox" class="alimento-seleccionado" style="display:none;"></div>
+            <input type="number" id="recGramos" placeholder="Gramos / ml reales" min="0" style="display:none;">
+            <button type="button" id="recBtnAgregarIngrediente" onclick="agregarIngredienteAReceta()" style="display:none;">Agregar ingrediente</button>
+
+            <!-- Ingrediente que no está en la Tabla PKU: mismo estimado por proteína
+                 que ya usa "Mi alimento no está en la lista" del buscador principal. -->
+            <button type="button" class="btn-toggle-custom" onclick="toggleIngredienteCustomReceta()">➕ Mi ingrediente no está en la lista</button>
+            <div id="recIngredienteCustomBox" class="alimento-custom-box">
+                <div style="background:rgba(226,87,76,0.1); border-left:4px solid var(--color-red); border-radius:0 8px 8px 0; padding:10px; font-size:12px; color:#7b1a16;">
+                    <strong>⚠️ Importante:</strong> Los valores estimados aquí son aproximaciones basadas en contenido proteico y <strong>no reemplazan los valores oficiales</strong> de la Tabla PKU. Consulta siempre con tu nutricionista del INTA.
+                </div>
+                <label>Nombre del ingrediente</label>
+                <input type="text" id="recCustomNombre" maxlength="200" placeholder="Ej: Quinoa cocida">
+
+                <label>Grupo del alimento <span style="font-weight:normal; color:#95a5a6;">(afecta el cálculo de FA)</span></label>
+                <div class="grupo-btns">
+                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('farinaceo', this)">🌾 Farináceo / Cereal<br><small>×40 mg FA/g prot.</small></button>
+                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('verdura', this)">🥦 Verdura / Hortaliza<br><small>×33 mg FA/g prot.</small></button>
+                    <button type="button" class="grupo-btn" onclick="seleccionarGrupoIngredienteCustomReceta('fruta', this)">🍎 Fruta / Jugo<br><small>×26 mg FA/g prot.</small></button>
+                </div>
+
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <button type="button" class="grupo-btn activo" id="recCustomBtnGramos" onclick="setUnidadIngredienteCustomReceta('g')" style="flex:1;">⚖️ Gramos (g)</button>
+                    <button type="button" class="grupo-btn" id="recCustomBtnMl" onclick="setUnidadIngredienteCustomReceta('ml')" style="flex:1;">🥤 Mililitros (ml)</button>
+                </div>
+                <label>Proteína por 100<span id="recCustomUnidadLabel1">g</span> del envase (g)</label>
+                <input type="number" id="recCustomProteina" placeholder="Ej: 3.5" min="0" step="0.1" oninput="calcularPreviewIngredienteCustomReceta()">
+                <label>Cantidad que vas a usar en la receta (<span id="recCustomUnidadLabel2">g</span>)</label>
+                <input type="number" id="recCustomGramos" placeholder="Gramos reales en la pesa" min="0" oninput="calcularPreviewIngredienteCustomReceta()">
+
+                <div id="recCustomFaResult" class="custom-fa-result"></div>
+
+                <button type="button" onclick="agregarIngredienteCustomAReceta()" style="background:var(--color-brand); color:white; border:none; font-weight:bold; margin-top:6px;">✅ Agregar ingrediente estimado</button>
+                <button type="button" onclick="toggleIngredienteCustomReceta()" style="background:#7f8c8d; color:white; border:none; margin-top:4px;">Cancelar</button>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button type="button" onclick="guardarNuevaReceta()" style="background:var(--color-brand); color:white; border:none; font-weight:bold;">💾 Guardar receta</button>
+                <button type="button" onclick="cancelarFormularioReceta()" style="background:#e2e8f0; color:#475569; border:none;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
         <!-- Registro del Desglose diario -->
     <div class="comidas-hoy-box">
         <h3>📋 Comidas de Hoy</h3>
@@ -3705,6 +3773,7 @@
     let comidasHoy    = _lsJSON('pku_comidas_hoy');
     let historialDias = _lsJSON('pku_historial');
     let citasMedicas  = _lsJSON('pku_citas');
+    let misRecetas    = _lsJSON('pku_mis_recetas');
     // Cuántas citas pasadas mostrar antes de "ver más" — evita que la lista
     // crezca sin control en pantalla a medida que se acumulan citas viejas.
     let _citasPasadasMostrarTodas = false;
@@ -3715,6 +3784,7 @@
     window.comidasHoy = comidasHoy;
     window.historialDias = historialDias;
     window.citasMedicas = citasMedicas;
+    window.misRecetas = misRecetas;
     // Necesario para que el listener onSnapshot de historial pueda refrescar
     // el panel de detalle del calendario cuando llega un cambio de otro dispositivo.
     window.calDiaSeleccionado = null;
@@ -3725,6 +3795,7 @@
         renderizarComidasHoy();
         renderizarCalendario();
         renderizarCitas();
+        renderizarMisRecetas();
         mostrarFechaHoyEnHeader();
         actualizarDotNovedades();
         // Protegido: estas dos funciones tocan la API de Notification del
@@ -5296,6 +5367,413 @@
             actualizarPantalla();
             renderizarComidasHoy();
         }
+    }
+
+    // ===================== MIS RECETAS =====================
+    // Recetas propias de la familia: combinan varios alimentos de la Tabla PKU
+    // en una preparación reutilizable con FA total ya calculado. Distinto del
+    // Recetario oficial INTA (baseDatosRecetario/confirmarRegistroReceta) — acá
+    // el usuario arma su propia receta desde una búsqueda propia, sin tocar el
+    // buscador principal ni calcularFA().
+    let recetaDraft = null;             // {id, nombre, categoria, porciones, ingredientes:[]} mientras se crea/edita
+    let ingredienteRecetaActual = null; // alimento elegido en el buscador de ingredientes, antes de confirmar gramos
+
+    function nuevaRecetaDraftVacio() {
+        return { id: null, nombre: '', categoria: 'recetario', porciones: 1, ingredientes: [] };
+    }
+
+    function calcularFaTotalDraft() {
+        return recetaDraft ? recetaDraft.ingredientes.reduce((s, i) => s + (i.fa || 0), 0) : 0;
+    }
+
+    function poblarSelectCategoriaReceta() {
+        const sel = document.getElementById('recCategoria');
+        if (!sel || sel.options.length > 0) return;
+        Object.keys(CATEGORIAS).forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = CATEGORIAS[key].label;
+            sel.appendChild(opt);
+        });
+    }
+
+    function limpiarSeleccionIngredienteReceta() {
+        document.getElementById('recBuscador').value = '';
+        document.getElementById('recGramos').value = '';
+        document.getElementById('recGramos').style.display = 'none';
+        document.getElementById('recIngredienteSeleccionadoBox').style.display = 'none';
+        document.getElementById('recBtnAgregarIngrediente').style.display = 'none';
+        ingredienteRecetaActual = null;
+    }
+
+    function cerrarIngredienteCustomReceta() {
+        document.getElementById('recIngredienteCustomBox').classList.remove('visible');
+    }
+
+    function toggleFormularioReceta() {
+        const box = document.getElementById('formularioRecetaBox');
+        const abrir = box.style.display === 'none';
+        if (abrir) {
+            poblarSelectCategoriaReceta();
+            recetaDraft = nuevaRecetaDraftVacio();
+            document.getElementById('recNombre').value = '';
+            document.getElementById('recCategoria').value = 'recetario';
+            document.getElementById('recPorciones').value = 1;
+            limpiarSeleccionIngredienteReceta();
+            cerrarIngredienteCustomReceta();
+            renderizarIngredientesDraft();
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+            recetaDraft = null;
+        }
+    }
+
+    function cancelarFormularioReceta() {
+        document.getElementById('formularioRecetaBox').style.display = 'none';
+        cerrarIngredienteCustomReceta();
+        recetaDraft = null;
+        ingredienteRecetaActual = null;
+    }
+
+    function buscarIngredienteReceta() {
+        const texto = document.getElementById('recBuscador').value.trim().toLowerCase();
+        const lista = document.getElementById('recListaSugerencias');
+        lista.innerHTML = '';
+        if (texto.length < 2) { lista.style.display = 'none'; return; }
+
+        const resultados = baseDatosPKU
+            .map((item, idx) => ({ item, idx }))
+            .filter(({ item }) => item.nombre.toLowerCase().includes(texto))
+            // Ni prohibidos ni recetas del Recetario INTA — solo alimentos base,
+            // igual que hace el buscador principal.
+            .filter(({ item }) => item.tipo !== 'prohibido' && item.categoria !== 'recetario')
+            .slice(0, 30);
+
+        if (resultados.length === 0) {
+            lista.innerHTML = "<li style='cursor:default; color:#95a5a6;'>No se encontraron resultados.</li>";
+            lista.style.display = 'block';
+            return;
+        }
+        resultados.forEach(({ item, idx }) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${_esc(item.nombre)}</span>${esSoloHFA(item) ? '<span class="tag-alimento tag-hfa">⚠️ solo HFA</span>' : ''}`;
+            li.onclick = () => seleccionarIngredienteReceta(idx);
+            lista.appendChild(li);
+        });
+        lista.style.display = 'block';
+    }
+
+    function seleccionarIngredienteReceta(idx) {
+        ingredienteRecetaActual = baseDatosPKU[idx];
+        document.getElementById('recListaSugerencias').style.display = 'none';
+        document.getElementById('recBuscador').value = ingredienteRecetaActual.nombre;
+
+        const unidad = ingredienteRecetaActual.unidad === 'ml' ? 'ml' : 'g';
+        const box = document.getElementById('recIngredienteSeleccionadoBox');
+        box.style.display = 'block';
+        box.innerHTML = `${_esc(ingredienteRecetaActual.nombre)}<span class="medida-sugerida-texto">📏 ${ingredienteRecetaActual.medidaCasera} (${ingredienteRecetaActual.gramosPorcion}${unidad} ≈ ${ingredienteRecetaActual.faPorcion} mg FA)</span>`;
+
+        const grInput = document.getElementById('recGramos');
+        grInput.style.display = 'block';
+        grInput.placeholder = unidad === 'ml' ? 'Mililitros reales' : 'Gramos reales';
+        grInput.value = '';
+        document.getElementById('recBtnAgregarIngrediente').style.display = 'block';
+        grInput.focus();
+    }
+
+    function agregarIngredienteAReceta() {
+        if (!recetaDraft || !ingredienteRecetaActual) return;
+        const gramos = parseFloat(document.getElementById('recGramos').value);
+        if (!gramos || gramos <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        // faPorGramo se guarda aparte (no solo el fa ya redondeado) para que,
+        // si más adelante se edita el gramaje de este ingrediente, el nuevo FA
+        // se recalcule desde la proporción original del alimento — no desde un
+        // valor ya redondeado, que iría perdiendo precisión con cada edición.
+        const faPorGramo = ingredienteRecetaActual.faPorcion / ingredienteRecetaActual.gramosPorcion;
+        const fa = redondearFA(faPorGramo * gramos);
+        recetaDraft.ingredientes.push({
+            nombre: ingredienteRecetaActual.nombre,
+            gramos: Math.round(gramos * 10) / 10,
+            fa: fa,
+            unidad: ingredienteRecetaActual.unidad === 'ml' ? 'ml' : 'g',
+            faPorGramo: faPorGramo
+        });
+        renderizarIngredientesDraft();
+        limpiarSeleccionIngredienteReceta();
+    }
+
+    function quitarIngredienteDeReceta(idx) {
+        if (!recetaDraft) return;
+        recetaDraft.ingredientes.splice(idx, 1);
+        renderizarIngredientesDraft();
+    }
+
+    // ── Ingrediente de receta que no está en la Tabla PKU: mismo estimado por
+    // proteína que ya usa "Mi alimento no está en la lista" (agregarAlimentoCustom).
+    // Reutiliza MULTIPLICADORES_GRUPO/NOMBRES_GRUPO/redondearFA ya definidos arriba.
+    let recIngredienteCustomGrupo = null;
+    let recIngredienteCustomUnidad = 'g';
+
+    function toggleIngredienteCustomReceta() {
+        const box = document.getElementById('recIngredienteCustomBox');
+        box.classList.toggle('visible');
+        if (box.classList.contains('visible')) {
+            document.getElementById('recCustomNombre').value = '';
+            document.getElementById('recCustomProteina').value = '';
+            document.getElementById('recCustomGramos').value = '';
+            document.getElementById('recCustomFaResult').style.display = 'none';
+            document.querySelectorAll('#recIngredienteCustomBox .grupo-btns .grupo-btn').forEach(b => b.classList.remove('activo'));
+            recIngredienteCustomGrupo = null;
+            setUnidadIngredienteCustomReceta('g');
+            document.getElementById('recCustomNombre').focus();
+        }
+    }
+
+    function seleccionarGrupoIngredienteCustomReceta(grupo, btn) {
+        recIngredienteCustomGrupo = grupo;
+        document.querySelectorAll('#recIngredienteCustomBox .grupo-btns .grupo-btn').forEach(b => b.classList.remove('activo'));
+        btn.classList.add('activo');
+        calcularPreviewIngredienteCustomReceta();
+    }
+
+    function setUnidadIngredienteCustomReceta(unidad) {
+        recIngredienteCustomUnidad = unidad;
+        document.getElementById('recCustomBtnGramos').classList.toggle('activo', unidad === 'g');
+        document.getElementById('recCustomBtnMl').classList.toggle('activo', unidad === 'ml');
+        document.getElementById('recCustomUnidadLabel1').textContent = unidad;
+        document.getElementById('recCustomUnidadLabel2').textContent = unidad;
+        document.getElementById('recCustomGramos').placeholder = unidad === 'ml' ? 'Mililitros reales en el medidor' : 'Gramos reales en la pesa';
+        calcularPreviewIngredienteCustomReceta();
+    }
+
+    function calcularPreviewIngredienteCustomReceta() {
+        const resultDiv = document.getElementById('recCustomFaResult');
+        const gramos = parseFloat(document.getElementById('recCustomGramos').value);
+        const proteina = parseFloat(document.getElementById('recCustomProteina').value);
+        if (!recIngredienteCustomGrupo || !proteina || !gramos) { resultDiv.style.display = 'none'; return; }
+        const mult = MULTIPLICADORES_GRUPO[recIngredienteCustomGrupo];
+        const fa = redondearFA((proteina * mult * gramos) / 100);
+        resultDiv.innerHTML = `<strong>${fa} mg FA</strong> para ${gramos}${recIngredienteCustomUnidad} <span style="font-size:10px; color:#475569;">(estimado · ${NOMBRES_GRUPO[recIngredienteCustomGrupo]} ×${mult})</span>`;
+        resultDiv.style.display = 'block';
+    }
+
+    function agregarIngredienteCustomAReceta() {
+        if (!recetaDraft) return;
+        const nombre = document.getElementById('recCustomNombre').value.trim();
+        if (!nombre) { pkuToast('Ingresa el nombre del ingrediente.', 'toast-error'); return; }
+        if (!recIngredienteCustomGrupo) { pkuToast('Selecciona el grupo del alimento.', 'toast-error'); return; }
+        const proteina = parseFloat(document.getElementById('recCustomProteina').value);
+        if (!proteina) { pkuToast('Ingresa la proteína por 100g del envase.', 'toast-error'); return; }
+        const gramos = parseFloat(document.getElementById('recCustomGramos').value);
+        if (!gramos || gramos <= 0) { pkuToast('Ingresa la cantidad que vas a usar.', 'toast-error'); return; }
+
+        // Mismo cálculo que calcularCustomFA/agregarAlimentoCustom (modo "estimar"):
+        // fa = proteína × multiplicador_del_grupo × gramos / 100.
+        const mult = MULTIPLICADORES_GRUPO[recIngredienteCustomGrupo];
+        const faPorGramo = (proteina * mult) / 100;
+        const fa = redondearFA(faPorGramo * gramos);
+
+        recetaDraft.ingredientes.push({
+            nombre: nombre,
+            gramos: Math.round(gramos * 10) / 10,
+            fa: fa,
+            unidad: recIngredienteCustomUnidad,
+            faPorGramo: faPorGramo,
+            estimado: true
+        });
+        renderizarIngredientesDraft();
+        toggleIngredienteCustomReceta();
+    }
+
+    // Editar en vivo la cantidad de un ingrediente ya agregado al borrador —
+    // recalcula su FA (desde faPorGramo, no desde el fa ya redondeado) y el
+    // total de la receta, sin re-renderizar toda la lista (perdería el foco
+    // del input mientras el usuario todavía está escribiendo).
+    function actualizarGramosIngredienteReceta(idx, valorStr) {
+        if (!recetaDraft) return;
+        const ing = recetaDraft.ingredientes[idx];
+        if (!ing) return;
+        const gramos = parseFloat(valorStr);
+        if (!gramos || gramos <= 0) return;
+        ing.gramos = Math.round(gramos * 10) / 10;
+        ing.fa = redondearFA(ing.faPorGramo * gramos);
+        const faEl = document.getElementById(`recIngFa-${idx}`);
+        if (faEl) faEl.textContent = `${ing.fa} mg FA`;
+        document.getElementById('recFaTotalTexto').textContent = `Total: ${Math.round(calcularFaTotalDraft())} mg FA`;
+    }
+
+    function renderizarIngredientesDraft() {
+        const lista = document.getElementById('listaIngredientesReceta');
+        lista.innerHTML = '';
+        if (!recetaDraft || recetaDraft.ingredientes.length === 0) {
+            lista.innerHTML = "<li style='padding:6px 0; font-size:12px; color:#95a5a6; text-align:center; list-style:none;'>Aún no agregaste ingredientes.</li>";
+        } else {
+            recetaDraft.ingredientes.forEach((ing, idx) => {
+                const li = document.createElement('li');
+                li.className = 'comida-item';
+                li.innerHTML = `
+                    <div class="fila-alimento">
+                        <div style="display:flex; flex-direction:column; gap:3px; min-width:0; flex:1;">
+                            <strong style="white-space:normal; line-height:1.3;">${_esc(ing.nombre)}${ing.estimado ? '<span class="badge-estimado">Estimado</span>' : ''}</strong>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <input type="number" min="0" step="0.1" value="${ing.gramos}" oninput="actualizarGramosIngredienteReceta(${idx}, this.value)" style="width:64px; padding:4px 6px; margin:0; font-size:12px;">
+                                <span class="comida-detalles">${ing.unidad || 'g'} · <strong id="recIngFa-${idx}">${ing.fa} mg FA</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-del-item" onclick="quitarIngredienteDeReceta(${idx})">❌</button>`;
+                lista.appendChild(li);
+            });
+        }
+        document.getElementById('recFaTotalTexto').textContent = `Total: ${Math.round(calcularFaTotalDraft())} mg FA`;
+    }
+
+    function guardarNuevaReceta() {
+        if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para continuar.', 'toast-warn'); return; }
+        if (!recetaDraft) return;
+
+        const nombre = document.getElementById('recNombre').value.trim();
+        const categoria = document.getElementById('recCategoria').value || 'recetario';
+        const porciones = parseInt(document.getElementById('recPorciones').value, 10);
+
+        if (!nombre) { pkuToast('Ingresa un nombre para la receta.', 'toast-error'); return; }
+        if (!porciones || porciones < 1) { pkuToast('Ingresa una cantidad válida de porciones.', 'toast-error'); return; }
+        if (recetaDraft.ingredientes.length === 0) { pkuToast('Agrega al menos un ingrediente.', 'toast-error'); return; }
+
+        const faTotal = redondearFA(calcularFaTotalDraft());
+        const esEdicion = !!recetaDraft.id;
+        const receta = {
+            id: esEdicion ? recetaDraft.id : (Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
+            nombre: nombre,
+            categoria: categoria,
+            porciones: porciones,
+            ingredientes: recetaDraft.ingredientes,
+            faTotal: faTotal
+        };
+        // Igual que window.idUltimaCitaCreada: misRecetas no se reordena, pero
+        // en edición "la última del array" no es necesariamente la que se tocó.
+        window.idUltimaRecetaGuardada = receta.id;
+
+        const misRecetasNueva = esEdicion
+            ? misRecetas.map(r => r.id === receta.id ? receta : r)
+            : [...misRecetas, receta];
+
+        if (!_lsSet('pku_mis_recetas', JSON.stringify(misRecetasNueva))) {
+            pkuToast('⚠️ No se pudo guardar la receta — espacio de almacenamiento lleno. Libera espacio en el dispositivo e intenta de nuevo.', 'toast-error', 6000);
+            return;
+        }
+        misRecetas = misRecetasNueva;
+
+        document.getElementById('formularioRecetaBox').style.display = 'none';
+        recetaDraft = null;
+        renderizarMisRecetas();
+        pkuToast(esEdicion ? '✅ Receta actualizada.' : '✅ Receta guardada.', 'toast-ok');
+    }
+
+    function editarReceta(id) {
+        const receta = misRecetas.find(r => String(r.id) === String(id));
+        if (!receta) return;
+        poblarSelectCategoriaReceta();
+        recetaDraft = {
+            id: receta.id,
+            nombre: receta.nombre,
+            categoria: receta.categoria,
+            porciones: receta.porciones,
+            ingredientes: receta.ingredientes.map(i => ({ ...i }))
+        };
+        document.getElementById('recNombre').value = receta.nombre;
+        document.getElementById('recCategoria').value = receta.categoria || 'recetario';
+        document.getElementById('recPorciones').value = receta.porciones;
+        limpiarSeleccionIngredienteReceta();
+        cerrarIngredienteCustomReceta();
+        renderizarIngredientesDraft();
+        document.getElementById('formularioRecetaBox').style.display = 'block';
+        document.getElementById('misRecetasBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function eliminarRecetaIndividual(id) {
+        if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para continuar.', 'toast-warn'); return; }
+        const receta = misRecetas.find(r => String(r.id) === String(id));
+        if (!receta) return;
+        if (await pkuConfirm(`¿Eliminar la receta "${_esc(receta.nombre)}"?`, { okLabel: 'Eliminar', danger: true })) {
+            misRecetas = misRecetas.filter(r => String(r.id) !== String(id));
+            localStorage.setItem('pku_mis_recetas', JSON.stringify(misRecetas));
+            renderizarMisRecetas();
+        }
+    }
+
+    async function registrarRecetaComoComida(id) {
+        if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para registrar comidas.', 'toast-warn'); return; }
+        const receta = misRecetas.find(r => String(r.id) === String(id));
+        if (!receta) return;
+
+        // Igual que calcularFA: cerrar el día anterior primero si corresponde,
+        // para que esta comida no se mezcle con el registro de ayer.
+        (window.verificarCambioDeDiaAutomatico || verificarCambioDeDiaAutomatico)();
+
+        const respuesta = await pkuPrompt(`¿Cuántas porciones de "${receta.nombre}" comiste? (la receta rinde ${receta.porciones})`, 1);
+        if (respuesta === null) return;
+        const porcionesConsumidas = parseFloat(respuesta);
+        if (!porcionesConsumidas || porcionesConsumidas <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+
+        const fa = redondearFA((receta.faTotal * porcionesConsumidas) / receta.porciones);
+        const nuevaComida = {
+            id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            nombre: receta.nombre,
+            gramos: Math.round(porcionesConsumidas * 10) / 10,
+            fa: fa,
+            unidad: 'porción',
+            categoria: receta.categoria || 'recetario',
+            origenRecetaId: receta.id
+        };
+
+        const comidasHoyNueva = [...comidasHoy, nuevaComida];
+        if (!_lsSet('pku_comidas_hoy', JSON.stringify(comidasHoyNueva))) {
+            pkuToast('⚠️ No se pudo guardar la comida — espacio de almacenamiento lleno. Libera espacio en el dispositivo e intenta de nuevo.', 'toast-error', 6000);
+            return;
+        }
+        comidasHoy = comidasHoyNueva;
+        consumidoHoy += fa;
+        _lsSet('pku_consumido', consumidoHoy);
+
+        actualizarPantalla();
+        renderizarComidasHoy();
+        pkuToast(`✅ "${receta.nombre}" agregada a Comidas de Hoy.`, 'toast-ok');
+    }
+
+    function renderizarMisRecetas() {
+        const listaUI = document.getElementById('listaMisRecetas');
+        if (!listaUI) return;
+        listaUI.innerHTML = '';
+        if (misRecetas.length === 0) {
+            listaUI.innerHTML = "<li style='padding:8px 0; font-size:13px; color:#95a5a6; text-align:center; list-style:none;'>Aún no has creado ninguna receta.</li>";
+            return;
+        }
+        misRecetas.forEach(receta => {
+            const li = document.createElement('li');
+            li.className = 'comida-item';
+            li.innerHTML = `
+                <div class="fila-alimento">
+                    ${obtenerIconoHTML(receta.categoria || 'recetario', 26)}
+                    <div style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;">
+                        <strong style="white-space:normal; line-height:1.3;">${_esc(receta.nombre)}</strong>
+                        <span class="comida-detalles">${receta.porciones} porción(es) · ${receta.ingredientes.length} ingrediente(s) · <strong>${receta.faTotal} mg FA</strong></span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:4px; flex-shrink:0;">
+                    <button class="btn-del-item" title="Registrar hoy" onclick="registrarRecetaComoComida('${receta.id}')">🍽️</button>
+                    <button class="btn-del-item" title="Editar" onclick="editarReceta('${receta.id}')">✏️</button>
+                    <button class="btn-del-item" title="Eliminar" onclick="eliminarRecetaIndividual('${receta.id}')">❌</button>
+                </div>`;
+            listaUI.appendChild(li);
+        });
     }
 
 
@@ -7358,6 +7836,10 @@
         renderizarCitas();
         try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (listener tiempo real, no crítico):', e); }
     };
+    window.actualizarRecetasDesdeFirestore = function(recetas) {
+        misRecetas = recetas;
+        renderizarMisRecetas();
+    };
 </script>
 
 <!-- ===== FIREBASE ===== -->
@@ -8761,6 +9243,44 @@
         }
     };
 
+    // ---- GUARDAR RECETA INDIVIDUAL (Mis Recetas) ----
+    window.guardarRecetaEnFirestore = async function(receta) {
+        if (modoOffline) return;
+        if (typeof _modoDemo !== 'undefined' && _modoDemo) return;
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const bpRec = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
+            await setDoc(
+                doc(db, bpRec + '/recetas/' + String(receta.id)),
+                { ...receta, _ts: serverTimestamp() }
+            );
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al guardar receta en Firestore (no es problema de conexión):', e);
+        }
+    };
+
+    // ---- BORRAR RECETA INDIVIDUAL (Mis Recetas) ----
+    window.borrarRecetaDeFirestore = async function(idReceta) {
+        if (modoOffline) return;
+        if (typeof _modoDemo !== 'undefined' && _modoDemo) return;
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const bpRecB = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
+            const ref = doc(db, bpRecB + '/recetas/' + String(idReceta));
+            const snap = await getDoc(ref);
+            // FIX INTEGRIDAD: ver nota en borrarComidaDeFirestore — no esperar
+            // el archivado en papelera para no bloquear el borrado real offline.
+            if (snap.exists()) archivarEnPapelera(user.uid, 'recetas', [snap]);
+            await deleteDoc(ref);
+        } catch(e) {
+            // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
+            console.error('Error real al borrar receta en Firestore (no es problema de conexión):', e);
+        }
+    };
+
     // ---- GUARDAR CONFIG (meta diaria, ultimoDia) ----
     window.guardarConfigEnFirestore = async function() {
         if (modoOffline) return;
@@ -9140,6 +9660,16 @@
             }
         }, err => console.error('Listener de citas en tiempo real dejó de funcionar:', err));
 
+        // Escuchar cambios en Mis Recetas
+        const unsubRecetas = onSnapshot(collection(db, baseLP + '/recetas'), snap => {
+            const recetas = [];
+            snap.forEach(d => recetas.push(d.data()));
+            localStorage.setItem('pku_mis_recetas', JSON.stringify(recetas));
+            if (typeof window.actualizarRecetasDesdeFirestore === 'function') {
+                window.actualizarRecetasDesdeFirestore(recetas);
+            }
+        }, err => console.error('Listener de recetas en tiempo real dejó de funcionar:', err));
+
         // Escuchar cambios en config
         const unsubConfig = onSnapshot(doc(db, baseLP + '/config/principal'), snap => {
             if (!snap.exists()) return;
@@ -9156,7 +9686,7 @@
             if (typeof window.actualizarPantalla === 'function') window.actualizarPantalla();
         }, err => console.error('Listener de config en tiempo real dejó de funcionar:', err));
 
-        unsubscribeListeners = [unsubComidas, unsubHistorial, unsubCitas, unsubConfig];
+        unsubscribeListeners = [unsubComidas, unsubHistorial, unsubCitas, unsubRecetas, unsubConfig];
     }
 
     // ---- MIGRAR LOCALSTORAGE → FIRESTORE (solo al registrarse) ----
@@ -9652,6 +10182,43 @@
             if (!sigueExistiendo) {
                 window.borrarCitaDeFirestore(id);
             }
+        };
+
+        // guardarNuevaReceta → guardar receta (Mis Recetas), crear o editar
+        const _guardarReceta = window.guardarNuevaReceta;
+        if (_guardarReceta) window.guardarNuevaReceta = function(...args) {
+            const r = _guardarReceta.apply(this, args);
+            const recetas = _lsJSON('pku_mis_recetas', []);
+            const guardada = recetas.find(rec => rec.id === window.idUltimaRecetaGuardada);
+            if (guardada) window.guardarRecetaEnFirestore(guardada);
+            return r;
+        };
+
+        // eliminarRecetaIndividual → borrar receta de Firestore
+        const _eliminarReceta = window.eliminarRecetaIndividual;
+        if (_eliminarReceta) window.eliminarRecetaIndividual = async function(id, ...args) {
+            // IMPORTANTE: await — eliminarRecetaIndividual es async (tiene pkuConfirm).
+            await _eliminarReceta.apply(this, [id, ...args]);
+            const recetasDespues = _lsJSON('pku_mis_recetas', []);
+            const sigueExistiendo = recetasDespues.some(r => String(r.id) === String(id));
+            if (!sigueExistiendo) {
+                window.borrarRecetaDeFirestore(id);
+            }
+        };
+
+        // registrarRecetaComoComida → registrar una receta guardada como comida de hoy
+        // (mismo mecanismo que calcularFA: no toca la colección "recetas", solo agrega
+        // una comida nueva a partir del FA total ya calculado de la receta)
+        const _registrarReceta = window.registrarRecetaComoComida;
+        if (_registrarReceta) window.registrarRecetaComoComida = async function(...args) {
+            const r = await _registrarReceta.apply(this, args);
+            const comidas = _lsJSON('pku_comidas_hoy', []);
+            const ultima = comidas[comidas.length - 1];
+            if (ultima && ultima.origenRecetaId) {
+                window.guardarComidaEnFirestore(ultima);
+                window.registrarEnLog('agregada', ultima, fechaHoyLocal());
+            }
+            return r;
         };
 
         // confirmarAgregarEnCalendario → agregar comida desde el calendario

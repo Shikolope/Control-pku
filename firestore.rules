@@ -18,6 +18,11 @@ rules_version = '2';
 //       comidas/{comidaId}     → id, nombre, gramos, fa, unidad, categoria
 //       historial/{fecha}      → fecha, consumido, meta, comidas[]
 //       citas/{citaId}         → id, texto, fechaTexto, rawDateTime
+//       recetas/{recetaId}     → id, nombre, categoria, porciones, ingredientes[], faTotal
+//                                (recetas propias de la familia — "Mis Recetas", combinan
+//                                varios alimentos de la Tabla PKU; no confundir con el
+//                                Recetario oficial INTA, que es estático y vive embebido
+//                                en index.html, no en Firestore)
 //       log/{logId}            → auditoría de cambios del perfil (append-only)
 //       notificaciones/{id}    → mensaje, leida, vistaEn, _ts, profesionalUid, nombrePaciente
 //     papelera/{itemId}        → soft-delete (write-only desde la app)
@@ -172,6 +177,21 @@ service cloud.firestore {
           allow create, update: if esPropietario(uid)
             && strValido(request.resource.data.texto, 200)
             && strValido(request.resource.data.rawDateTime, 25);
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── MIS RECETAS (recetas propias, combinan alimentos de la tabla) ──
+        // Datos de familia, mismo criterio que comidas/citas: el profesional
+        // NO tiene acceso (solo puede tocar 'meta' del perfil/config).
+        match /recetas/{recetaId} {
+          allow read: if esPropietario(uid);
+
+          allow create, update: if esPropietario(uid)
+            && strValido(request.resource.data.nombre, 200)
+            && enRango(request.resource.data.faTotal, 0, 999999)
+            && enRango(request.resource.data.porciones, 1, 999)
+            && request.resource.data.ingredientes is list;
 
           allow delete: if esPropietario(uid);
         }
