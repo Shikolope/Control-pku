@@ -23,6 +23,11 @@ rules_version = '2';
 //                                varios alimentos de la Tabla PKU; no confundir con el
 //                                Recetario oficial INTA, que es estático y vive embebido
 //                                en index.html, no en Firestore)
+//       planSemanal/actual     → { dias: { lunes: {...6 bloques}, martes: {...}, ... } }
+//                                (menú de referencia RECURRENTE, no atado a fecha calendario
+//                                — documento único que se sobreescribe entero. Se lee UNA
+//                                sola vez al iniciar sesión, sin onSnapshot, a propósito
+//                                para no sumar cuota de lecturas — ver CLAUDE.md)
 //       log/{logId}            → auditoría de cambios del perfil (append-only)
 //       notificaciones/{id}    → mensaje, leida, vistaEn, _ts, profesionalUid, nombrePaciente
 //     papelera/{itemId}        → soft-delete (write-only desde la app)
@@ -192,6 +197,20 @@ service cloud.firestore {
             && enRango(request.resource.data.faTotal, 0, 999999)
             && enRango(request.resource.data.porciones, 1, 999)
             && request.resource.data.ingredientes is list;
+
+          allow delete: if esPropietario(uid);
+        }
+
+        // ── PLAN SEMANAL (menú de referencia recurrente, documento único) ──
+        // Mismo criterio que recetas: datos de familia, sin acceso del
+        // profesional. docId fijo 'actual' — no es una colección que crece
+        // con el tiempo, se sobreescribe entera cada vez que se edita.
+        match /planSemanal/{docId} {
+          allow read: if esPropietario(uid);
+
+          allow create, update: if esPropietario(uid)
+            && docId == 'actual'
+            && request.resource.data.dias is map;
 
           allow delete: if esPropietario(uid);
         }

@@ -2181,6 +2181,42 @@
         </div>
     </div>
 
+    <!-- Sección: Plan Semanal (menú de referencia recurrente, no atado a fecha) -->
+    <div class="calculadora-box" id="planSemanalBox">
+        <h3>🗓️ Plan Semanal</h3>
+        <p style="font-size:11.5px; color:var(--text-muted); margin:-6px 0 12px;">Arma un menú de referencia para cada día de la semana (se repite todas las semanas). Cuando llegue el día, usa "Registrar hoy" para copiarlo directo a Comidas de Hoy.</p>
+
+        <div id="planDiasSelector" style="display:flex; gap:4px; margin-bottom:12px;"></div>
+        <div id="planBloquesContainer"></div>
+
+        <div id="planItemEditorBox" style="display:none; margin-top:10px; padding:10px; border:1.5px dashed var(--color-brand); border-radius:12px;">
+            <div style="font-size:12px; font-weight:700; margin-bottom:8px;" id="planItemEditorTitulo">Agregando a: —</div>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button type="button" class="grupo-btn activo" id="planModoAlimentoBtn" onclick="cambiarModoItemPlan('alimento')" style="flex:1;">🔎 Alimento</button>
+                <button type="button" class="grupo-btn" id="planModoRecetaBtn" onclick="cambiarModoItemPlan('receta')" style="flex:1;">🧑‍🍳 Mis Recetas</button>
+            </div>
+
+            <div id="planAlimentoModoBox">
+                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; position:relative;">
+                    <input type="text" id="planBuscador" placeholder="🔎 Buscar alimento por nombre..." oninput="buscarItemPlan()" style="flex:1; margin:0;">
+                    <ul id="planListaSugerencias" class="sugerencias-lista"></ul>
+                </div>
+                <div id="planAlimentoSeleccionadoBox" class="alimento-seleccionado" style="display:none;"></div>
+                <div id="planGramosRow" style="display:none; align-items:center; gap:8px;">
+                    <input type="number" id="planGramos" placeholder="Cantidad" min="0" style="flex:1; margin:0;">
+                    <span id="planGramosUnidadBadge" style="font-size:13px; font-weight:700; color:var(--color-brand); background:var(--color-brand-light); padding:11px 14px; border-radius:10px; white-space:nowrap; flex-shrink:0;">g</span>
+                </div>
+                <button type="button" id="planBtnAgregarAlimento" onclick="agregarAlimentoABloquePlan()" style="display:none;">Agregar</button>
+            </div>
+
+            <div id="planRecetaModoBox" style="display:none;">
+                <ul id="planListaMisRecetas" class="comidas-hoy-lista"></ul>
+            </div>
+
+            <button type="button" onclick="cerrarEditorItemPlan()" style="background:#e2e8f0; color:#475569; border:none; margin-top:6px;">Cerrar</button>
+        </div>
+    </div>
+
         <!-- Registro del Desglose diario -->
     <div class="comidas-hoy-box">
         <h3>📋 Comidas de Hoy</h3>
@@ -3762,6 +3798,9 @@
     let historialDias = _lsJSON('pku_historial');
     let citasMedicas  = _lsJSON('pku_citas');
     let misRecetas    = _lsJSON('pku_mis_recetas');
+    // planSemanalVacio() está definida más abajo en el archivo, pero al ser
+    // una function declaration (hoisted) ya es invocable acá.
+    let planSemanal   = _lsJSON('pku_plan_semanal', null) || planSemanalVacio();
     // Cuántas citas pasadas mostrar antes de "ver más" — evita que la lista
     // crezca sin control en pantalla a medida que se acumulan citas viejas.
     let _citasPasadasMostrarTodas = false;
@@ -3773,6 +3812,7 @@
     window.historialDias = historialDias;
     window.citasMedicas = citasMedicas;
     window.misRecetas = misRecetas;
+    window.planSemanal = planSemanal;
     // Necesario para que el listener onSnapshot de historial pueda refrescar
     // el panel de detalle del calendario cuando llega un cambio de otro dispositivo.
     window.calDiaSeleccionado = null;
@@ -3784,6 +3824,7 @@
         renderizarCalendario();
         renderizarCitas();
         renderizarMisRecetas();
+        renderizarPlanSemanal();
         mostrarFechaHoyEnHeader();
         actualizarDotNovedades();
         // Protegido: estas dos funciones tocan la API de Notification del
@@ -5713,6 +5754,307 @@
                 </div>`;
             listaUI.appendChild(li);
         });
+    }
+
+    // ===================== PLAN SEMANAL =====================
+    // Menú de referencia RECURRENTE (no atado a una fecha calendario — se
+    // repite todas las semanas). A propósito NO tiene onSnapshot en tiempo
+    // real (se carga una sola vez en cargarDesdeFirestore, ver módulo
+    // Firebase) para no sumar un 6to listener permanente y mantener bajo el
+    // consumo de cuota de Firestore.
+    const DIAS_PLAN = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    const NOMBRES_DIAS_PLAN = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' };
+    const BLOQUES_PLAN = [
+        { key: 'desayuno', emoji: '🌅', label: 'Desayuno' },
+        { key: 'colacion_manana', emoji: '🍎', label: 'Colación mañana' },
+        { key: 'almuerzo', emoji: '🍽️', label: 'Almuerzo' },
+        { key: 'colacion_tarde', emoji: '🥪', label: 'Colación tarde' },
+        { key: 'cena', emoji: '🌙', label: 'Cena' },
+        { key: 'otros', emoji: '📌', label: 'Otros' },
+    ];
+
+    function planSemanalVacio() {
+        const dias = {};
+        DIAS_PLAN.forEach(d => {
+            dias[d] = {};
+            BLOQUES_PLAN.forEach(b => { dias[d][b.key] = []; });
+        });
+        return { dias };
+    }
+    window.planSemanalVacio = planSemanalVacio;
+
+    // getDay(): 0=domingo..6=sábado. DIAS_PLAN empieza en lunes, igual que
+    // ya hace renderizarCalendario() con su conversión de diaSemana.
+    function nombreDiaHoy() {
+        const idx = new Date().getDay();
+        return idx === 0 ? 'domingo' : DIAS_PLAN[idx - 1];
+    }
+
+    let diaPlanActivo = nombreDiaHoy();
+    let planItemEditorActual = null; // { diaKey, bloqueKey } — a qué bloque se está agregando
+    let planItemModo = 'alimento';   // 'alimento' | 'receta' — modo activo del picker compartido
+    let alimentoPlanActual = null;   // alimento elegido en el buscador del picker, antes de confirmar gramos
+
+    function guardarPlanSemanalLocal() {
+        _lsSet('pku_plan_semanal', JSON.stringify(planSemanal));
+    }
+
+    function seleccionarDiaPlan(diaKey) {
+        diaPlanActivo = diaKey;
+        cerrarEditorItemPlan();
+        renderizarPlanSemanal();
+    }
+
+    function renderizarPlanSemanal() {
+        const selector = document.getElementById('planDiasSelector');
+        if (!selector) return;
+        const hoy = nombreDiaHoy();
+
+        selector.innerHTML = DIAS_PLAN.map(d => `
+            <button type="button" class="grupo-btn ${d === diaPlanActivo ? 'activo' : ''}" style="flex:1; padding:8px 2px; font-size:11px; ${d === hoy ? 'border-color:var(--color-brand);' : ''}" onclick="seleccionarDiaPlan('${d}')">
+                ${NOMBRES_DIAS_PLAN[d].slice(0, 1)}${d === hoy ? '<br><span style="font-size:8px;">hoy</span>' : ''}
+            </button>
+        `).join('');
+
+        const cont = document.getElementById('planBloquesContainer');
+        if (!cont) return;
+        const datosDia = (planSemanal.dias && planSemanal.dias[diaPlanActivo]) || {};
+
+        const bloquesHTML = BLOQUES_PLAN.map(b => {
+            const items = datosDia[b.key] || [];
+            const total = items.reduce((s, i) => s + (i.fa || 0), 0);
+            const itemsHTML = items.length === 0
+                ? '<li style="padding:4px 0; font-size:11.5px; color:#95a5a6; list-style:none;">Sin ítems.</li>'
+                : items.map((it, idx) => `
+                    <li class="comida-item" style="padding:6px 0;">
+                        <div class="fila-alimento">
+                            <div style="display:flex; flex-direction:column; gap:1px; min-width:0; flex:1;">
+                                <span style="font-size:12.5px; font-weight:600;">${_esc(it.nombre)}</span>
+                                <span class="comida-detalles">${it.gramos}${it.unidad || 'g'} · ${it.fa} mg FA</span>
+                            </div>
+                        </div>
+                        <button class="btn-del-item" onclick="quitarItemDeBloquePlan('${diaPlanActivo}','${b.key}',${idx})">❌</button>
+                    </li>`).join('');
+            const mostrarRegistrar = diaPlanActivo === hoy && items.length > 0;
+            return `
+                <div style="border:1px solid var(--border-color); border-radius:12px; padding:10px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:13px; font-weight:700;">${b.emoji} ${b.label}</span>
+                        <span style="font-size:11.5px; font-weight:700; color:var(--color-brand);">${Math.round(total)} mg FA</span>
+                    </div>
+                    <ul class="comidas-hoy-lista">${itemsHTML}</ul>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                        <button type="button" class="btn-toggle-custom" style="flex:1; margin:0;" onclick="abrirEditorItemPlan('${diaPlanActivo}','${b.key}')">➕ Agregar</button>
+                        ${mostrarRegistrar ? `<button type="button" style="flex-shrink:0; background:var(--color-brand); color:white; border:none; border-radius:10px; padding:0 14px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="registrarBloquePlanComoComidas('${diaPlanActivo}','${b.key}')">🍽️ Registrar hoy</button>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+
+        cont.innerHTML = `<div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px;">${NOMBRES_DIAS_PLAN[diaPlanActivo]}${diaPlanActivo === hoy ? ' (hoy)' : ''}</div>${bloquesHTML}`;
+    }
+
+    // ── Panel compartido de "agregar ítem" (un solo picker, reutilizado por
+    // los 6 bloques del día activo — evita repetir 6 buscadores en pantalla) ──
+    function abrirEditorItemPlan(diaKey, bloqueKey) {
+        planItemEditorActual = { diaKey, bloqueKey };
+        const bloque = BLOQUES_PLAN.find(b => b.key === bloqueKey);
+        document.getElementById('planItemEditorTitulo').textContent = `Agregando a: ${bloque.emoji} ${bloque.label} (${NOMBRES_DIAS_PLAN[diaKey]})`;
+        limpiarSeleccionItemPlan();
+        cambiarModoItemPlan('alimento');
+        const box = document.getElementById('planItemEditorBox');
+        box.style.display = 'block';
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function cerrarEditorItemPlan() {
+        planItemEditorActual = null;
+        const box = document.getElementById('planItemEditorBox');
+        if (box) box.style.display = 'none';
+    }
+
+    function cambiarModoItemPlan(modo) {
+        planItemModo = modo;
+        document.getElementById('planModoAlimentoBtn').classList.toggle('activo', modo === 'alimento');
+        document.getElementById('planModoRecetaBtn').classList.toggle('activo', modo === 'receta');
+        document.getElementById('planAlimentoModoBox').style.display = modo === 'alimento' ? 'block' : 'none';
+        document.getElementById('planRecetaModoBox').style.display = modo === 'receta' ? 'block' : 'none';
+        if (modo === 'receta') renderizarListaMisRecetasPlan();
+    }
+
+    function limpiarSeleccionItemPlan() {
+        document.getElementById('planBuscador').value = '';
+        document.getElementById('planListaSugerencias').style.display = 'none';
+        document.getElementById('planAlimentoSeleccionadoBox').style.display = 'none';
+        document.getElementById('planGramosRow').style.display = 'none';
+        document.getElementById('planGramos').value = '';
+        document.getElementById('planBtnAgregarAlimento').style.display = 'none';
+        alimentoPlanActual = null;
+    }
+
+    function buscarItemPlan() {
+        const texto = document.getElementById('planBuscador').value.trim().toLowerCase();
+        const lista = document.getElementById('planListaSugerencias');
+        lista.innerHTML = '';
+        if (texto.length < 2) { lista.style.display = 'none'; return; }
+
+        const resultados = baseDatosPKU
+            .map((item, idx) => ({ item, idx }))
+            .filter(({ item }) => item.nombre.toLowerCase().includes(texto))
+            .filter(({ item }) => item.tipo !== 'prohibido' && item.categoria !== 'recetario')
+            .slice(0, 30);
+
+        if (resultados.length === 0) {
+            lista.innerHTML = "<li style='cursor:default; color:#95a5a6;'>No se encontraron resultados.</li>";
+            lista.style.display = 'block';
+            return;
+        }
+        resultados.forEach(({ item, idx }) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${_esc(item.nombre)}</span>`;
+            li.onclick = () => seleccionarAlimentoPlan(idx);
+            lista.appendChild(li);
+        });
+        lista.style.display = 'block';
+    }
+
+    function seleccionarAlimentoPlan(idx) {
+        alimentoPlanActual = baseDatosPKU[idx];
+        document.getElementById('planListaSugerencias').style.display = 'none';
+        document.getElementById('planBuscador').value = alimentoPlanActual.nombre;
+
+        const unidad = alimentoPlanActual.unidad === 'ml' ? 'ml' : 'g';
+        const box = document.getElementById('planAlimentoSeleccionadoBox');
+        box.style.display = 'block';
+        box.innerHTML = `${_esc(alimentoPlanActual.nombre)}<span class="medida-sugerida-texto">📏 ${alimentoPlanActual.medidaCasera} (${alimentoPlanActual.gramosPorcion}${unidad} ≈ ${alimentoPlanActual.faPorcion} mg FA)</span>`;
+
+        document.getElementById('planGramosRow').style.display = 'flex';
+        const grInput = document.getElementById('planGramos');
+        grInput.placeholder = unidad === 'ml' ? 'Mililitros reales' : 'Gramos reales';
+        grInput.value = '';
+        document.getElementById('planGramosUnidadBadge').textContent = unidad === 'ml' ? '🥤 ml' : '⚖️ g';
+        document.getElementById('planBtnAgregarAlimento').style.display = 'block';
+        grInput.focus();
+    }
+
+    function agregarAlimentoABloquePlan() {
+        if (!planItemEditorActual || !alimentoPlanActual) return;
+        const gramos = parseFloat(document.getElementById('planGramos').value);
+        if (!gramos || gramos <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        const fa = redondearFA((alimentoPlanActual.faPorcion * gramos) / alimentoPlanActual.gramosPorcion);
+        const item = {
+            nombre: alimentoPlanActual.nombre,
+            gramos: Math.round(gramos * 10) / 10,
+            fa: fa,
+            unidad: alimentoPlanActual.unidad === 'ml' ? 'ml' : 'g',
+            categoria: obtenerCategoria(alimentoPlanActual)
+        };
+        const { diaKey, bloqueKey } = planItemEditorActual;
+        planSemanal.dias[diaKey][bloqueKey].push(item);
+        guardarPlanSemanalLocal();
+        renderizarPlanSemanal();
+        limpiarSeleccionItemPlan();
+        pkuToast(`✅ ${item.nombre} agregado al plan.`, 'toast-ok');
+    }
+
+    function renderizarListaMisRecetasPlan() {
+        const lista = document.getElementById('planListaMisRecetas');
+        if (!lista) return;
+        if (misRecetas.length === 0) {
+            lista.innerHTML = "<li style='padding:8px 0; font-size:12px; color:#95a5a6; text-align:center; list-style:none;'>Aún no tienes recetas propias. Créalas en \"Mis Recetas\".</li>";
+            return;
+        }
+        lista.innerHTML = '';
+        misRecetas.forEach(receta => {
+            const li = document.createElement('li');
+            li.className = 'comida-item';
+            li.style.cursor = 'pointer';
+            li.innerHTML = `
+                <div class="fila-alimento">
+                    <div style="display:flex; flex-direction:column; gap:1px; min-width:0; flex:1;">
+                        <span style="font-size:12.5px; font-weight:600;">${_esc(receta.nombre)}</span>
+                        <span class="comida-detalles">${receta.faTotal} mg FA · ${receta.porciones} porc.</span>
+                    </div>
+                </div>`;
+            li.onclick = () => agregarRecetaABloquePlan(receta.id);
+            lista.appendChild(li);
+        });
+    }
+
+    async function agregarRecetaABloquePlan(recetaId) {
+        if (!planItemEditorActual) return;
+        const receta = misRecetas.find(r => String(r.id) === String(recetaId));
+        if (!receta) return;
+
+        const respuesta = await pkuPrompt(`¿Cuántas porciones de "${receta.nombre}" vas a planificar? (la receta rinde ${receta.porciones})`, 1);
+        if (respuesta === null) return;
+        const porciones = parseFloat(respuesta);
+        if (!porciones || porciones <= 0) {
+            pkuToast('Por favor, ingresa una cantidad válida.', 'toast-error');
+            return;
+        }
+        const fa = redondearFA((receta.faTotal * porciones) / receta.porciones);
+        const item = {
+            nombre: receta.nombre,
+            gramos: Math.round(porciones * 10) / 10,
+            fa: fa,
+            unidad: 'porción',
+            categoria: receta.categoria || 'mis_recetas',
+            origenRecetaId: receta.id
+        };
+        const { diaKey, bloqueKey } = planItemEditorActual;
+        planSemanal.dias[diaKey][bloqueKey].push(item);
+        guardarPlanSemanalLocal();
+        renderizarPlanSemanal();
+        pkuToast(`✅ ${item.nombre} agregada al plan.`, 'toast-ok');
+    }
+
+    function quitarItemDeBloquePlan(diaKey, bloqueKey, idx) {
+        if (!planSemanal.dias[diaKey] || !planSemanal.dias[diaKey][bloqueKey]) return;
+        planSemanal.dias[diaKey][bloqueKey].splice(idx, 1);
+        guardarPlanSemanalLocal();
+        renderizarPlanSemanal();
+    }
+
+    // Copia TODOS los ítems del bloque a Comidas de Hoy de una vez. Retorna
+    // el array de comidas creadas (no void) para que el wrap de
+    // patchGuardarConFirestore sepa exactamente qué sincronizar, sin tener
+    // que adivinar "las últimas N" como hacen otros wraps con un solo ítem.
+    function registrarBloquePlanComoComidas(diaKey, bloqueKey) {
+        if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para registrar comidas.', 'toast-warn'); return []; }
+        const items = (planSemanal.dias[diaKey] && planSemanal.dias[diaKey][bloqueKey]) || [];
+        if (items.length === 0) return [];
+
+        (window.verificarCambioDeDiaAutomatico || verificarCambioDeDiaAutomatico)();
+
+        const nuevas = items.map(item => {
+            const nueva = {
+                id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                nombre: item.nombre,
+                gramos: item.gramos,
+                fa: item.fa,
+                unidad: item.unidad,
+                categoria: item.categoria || 'generico'
+            };
+            if (item.origenRecetaId) nueva.origenRecetaId = item.origenRecetaId;
+            return nueva;
+        });
+
+        const comidasHoyNueva = [...comidasHoy, ...nuevas];
+        if (!_lsSet('pku_comidas_hoy', JSON.stringify(comidasHoyNueva))) {
+            pkuToast('⚠️ No se pudo registrar — espacio de almacenamiento lleno. Libera espacio en el dispositivo e intenta de nuevo.', 'toast-error', 6000);
+            return [];
+        }
+        comidasHoy = comidasHoyNueva;
+        consumidoHoy += nuevas.reduce((s, c) => s + (c.fa || 0), 0);
+        _lsSet('pku_consumido', consumidoHoy);
+
+        actualizarPantalla();
+        renderizarComidasHoy();
+        pkuToast(`✅ ${nuevas.length} comida(s) del plan agregadas a hoy.`, 'toast-ok');
+        return nuevas;
     }
 
 
@@ -7786,11 +8128,14 @@
         comidasHoy = datos.comidasHoy || [];
         historialDias = datos.historialDias || [];
         citasMedicas = datos.citasMedicas || [];
+        // planSemanal: lectura única (no listener), ver cargarDesdeFirestore.
+        planSemanal = datos.planSemanal || planSemanalVacio();
         localStorage.setItem('pku_meta', metaDiaria);
         localStorage.setItem('pku_consumido', consumidoHoy);
         localStorage.setItem('pku_comidas_hoy', JSON.stringify(comidasHoy));
         localStorage.setItem('pku_historial', JSON.stringify(historialDias));
         localStorage.setItem('pku_citas', JSON.stringify(citasMedicas));
+        localStorage.setItem('pku_plan_semanal', JSON.stringify(planSemanal));
         if (datos.ultimoDia) localStorage.setItem('pku_ultimo_dia', datos.ultimoDia);
         // Sincronizar con scope global
         window.metaDiaria = metaDiaria;
@@ -7798,10 +8143,12 @@
         window.comidasHoy = comidasHoy;
         window.historialDias = historialDias;
         window.citasMedicas = citasMedicas;
+        window.planSemanal = planSemanal;
         actualizarPantalla();
         renderizarComidasHoy();
         renderizarCalendario();
         renderizarCitas();
+        renderizarPlanSemanal();
         try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (aplicarDatosRestaurados, no crítico):', e); }
     }
     // Exponer globalmente para el módulo Firebase
@@ -9315,6 +9662,23 @@
         }
     };
 
+    // ---- GUARDAR PLAN SEMANAL (documento único, se sobreescribe entero) ----
+    // A propósito NO tiene listener onSnapshot (ver cargarDesdeFirestore y
+    // activarListenersTiempoReal) — es una plantilla recurrente que se lee
+    // una sola vez al iniciar sesión, para no sumar cuota de lecturas.
+    window.guardarPlanSemanalEnFirestore = async function() {
+        if (modoOffline) return;
+        if (typeof _modoDemo !== 'undefined' && _modoDemo) return;
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const bpP = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
+            await setDoc(doc(db, bpP + '/planSemanal/actual'), { ...window.planSemanal, _ts: serverTimestamp() });
+        } catch(e) {
+            console.error('Error real al guardar el plan semanal en Firestore (no es problema de conexión):', e);
+        }
+    };
+
     // ---- GUARDAR DÍA HISTÓRICO ----
     window.guardarDiaHistorialEnFirestore = async function(diaObj) {
         if (modoOffline) return;
@@ -9560,6 +9924,13 @@
             snapCitas.forEach(d => citas.push(d.data()));
             localStorage.setItem('pku_citas', JSON.stringify(citas));
 
+            // Plan Semanal: lectura ÚNICA (getDoc, no onSnapshot) — a propósito,
+            // ver nota en activarListenersTiempoReal. Es un documento único que
+            // se sobreescribe entero, no una colección que crece con el tiempo.
+            const snapPlan = await getDoc(doc(db, basePath + '/planSemanal/actual'));
+            const planCargado = snapPlan.exists() ? snapPlan.data() : null;
+            localStorage.setItem('pku_plan_semanal', JSON.stringify(planCargado || (typeof window.planSemanalVacio === 'function' ? window.planSemanalVacio() : { dias: {} })));
+
             // Aplicar a la app
             if (typeof window.aplicarDatosRestaurados === 'function') {
                 window.aplicarDatosRestaurados({
@@ -9568,6 +9939,7 @@
                     comidasHoy: comidas,
                     historialDias: historial,
                     citasMedicas: citas,
+                    planSemanal: planCargado,
                     ultimoDia: localStorage.getItem('pku_ultimo_dia') || ''
                 });
             }
@@ -9585,6 +9957,7 @@
                     comidasHoy: _lsJSON('pku_comidas_hoy', []),
                     historialDias: _lsJSON('pku_historial', []),
                     citasMedicas: _lsJSON('pku_citas', []),
+                    planSemanal: _lsJSON('pku_plan_semanal', null),
                     ultimoDia: localStorage.getItem('pku_ultimo_dia') || ''
                 });
             }
@@ -10223,6 +10596,47 @@
                 window.registrarEnLog('agregada', ultima, fechaHoyLocal());
             }
             return r;
+        };
+
+        // Plan Semanal → agregar/quitar ítem: documento único que se
+        // sobreescribe entero, así que el wrap es más simple que el de
+        // comidas/citas/recetas (no hace falta identificar "cuál" ítem
+        // cambió, se sincroniza el objeto planSemanal completo cada vez).
+        const _agregarAlimentoPlan = window.agregarAlimentoABloquePlan;
+        if (_agregarAlimentoPlan) window.agregarAlimentoABloquePlan = function(...args) {
+            const r = _agregarAlimentoPlan.apply(this, args);
+            window.guardarPlanSemanalEnFirestore();
+            return r;
+        };
+
+        // agregarRecetaABloquePlan es async (tiene pkuPrompt) — hay que esperarla.
+        const _agregarRecetaPlan = window.agregarRecetaABloquePlan;
+        if (_agregarRecetaPlan) window.agregarRecetaABloquePlan = async function(...args) {
+            const r = await _agregarRecetaPlan.apply(this, args);
+            window.guardarPlanSemanalEnFirestore();
+            return r;
+        };
+
+        const _quitarItemPlan = window.quitarItemDeBloquePlan;
+        if (_quitarItemPlan) window.quitarItemDeBloquePlan = function(...args) {
+            const r = _quitarItemPlan.apply(this, args);
+            window.guardarPlanSemanalEnFirestore();
+            return r;
+        };
+
+        // registrarBloquePlanComoComidas → copia N ítems del plan a Comidas de
+        // Hoy de una sola vez. A diferencia de los demás wraps (que sincronizan
+        // "el último ítem agregado"), acá la función original devuelve
+        // directamente el array de comidas creadas, así se sincroniza cada una
+        // sin tener que adivinar cuántas fueron.
+        const _registrarBloquePlan = window.registrarBloquePlanComoComidas;
+        if (_registrarBloquePlan) window.registrarBloquePlanComoComidas = function(...args) {
+            const nuevas = _registrarBloquePlan.apply(this, args);
+            (nuevas || []).forEach(c => {
+                window.guardarComidaEnFirestore(c);
+                window.registrarEnLog('agregada', c, fechaHoyLocal());
+            });
+            return nuevas;
         };
 
         // confirmarAgregarEnCalendario → agregar comida desde el calendario
