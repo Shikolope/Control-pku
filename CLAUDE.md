@@ -460,6 +460,39 @@ pese a estos dos mecanismos, sospechar primero de que `version.json` no se
 regeneró en el último deploy** — es el punto de falla más probable, no un bug de
 lógica nuevo.
 
+**Ese chequeo de `version.json` seguía sin ser 100% confiable** (mismo día, el
+dueño del proyecto reportó por tercera vez que el banner no le apareció, pese a
+haber confirmado que sí había tocado "Actualizar ahora" la vez anterior — así que
+no era el problema de bootstrapping ya conocido). Causa real: `version.json` caía
+dentro de la estrategia normal network-first-con-respaldo-a-caché de `sw.js` — si
+la red fallaba justo en el instante del chequeo (típico al reabrir el TWA
+reconectando Wi-Fi/datos), el `.catch(() => caches.match(...))` de `sw.js` devolvía
+silenciosamente la copia VIEJA que había quedado guardada en la caché del propio
+Service Worker de un chequeo anterior, hacía creer que "no cambió nada", y el
+banner nunca aparecía — sin ningún error visible en ningún lado. Arreglo: `sw.js`
+ahora excluye `/version.json` por completo de su lógica de caché (`if
+(url.pathname === '/version.json') { event.respondWith(fetch(event.request));
+return; }`, antes del resto del fetch handler) — pasa directo a la red, y si la
+red falla, falla limpio (index.html ya lo maneja con un try/catch que se salta ese
+chequeo puntual) en vez de mentir con un valor viejo. Se subió `CACHE_NAME` a
+`pku-control-cache-v5` de paso. También se agregó un `setInterval` de 2 minutos
+(mientras `document.visibilityState === 'visible'`) como red de seguridad
+adicional, por si algún patrón de resume de Android no dispara
+`visibilitychange` de forma confiable. Validado con Playwright: `version.json`
+nunca queda guardado en ninguna caché del SW (confirmado inspeccionando
+`caches.keys()`/`cache.match()` directamente), y un fallo de red simulado
+específicamente para esa URL falla limpio (`fetch` rechaza) en vez de devolver
+algo cacheado.
+
+**Patrón a recordar:** cualquier endpoint cuyo propósito sea "reflejar el estado
+real y actual del servidor" (como este chequeo de versión) NO debe pasar por una
+estrategia de caché con fallback — el fallback silencioso es precisamente lo que
+rompe la garantía de frescura que el endpoint existe para dar. Si se agrega otro
+endpoint con ese mismo propósito en el futuro, excluirlo de `sw.js` de la misma
+forma, no asumir que `cache:'no-store'` del lado del cliente alcanza por sí solo
+(el Service Worker intercepta el fetch de todas formas, y su respaldo a caché es
+independiente de esa opción del cliente).
+
 ## Decisiones de producto a respetar
 
 - El modo profesional NO se menciona en ningún texto visible para las familias

@@ -3,7 +3,7 @@
 // solo usa el caché como respaldo si no hay conexión a internet).
 // Esto evita que la app quede "atascada" mostrando una versión vieja después de actualizar.
 
-const CACHE_NAME = 'pku-control-cache-v4'; // subir este número cada vez que se publique una actualización importante
+const CACHE_NAME = 'pku-control-cache-v5'; // subir este número cada vez que se publique una actualización importante
 
 // NOTA: NO llamar self.skipWaiting() en install.
 // El nuevo SW queda en estado "waiting" hasta que el usuario confirme
@@ -50,6 +50,22 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const esRecursoPropio = url.origin === self.location.origin;
   if (!esRecursoPropio) return;
+
+  // /version.json es el "ping" que usa index.html (chequearVersionContenido)
+  // para detectar deploys nuevos sin tocar sw.js — su ÚNICO propósito es
+  // reflejar siempre el estado real y actual del servidor. Si entrara al
+  // ciclo normal de network-first-con-respaldo-a-caché, un fallo de red
+  // transitorio justo en el instante del chequeo (típico al reabrir un TWA
+  // reconectando Wi-Fi/datos) caía silenciosamente al valor viejo cacheado
+  // por un chequeo anterior, haciendo creer que "no hay nada nuevo" y
+  // dejando el banner de actualización sin aparecer nunca — bug real
+  // reportado 2026-08-10. Se excluye del todo del caché: pasa directo a la
+  // red, y si la red falla, que falle (index.html ya lo maneja con un
+  // try/catch que simplemente se salta ese chequeo puntual).
+  if (url.pathname === '/version.json') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)

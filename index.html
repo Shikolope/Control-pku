@@ -4121,6 +4121,12 @@
 
     async function chequearVersionContenido(esChequeoInicial) {
         try {
+            // `cache:'no-store'` evita la caché HTTP normal. sw.js además
+            // excluye /version.json de su propia lógica de caché (ver nota
+            // ahí) — así este fetch siempre refleja el estado real del
+            // servidor, nunca una copia vieja guardada por el Service
+            // Worker si la red llegara a fallar justo en este instante
+            // (típico al reabrir el TWA reconectando Wi-Fi/datos).
             const resp = await fetch('/version.json', { cache: 'no-store' });
             if (!resp.ok) return;
             const data = await resp.json();
@@ -4138,6 +4144,15 @@
         }
     }
     chequearVersionContenido(true);
+
+    // Red de seguridad adicional: reintentar cada 2 minutos mientras la
+    // pestaña/TWA esté visible, por si visibilitychange no alcanza a
+    // dispararse en algún patrón de resume de Android que no hicimos un
+    // "pause" completo, o si el chequeo puntual coincidió con un momento
+    // sin red. No reemplaza los otros disparadores, los complementa.
+    setInterval(() => {
+        if (document.visibilityState === 'visible') chequearVersionContenido(false);
+    }, 120000);
 
     window.aplicarNuevaVersion = function() {
         if (_swEsperando) {
