@@ -1852,6 +1852,7 @@
             <button type="button" id="btnAjustesHeader" onclick="toggleMenuAjustes(event)" title="Ajustes" style="background:var(--color-brand-light); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; margin:0; padding:0; color:var(--color-brand);">⚙️</button>
             <div id="menuAjustesHeader" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; background:white; border:1px solid var(--border-color); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:1000; overflow:hidden;">
                 <button id="btnGuiaCompleta" onclick="window.open('/Mi-Control-PKU-Guia-para-familias.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía de uso completa en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">📘 Guía de uso (PDF)</button>
+                <button id="btnVerTutorial" onclick="verTutorialDeNuevo()" title="Ver de nuevo el video tutorial de bienvenida" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🎬 Video tutorial</button>
                 <button id="btnAbrirFAQ" onclick="abrirFAQ()" title="Preguntas frecuentes" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">❓ Preguntas frecuentes</button>
                 <button id="btnAbrirSugerencias" onclick="abrirSugerencias()" title="Enviar una sugerencia" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">💡 Sugerencias</button>
                 <button id="btnAbrirSoporte" onclick="abrirSoporte()" title="Contacto de soporte" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🆘 Soporte</button>
@@ -2840,6 +2841,22 @@
         if (video) video.pause();
     }
     window.cerrarTutorialInicial = cerrarTutorialInicial;
+
+    // ── Volver a ver el tutorial a pedido, desde el menú ⚙️ ──
+    // mostrarTutorialInicialSiCorresponde() de arriba solo se dispara UNA
+    // vez por dispositivo (guardado en pku_tutorial_visto) y no hay forma de
+    // volver a activarlo sin borrar datos del navegador. Esta función abre
+    // la misma pantalla a mano, sin tocar ese flag.
+    function verTutorialDeNuevo() {
+        const pantalla = document.getElementById('pantallaTutorialInicial');
+        if (!pantalla) return;
+        document.getElementById('menuAjustesHeader').style.display = 'none';
+        pantalla.classList.remove('oculta');
+        pantalla.style.display = 'flex';
+        const video = pantalla.querySelector('video');
+        if (video) { video.currentTime = 0; video.play(); }
+    }
+    window.verTutorialDeNuevo = verTutorialDeNuevo;
 
     // ── EXPORTAR REPORTE POR RANGO DE FECHAS (PDF/Excel) ──
     // Recuerda qué botón (PDF o Excel) abrió el selector de rango, para que
@@ -4241,30 +4258,42 @@
         });
     }
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            // Cada función protegida por separado: un fallo en una NUNCA debe
-            // impedir que la otra se ejecute (ej: si las notificaciones fallan,
-            // el cierre de día automático debe seguir funcionando igual).
-            try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (visibilitychange, no crítico):', e); }
-            try { revisarYAplicarCambioDeDia(); } catch (e) { console.warn('Error en revisarYAplicarCambioDeDia (no crítico):', e); }
-            // Forzar chequeo de actualización del Service Worker al volver a
-            // primer plano — ver nota junto a _swRegistracion más arriba
-            // (necesario sobre todo para el TWA instalado en Android).
-            if (_swRegistracion) {
-                try { _swRegistracion.update(); } catch (e) { console.warn('Error al chequear actualización del SW (no crítico):', e); }
-            }
-            // Chequeo de versión de CONTENIDO (ver nota junto a
-            // _versionContenidoInicial más arriba) — cubre deploys que no
-            // tocaron sw.js, el caso más común.
-            chequearVersionContenido(false);
-            // Chequeo de escrituras pendientes de sincronizar (definido en
-            // el <script type="module">, ver window.chequearSincronizacionPendiente).
-            if (typeof window.chequearSincronizacionPendiente === 'function') {
-                try { window.chequearSincronizacionPendiente(); } catch (e) { console.warn('Error al chequear sincronización pendiente (no crítico):', e); }
-            }
+    function _alVolverAPrimerPlano() {
+        // Cada función protegida por separado: un fallo en una NUNCA debe
+        // impedir que la otra se ejecute (ej: si las notificaciones fallan,
+        // el cierre de día automático debe seguir funcionando igual).
+        try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (visibilitychange, no crítico):', e); }
+        try { revisarYAplicarCambioDeDia(); } catch (e) { console.warn('Error en revisarYAplicarCambioDeDia (no crítico):', e); }
+        // Forzar chequeo de actualización del Service Worker al volver a
+        // primer plano — ver nota junto a _swRegistracion más arriba
+        // (necesario sobre todo para el TWA instalado en Android).
+        if (_swRegistracion) {
+            try { _swRegistracion.update(); } catch (e) { console.warn('Error al chequear actualización del SW (no crítico):', e); }
         }
+        // Chequeo de versión de CONTENIDO (ver nota junto a
+        // _versionContenidoInicial más arriba) — cubre deploys que no
+        // tocaron sw.js, el caso más común.
+        chequearVersionContenido(false);
+        // Chequeo de escrituras pendientes de sincronizar (definido en
+        // el <script type="module">, ver window.chequearSincronizacionPendiente).
+        if (typeof window.chequearSincronizacionPendiente === 'function') {
+            try { window.chequearSincronizacionPendiente(); } catch (e) { console.warn('Error al chequear sincronización pendiente (no crítico):', e); }
+        }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') _alVolverAPrimerPlano();
     });
+    // Respaldo de 'visibilitychange': ese evento solo dispara con cambio de
+    // PESTAÑA o minimizado — no con un cambio de foco a nivel de sistema
+    // operativo (ej: el usuario deja la ventana del navegador abierta y
+    // visible de fondo mientras usa otra app, y vuelve a ella con Alt+Tab).
+    // En ese caso document.visibilityState nunca pasa por 'hidden', así que
+    // el chequeo de versión/actualización podía quedar sin dispararse
+    // indefinidamente pese a que la pestaña siguiera técnicamente abierta.
+    // Bug real reportado 2026-08-10: pestaña de Brave abierta desde antes
+    // de un deploy, banner de "nueva versión" nunca apareció.
+    window.addEventListener('focus', _alVolverAPrimerPlano);
 
     // ---- DETECCIÓN DE CAMBIO DE DÍA MIENTRAS LA APP ESTÁ ABIERTA ----
     // verificarCambioDeDiaAutomatico() solo corría una vez al cargar la app
