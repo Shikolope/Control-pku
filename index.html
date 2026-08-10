@@ -2579,11 +2579,12 @@
 
 <!-- ===== PANTALLA: Avisos (novedades de la app + mensajes del profesional) ===== -->
 <div id="pantallaNovedades" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
-    <div class="login-card" style="max-height:85vh; overflow-y:auto; text-align:left; max-width:420px;">
-        <h2 class="login-titulo" style="text-align:left; margin:0 0 4px;">✨ Novedades</h2>
-        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px;">Los últimos cambios y mejoras de la app.</p>
-        <div id="contenidoNovedades"></div>
-        <button class="login-btn-principal" style="margin-top:16px;" onclick="cerrarNovedades()">Cerrar</button>
+    <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarNovedades()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0;">✕</button>
+        <h2 class="login-titulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">✨ Novedades</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">Los últimos cambios y mejoras de la app.</p>
+        <div id="contenidoNovedades" style="overflow-y:auto; flex:1; min-height:0;"></div>
+        <button class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="cerrarNovedades()">Cerrar</button>
     </div>
 </div>
 
