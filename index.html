@@ -1630,6 +1630,60 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* ── Tutorial inicial: carrusel de capturas con flecha ── */
+        .tutorial-imgwrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 390 / 844;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(35,51,51,0.16);
+            background: #e2e8f0;
+        }
+        .tutorial-imgwrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .tutorial-highlight {
+            position: absolute;
+            border: 3px solid #FFC107;
+            border-radius: 12px;
+            box-shadow: 0 0 0 2000px rgba(15,23,23,0.55);
+            pointer-events: none;
+            animation: tutorialPulse 1.6s ease-in-out infinite;
+        }
+        .tutorial-arrow {
+            position: absolute;
+            font-size: 26px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: tutorialBounce 1s ease-in-out infinite;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+        }
+        @keyframes tutorialPulse {
+            0%, 100% { box-shadow: 0 0 0 2000px rgba(15,23,23,0.55), 0 0 0 0 rgba(255,193,7,0.55); }
+            50% { box-shadow: 0 0 0 2000px rgba(15,23,23,0.55), 0 0 0 6px rgba(255,193,7,0); }
+        }
+        @keyframes tutorialBounce {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            50% { transform: translate(-50%, -50%) translateY(6px); }
+        }
+        .tutorial-dots { display: flex; gap: 6px; justify-content: center; margin: 12px 0 2px; }
+        .tutorial-dot { width: 7px; height: 7px; border-radius: 50%; background: #d7dede; cursor: pointer; border: none; padding: 0; }
+        .tutorial-dot.activo { background: var(--color-brand); width: 18px; border-radius: 4px; }
+        .tutorial-nav { display: flex; gap: 8px; margin-top: 14px; }
+        .tutorial-nav .login-btn-principal { margin-top: 0; flex: 1; width: auto; min-width: 0; }
+        .tutorial-btn-atras {
+            flex: 0 0 auto;
+            width: auto;
+            padding: 14px 16px;
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Lexend', sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -1852,7 +1906,7 @@
             <button type="button" id="btnAjustesHeader" onclick="toggleMenuAjustes(event)" title="Ajustes" style="background:var(--color-brand-light); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; margin:0; padding:0; color:var(--color-brand);">⚙️</button>
             <div id="menuAjustesHeader" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; background:white; border:1px solid var(--border-color); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:1000; overflow:hidden;">
                 <button id="btnGuiaCompleta" onclick="window.open('/Mi-Control-PKU-Guia-para-familias.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía de uso completa en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">📘 Guía de uso (PDF)</button>
-                <button id="btnVerTutorial" onclick="verTutorialDeNuevo()" title="Ver de nuevo el video tutorial de bienvenida" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🎬 Video tutorial</button>
+                <button id="btnVerTutorial" onclick="verTutorialDeNuevo()" title="Ver de nuevo el tutorial de bienvenida" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">📖 Tutorial de bienvenida</button>
                 <button id="btnAbrirFAQ" onclick="abrirFAQ()" title="Preguntas frecuentes" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">❓ Preguntas frecuentes</button>
                 <button id="btnAbrirSugerencias" onclick="abrirSugerencias()" title="Enviar una sugerencia" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">💡 Sugerencias</button>
                 <button id="btnAbrirSoporte" onclick="abrirSoporte()" title="Contacto de soporte" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🆘 Soporte</button>
@@ -2693,17 +2747,25 @@
     </div>
 </div>
 
-<!-- ===== PANTALLA: Tutorial inicial (video corto, se muestra solo la primera vez) ===== -->
+<!-- ===== PANTALLA: Tutorial inicial (carrusel de capturas con flecha, se muestra solo la primera vez) ===== -->
 <div id="pantallaTutorialInicial" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999999; align-items:center; justify-content:center; padding:20px;">
-    <div class="login-card" style="max-height:85vh; text-align:center; max-width:380px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
-        <button type="button" onclick="cerrarTutorialInicial()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0; z-index:1;">✕</button>
-        <h2 class="login-titulo" style="margin:0 28px 4px 0; flex-shrink:0;">👋 ¡Bienvenido!</h2>
-        <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px; flex-shrink:0;">Así se registra un alimento en unos segundos.</p>
+    <div class="login-card" style="max-height:90vh; text-align:center; max-width:380px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarTutorialInicial()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0; z-index:2;">✕</button>
+        <h2 class="login-titulo" id="tutorialTitulo" style="margin:0 28px 4px 0; flex-shrink:0; font-size:19px;">👋 ¡Bienvenido!</h2>
+        <p id="tutorialTexto" style="font-size:12.5px; color:var(--text-muted); margin:0 0 12px; flex-shrink:0; line-height:1.4;">Así se registra un alimento en unos segundos.</p>
         <div style="overflow-y:auto; flex:1; min-height:0;">
-            <video src="/tutorial-inicio.mp4" autoplay muted loop playsinline style="width:100%; border-radius:14px; box-shadow:0 8px 24px rgba(35,51,51,0.16); display:block;"></video>
+            <div class="tutorial-imgwrap">
+                <img id="tutorialImg" src="" alt="">
+                <div class="tutorial-highlight" id="tutorialHighlight"></div>
+                <div class="tutorial-arrow" id="tutorialArrow">⬇️</div>
+            </div>
         </div>
-        <button class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="cerrarTutorialInicial()">Entendido</button>
-        <div style="font-size:11px; color:var(--text-muted); text-decoration:underline; cursor:pointer; margin-top:8px; flex-shrink:0;" onclick="cerrarTutorialInicial()">Saltar</div>
+        <div class="tutorial-dots" id="tutorialDots"></div>
+        <div class="tutorial-nav">
+            <button type="button" class="tutorial-btn-atras" id="btnTutorialAtras" onclick="retrocederTutorial()">← Atrás</button>
+            <button type="button" class="login-btn-principal" id="btnTutorialSiguiente" onclick="avanzarTutorial()">Siguiente</button>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); text-decoration:underline; cursor:pointer; margin-top:8px; flex-shrink:0;" onclick="cerrarTutorialInicial()">Omitir</div>
     </div>
 </div>
 
@@ -2816,17 +2878,119 @@
     }
     window.cerrarSoporte = cerrarSoporte;
 
-    // ── TUTORIAL INICIAL (video corto, solo la primera vez por dispositivo) ──
+    // ── TUTORIAL INICIAL (carrusel de capturas reales + flecha, solo la
+    // primera vez por dispositivo) ──
     // Se llama desde aplicarDatosRestaurados() — cubre login, registro,
     // cambio de perfil y Modo Demo por igual (todos pasan por esa misma
     // función). El flag es por localStorage (por dispositivo/navegador, no
     // por cuenta): una vez mostrado en un dispositivo, no vuelve a
     // aparecer ahí aunque después inicie sesión otra cuenta distinta.
+    // Reemplaza al video autoplay anterior (tutorial-inicio.mp4, retirado
+    // 2026-08-10 por feedback de que no se entendía bien) — cada paso es una
+    // captura real de la app (tomada con Playwright en Modo Demo) con un
+    // recuadro + flecha señalando el elemento a tocar. Coordenadas del
+    // recuadro/flecha en % (no en px) para que escalen igual sin importar el
+    // ancho real del modal.
+    const TUTORIAL_SLIDES = [
+        {
+            img: 'tutorial-paso1.jpg',
+            titulo: '👋 Paso 1 de 5: Busca tu alimento',
+            texto: 'Escribe el nombre del alimento en el buscador — los resultados aparecen mientras escribes.',
+            highlight: { left: 13.3, top: 17.7, width: 62.1, height: 5.2 },
+            arrow: { left: 44.4, top: 11 },
+        },
+        {
+            img: 'tutorial-paso2.jpg',
+            titulo: 'Paso 2 de 5: Ingresa los gramos',
+            texto: 'Toca el alimento en la lista y escribe cuántos gramos reales pesaste en la balanza.',
+            highlight: { left: 13.3, top: 18.7, width: 73.3, height: 5.2 },
+            arrow: { left: 50, top: 12 },
+        },
+        {
+            img: 'tutorial-paso3.jpg',
+            titulo: 'Paso 3 de 5: Calcula y suma',
+            texto: '"Calcular y Sumar" agrega el alimento a tu registro de hoy y suma su FA al total automáticamente.',
+            highlight: { left: 13.3, top: 25.1, width: 73.3, height: 5.0 },
+            arrow: { left: 50, top: 19 },
+        },
+        {
+            img: 'tutorial-paso4.jpg',
+            titulo: 'Paso 4 de 5: Revisa tu resumen',
+            texto: 'El círculo se actualiza al instante y te muestra cuánta FA llevas consumida hoy.',
+            highlight: { left: 34.6, top: 46.3, width: 30.8, height: 14.2, radius: '50%' },
+            arrow: { left: 50, top: 39 },
+        },
+        {
+            img: 'tutorial-paso5.jpg',
+            titulo: 'Paso 5 de 5: Mira "Comidas de Hoy"',
+            texto: 'Cada alimento registrado queda en esta lista. Si te equivocas, bórralo tocando la ❌.',
+            highlight: { left: 13.3, top: 35.6, width: 73.3, height: 6.5 },
+            arrow: { left: 50, top: 29 },
+        },
+    ];
+    let _tutorialSlideActual = 0;
+
+    function _renderTutorialSlide() {
+        const s = TUTORIAL_SLIDES[_tutorialSlideActual];
+
+        document.getElementById('tutorialTitulo').textContent = s.titulo;
+        document.getElementById('tutorialTexto').textContent = s.texto;
+
+        const img = document.getElementById('tutorialImg');
+        img.src = '/' + s.img;
+        img.alt = s.titulo;
+
+        const h = document.getElementById('tutorialHighlight');
+        h.style.left = s.highlight.left + '%';
+        h.style.top = s.highlight.top + '%';
+        h.style.width = s.highlight.width + '%';
+        h.style.height = s.highlight.height + '%';
+        h.style.borderRadius = s.highlight.radius || '12px';
+
+        const a = document.getElementById('tutorialArrow');
+        a.style.left = s.arrow.left + '%';
+        a.style.top = s.arrow.top + '%';
+
+        const dotsCont = document.getElementById('tutorialDots');
+        dotsCont.innerHTML = '';
+        TUTORIAL_SLIDES.forEach((_, i) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'tutorial-dot' + (i === _tutorialSlideActual ? ' activo' : '');
+            dot.setAttribute('aria-label', 'Ir al paso ' + (i + 1));
+            dot.onclick = () => { _tutorialSlideActual = i; _renderTutorialSlide(); };
+            dotsCont.appendChild(dot);
+        });
+
+        document.getElementById('btnTutorialAtras').style.visibility = _tutorialSlideActual === 0 ? 'hidden' : 'visible';
+        document.getElementById('btnTutorialSiguiente').textContent = _tutorialSlideActual === TUTORIAL_SLIDES.length - 1 ? 'Entendido' : 'Siguiente';
+    }
+
+    function avanzarTutorial() {
+        if (_tutorialSlideActual < TUTORIAL_SLIDES.length - 1) {
+            _tutorialSlideActual++;
+            _renderTutorialSlide();
+        } else {
+            cerrarTutorialInicial();
+        }
+    }
+    window.avanzarTutorial = avanzarTutorial;
+
+    function retrocederTutorial() {
+        if (_tutorialSlideActual > 0) {
+            _tutorialSlideActual--;
+            _renderTutorialSlide();
+        }
+    }
+    window.retrocederTutorial = retrocederTutorial;
+
     function mostrarTutorialInicialSiCorresponde() {
         if (localStorage.getItem('pku_tutorial_visto')) return;
         localStorage.setItem('pku_tutorial_visto', '1');
         const pantalla = document.getElementById('pantallaTutorialInicial');
         if (!pantalla) return;
+        _tutorialSlideActual = 0;
+        _renderTutorialSlide();
         pantalla.classList.remove('oculta');
         pantalla.style.display = 'flex';
     }
@@ -2835,10 +2999,6 @@
         const pantalla = document.getElementById('pantallaTutorialInicial');
         pantalla.classList.add('oculta');
         pantalla.style.display = 'none';
-        // Pausar el video al cerrar — si no, sigue reproduciéndose (y
-        // consumiendo batería/CPU) oculto de fondo indefinidamente.
-        const video = pantalla.querySelector('video');
-        if (video) video.pause();
     }
     window.cerrarTutorialInicial = cerrarTutorialInicial;
 
@@ -2851,10 +3011,10 @@
         const pantalla = document.getElementById('pantallaTutorialInicial');
         if (!pantalla) return;
         document.getElementById('menuAjustesHeader').style.display = 'none';
+        _tutorialSlideActual = 0;
+        _renderTutorialSlide();
         pantalla.classList.remove('oculta');
         pantalla.style.display = 'flex';
-        const video = pantalla.querySelector('video');
-        if (video) { video.currentTime = 0; video.play(); }
     }
     window.verTutorialDeNuevo = verTutorialDeNuevo;
 
@@ -7720,8 +7880,8 @@
             ultimaNotifId = idClave;
             new Notification(titulo, {
                 body: cuerpo,
-                icon: 'icon-192.png',
-                badge: 'icon-192.png',
+                icon: 'icon-192.jpg',
+                badge: 'icon-192.jpg',
                 tag: 'pku-cita',
                 requireInteraction: urgente
             });
