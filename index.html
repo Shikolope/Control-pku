@@ -1394,6 +1394,16 @@
             cursor: pointer; white-space: nowrap; margin: 0;
         }
 
+        #bannerSincronizando {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 999996;
+            background: #E8A33D; color: white;
+            padding: 12px 16px; align-items: center; justify-content: center;
+            gap: 10px; box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+            font-size: 12.5px; text-align: center;
+        }
+        #bannerSincronizando.visible { display: flex; }
+
         /* ===== TOAST (reemplaza alert nativo) ===== */
         #pkuToast {
             position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -1841,7 +1851,6 @@
             <button type="button" id="btnAjustesHeader" onclick="toggleMenuAjustes(event)" title="Ajustes" style="background:var(--color-brand-light); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; margin:0; padding:0; color:var(--color-brand);">⚙️</button>
             <div id="menuAjustesHeader" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; background:white; border:1px solid var(--border-color); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:1000; overflow:hidden;">
                 <button id="btnGuiaCompleta" onclick="window.open('/Mi-Control-PKU-Guia-para-familias.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía de uso completa en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">📘 Guía de uso (PDF)</button>
-                <button id="btnGuiaRapida" onclick="window.open('/Mi-Control-PKU-Guia-Simple.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía rápida en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">⚡ Guía rápida (PDF)</button>
                 <button id="btnAbrirFAQ" onclick="abrirFAQ()" title="Preguntas frecuentes" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">❓ Preguntas frecuentes</button>
                 <button id="btnAbrirSugerencias" onclick="abrirSugerencias()" title="Enviar una sugerencia" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">💡 Sugerencias</button>
                 <button id="btnAbrirSoporte" onclick="abrirSoporte()" title="Contacto de soporte" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🆘 Soporte</button>
@@ -1856,6 +1865,11 @@
     <div id="pkuNuevaVersionBanner">
         <span>🆕 Hay una nueva versión de la app disponible.</span>
         <button onclick="window.aplicarNuevaVersion()">Actualizar ahora</button>
+    </div>
+
+    <!-- Banner: sincronización pendiente (no borrar caché/historial mientras esté visible) -->
+    <div id="bannerSincronizando">
+        <span>🔄 Sincronizando cambios con el servidor — no borres el caché ni el historial del navegador todavía.</span>
     </div>
 
     <!-- Toast (reemplaza alert nativo) -->
@@ -2635,7 +2649,7 @@
         <h2 class="login-titulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">❓ Preguntas frecuentes</h2>
         <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">Las dudas más comunes sobre la app.</p>
         <div style="overflow-y:auto; flex:1; min-height:0;">
-            <div class="faq-item-app"><h4>¿Necesito internet para usar la app?</h4><p>No siempre. Una vez que abriste la app con conexión al menos una vez, puedes seguir registrando comidas sin internet — los datos se guardan en tu computador o celular y se sincronizan solos apenas te vuelves a conectar.</p></div>
+            <div class="faq-item-app"><h4>¿Necesito internet para usar la app?</h4><p>No siempre. Una vez que abriste la app con conexión al menos una vez, puedes seguir registrando comidas sin internet — los datos se guardan en tu computador o celular y se sincronizan solos apenas te vuelves a conectar. Mientras haya cambios pendientes de subir al servidor vas a ver un aviso amarillo abajo de la pantalla («🔄 Sincronizando cambios...») — evita borrar el caché o el historial del navegador mientras ese aviso esté visible, porque esos datos todavía no están respaldados en el servidor.</p></div>
             <div class="faq-item-app"><h4>¿Se pierden mis datos si se corta internet a mitad de un registro?</h4><p>No. La app guarda todo localmente primero. Evita cerrar la app justo en el instante en que se corta la conexión mientras estás guardando algo; fuera de ese caso puntual, tus datos quedan seguros.</p></div>
             <div class="faq-item-app"><h4>Borré una comida por error, ¿se puede recuperar?</h4><p>Revisa «🕒 Historial de cambios» (junto a los botones de reporte, al final de la pantalla principal) — ahí queda el registro de cada alimento agregado o eliminado, con fecha y hora. Con ese detalle puedes volver a agregar el alimento manualmente desde el Buscador.</p></div>
             <div class="faq-item-app"><h4>¿Puedo agendar una hora médica desde la app?</h4><p>No. «Citas Médicas» es solo un recordatorio personal para que no se te olvide un control ya agendado — no reserva ni agenda horas con el INTA ni con ningún centro de salud. Para agendar o cambiar una hora, contacta directamente a tu centro médico.</p></div>
@@ -4188,6 +4202,11 @@
             // _versionContenidoInicial más arriba) — cubre deploys que no
             // tocaron sw.js, el caso más común.
             chequearVersionContenido(false);
+            // Chequeo de escrituras pendientes de sincronizar (definido en
+            // el <script type="module">, ver window.chequearSincronizacionPendiente).
+            if (typeof window.chequearSincronizacionPendiente === 'function') {
+                try { window.chequearSincronizacionPendiente(); } catch (e) { console.warn('Error al chequear sincronización pendiente (no crítico):', e); }
+            }
         }
     });
 
@@ -8584,7 +8603,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
-    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot, writeBatch, serverTimestamp, query, orderBy, limit, where, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot, writeBatch, serverTimestamp, query, orderBy, limit, where, updateDoc, waitForPendingWrites } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDrbc8lH3x3E0GW9tILv2MffFhWoX0lBk0",
@@ -9116,6 +9135,50 @@
         const header = document.querySelector('.app-container header');
         if (header) header.insertAdjacentElement('afterend', banner);
     }
+
+    // ── INDICADOR DE SINCRONIZACIÓN ────────────────────────────
+    // Muestra un banner mientras haya escrituras locales (comidas/citas/etc,
+    // hechas offline o recién hechas) que todavía no fueron confirmadas por
+    // el servidor — para que el usuario NO borre el caché/historial del
+    // navegador en ese momento. Si lo hace, esos datos se pierden para
+    // siempre: solo existían en la caché local de Firestore (IndexedDB),
+    // nunca llegaron a estar en el servidor. Ver primera pregunta del FAQ
+    // ("¿Necesito internet para usar la app?").
+    let _chequeandoSincronizacion = false;
+    async function chequearSincronizacionPendiente() {
+        if (_chequeandoSincronizacion) return; // ya hay un chequeo en curso
+        _chequeandoSincronizacion = true;
+        const banner = document.getElementById('bannerSincronizando');
+        try {
+            // waitForPendingWrites() resuelve apenas no queda NADA
+            // pendiente. Si tarda más de 400ms, asumimos que hay
+            // escrituras pendientes de verdad (no solo la latencia normal
+            // de red) y mostramos el banner hasta que la promesa real se
+            // resuelva.
+            let resuelto = false;
+            const timeoutId = setTimeout(() => {
+                if (!resuelto && banner) banner.classList.add('visible');
+            }, 400);
+            await waitForPendingWrites(db);
+            resuelto = true;
+            clearTimeout(timeoutId);
+            if (banner) banner.classList.remove('visible');
+        } catch (e) {
+            console.warn('Error chequeando escrituras pendientes:', e);
+        } finally {
+            _chequeandoSincronizacion = false;
+        }
+    }
+    window.chequearSincronizacionPendiente = chequearSincronizacionPendiente;
+
+    // Disparadores: al reconectar (el más importante — es cuando empiezan a
+    // subir los cambios hechos offline) y al cargar la página (por si ya
+    // quedaron cambios pendientes de una sesión offline anterior que se
+    // cerró sin llegar a sincronizar). El <script> clásico llama a esta
+    // misma función desde su listener de visibilitychange (ver más abajo
+    // en el archivo, junto a _swRegistracion/chequearVersionContenido).
+    window.addEventListener('online', () => chequearSincronizacionPendiente());
+    chequearSincronizacionPendiente();
 
     // Helpers expuestos a window: el modal de "Mensajes de tu nutricionista"
     // (✉️) vive en el <script> clásico más arriba en el archivo, que NO

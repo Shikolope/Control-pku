@@ -139,6 +139,31 @@ dejaba de recibir cambios de otros dispositivos/del profesional en silencio,
 indistinguible de "no hay novedades". Si agregas un `onSnapshot` nuevo, pásale
 siempre un tercer argumento de error — no lo dejes con el callback de éxito solo.
 
+**Indicador de sincronización pendiente (agregado 2026-08-10):** hasta ahora la app
+nunca le avisaba al usuario si quedaban escrituras offline sin confirmar por el
+servidor — riesgo real: si el usuario borraba el caché/historial del navegador
+mientras había cambios sin sincronizar, esos datos se perdían para siempre (solo
+existían en la caché local de Firestore, nunca llegaron al servidor). Arreglo:
+`window.chequearSincronizacionPendiente()` (definida en el `<script type="module">`,
+usa `waitForPendingWrites(db)` de la SDK de Firestore) muestra el banner
+`#bannerSincronizando` ("🔄 Sincronizando cambios...") si la promesa tarda más de
+400ms en resolver (heurística para no mostrarlo por la latencia normal de una
+escritura online rápida), y lo oculta apenas se confirma que no queda nada
+pendiente. Se dispara en 3 momentos: al cargar la página, en el evento `online` del
+navegador (el más importante — es cuando arrancan a subir los cambios acumulados
+offline), y desde el listener de `visibilitychange` del `<script>` clásico (mismo
+lugar que ya dispara `_swRegistracion.update()`/`chequearVersionContenido`).
+**Deliberadamente NO se enganchó a cada función de escritura individual**
+(`guardarComidaEnFirestore` y las demás) para no tocar ese código ya sensible —
+`waitForPendingWrites()` es global a nivel de todo el `Firestore` de la instancia,
+así que no hace falta. Limitación conocida y aceptada: si una escritura nueva
+ocurre justo mientras ya se estaba chequeando, el banner podría ocultarse un poco
+antes de lo ideal hasta el próximo disparador — aceptable porque en ese caso la
+escritura nueva ya se hizo con conexión activa, sincroniza casi al instante.
+Validado con Playwright contra Firebase real (`context.setOffline`): banner oculto
+mientras offline (sin disparador), aparece ~400ms tras reconectar, desaparece
+~1.5s después una vez sincronizado de verdad.
+
 El `switch` de `ejecutarOperacionFirestore` se angostó en la Fase 3 para manejar solo
 el tipo `'log'` — los otros 6 casos (`comida`/`borrarComida`/`cita`/`borrarCita`/
 `config`/`historial`/`borrarHistorial`) ya no los genera nadie desde la Fase 2, así que
