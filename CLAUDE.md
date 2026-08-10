@@ -403,6 +403,15 @@ mecanismo mismo que detecta actualizaciones. Si agregas headers nuevos a
   apellidos), ideal 4 (2 nombres + 2 apellidos).
 - Header: campana 🔔 = solo "Novedades de la app"; sobre ✉️ = solo mensajes del
   profesional. Son dos sistemas separados a propósito, no los fusiones.
+- **"Citas Médicas" es un recordatorio personal, NO un sistema de agendamiento real.**
+  La app no reserva ni agenda horas con el INTA ni ningún centro de salud — solo
+  guarda una nota + fecha/hora que el usuario ya sabe de antemano (porque la agendó
+  por otro medio) para no olvidarla. Aclarado 2026-08-10 con un subtítulo bajo
+  "📅 Próximas Citas Médicas" en `index.html` y una entrada nueva en el FAQ (in-app y
+  en las 2 guías PDF). Si se agrega texto nuevo sobre esta sección en cualquier
+  lugar (guías, novedades, disclaimer), no dar a entender que agenda horas de
+  verdad — es la misma clase de confusión que ya se evitó a propósito con el modo
+  profesional oculto para familias.
 
 ## Pendientes conocidos
 
