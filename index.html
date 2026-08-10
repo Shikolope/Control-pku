@@ -4085,6 +4085,46 @@
     // una versión vieja indefinidamente aunque hubiera un deploy nuevo.
     let _swRegistracion = null;
 
+    // ── CHEQUEO DE VERSIÓN DE CONTENIDO (independiente del Service Worker) ──
+    // El banner de arriba (updatefound/reg.waiting) solo detecta cambios en
+    // el ARCHIVO sw.js — pero la enorme mayoría de los deploys solo tocan
+    // index.html (features, textos, fixes), sin tocar sw.js para nada. Esos
+    // cambios ya se sirven fresh vía la estrategia network-first del fetch
+    // handler de sw.js... PERO solo si la página vuelve a pedir index.html
+    // de la red, cosa que un TWA de Android casi nunca hace al reabrirse
+    // (retoma el WebView existente en vez de navegar de nuevo — mismo
+    // problema de fondo que _swRegistracion.update() más abajo). Bug real
+    // reportado por el dueño del proyecto 2026-08-10: varios cambios de
+    // contenido (sin tocar sw.js) no se reflejaban nunca en su TWA porque no
+    // había NINGÚN mecanismo, ni el del SW, que detectara ese caso.
+    // Arreglo: version.json (regenerado en cada deploy con un timestamp UTC,
+    // ver CLAUDE.md → "Flujo de publicación") se compara contra el valor que
+    // tenía AL CARGAR esta instancia de la página. Si cambió, se reusa el
+    // mismo banner/botón "Actualizar ahora" — aplicarNuevaVersion() ya cae
+    // a window.location.reload() cuando no hay _swEsperando pendiente, que
+    // es justo lo que hace falta acá (forzar una navegación real).
+    let _versionContenidoInicial = null;
+
+    async function chequearVersionContenido(esChequeoInicial) {
+        try {
+            const resp = await fetch('/version.json', { cache: 'no-store' });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!data || !data.version) return;
+            if (esChequeoInicial) {
+                _versionContenidoInicial = data.version;
+                return;
+            }
+            if (_versionContenidoInicial && data.version !== _versionContenidoInicial) {
+                document.getElementById('pkuNuevaVersionBanner').classList.add('visible');
+            }
+        } catch (e) {
+            // Sin conexión u otro error de red: no molestar con el banner,
+            // no hay nada que actualizar si no se pudo verificar.
+        }
+    }
+    chequearVersionContenido(true);
+
     window.aplicarNuevaVersion = function() {
         if (_swEsperando) {
             _swEsperando.postMessage({ type: 'SKIP_WAITING' });
@@ -4144,6 +4184,10 @@
             if (_swRegistracion) {
                 try { _swRegistracion.update(); } catch (e) { console.warn('Error al chequear actualización del SW (no crítico):', e); }
             }
+            // Chequeo de versión de CONTENIDO (ver nota junto a
+            // _versionContenidoInicial más arriba) — cubre deploys que no
+            // tocaron sw.js, el caso más común.
+            chequearVersionContenido(false);
         }
     });
 

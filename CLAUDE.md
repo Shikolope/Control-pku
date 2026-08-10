@@ -374,9 +374,18 @@ Dos destinos activos, independientes:
 git add .
 git commit -m "..."
 git push                          # historial en GitHub, como siempre
+date -u +"%Y-%m-%dT%H:%M:%SZ" | sed 's/.*/{"version":"&"}/' > version.json  # ver nota abajo
 firebase deploy --only hosting    # publica index.html/profesional.html/etc.
 firebase deploy --only firestore:rules   # publica firestore.rules (aparte)
 ```
+
+**`version.json` (raíz del repo) hay que regenerarlo ANTES de cada `firebase deploy
+--only hosting`**, con un timestamp UTC fresco (comando de arriba, o a mano con el
+mismo formato `{"version":"2026-08-10T07:40:08Z"}`). Es el mecanismo que detecta
+cambios de CONTENIDO (a diferencia del banner viejo, que solo detecta cambios en
+`sw.js` — ver más abajo, sección del banner de nueva versión). Si te olvidas de
+regenerarlo, el deploy sale bien igual, pero el banner de actualización no se entera
+de que hubo cambios — no rompe nada, simplemente no avisa.
 
 **`sw.js` se sirve con `Cache-Control: no-cache`** (config en `firebase.json` →
 `hosting.headers`, agregado 2026-07-30). Sin esto, Firebase Hosting lo servía con su
@@ -405,6 +414,26 @@ Playwright: 0 llamadas a `update()` al cargar, 1 llamada exacta al simular que l
 app vuelve a foreground. `_swRegistracion` guarda la referencia del
 `register('sw.js').then(reg => ...)` para que el handler de `visibilitychange`
 (declarado más abajo en el archivo) pueda acceder a ella.
+
+**Ese fix de `_swRegistracion.update()` NO alcanzaba** (mismo día, el dueño del
+proyecto probó de nuevo y seguía sin aparecerle el banner): ese mecanismo solo
+detecta cambios en el ARCHIVO `sw.js`, pero la enorme mayoría de los deploys reales
+(features, textos, fixes) solo tocan `index.html` sin tocar `sw.js` para nada — no
+había NINGÚN mecanismo que detectara ese caso, mucho más común. Arreglo real:
+`version.json` (archivo nuevo en la raíz del repo, `{"version":"<timestamp UTC>"}`,
+**hay que regenerarlo en cada deploy de hosting** — ver comando en "Flujo de
+publicación" arriba) se chequea con `fetch('/version.json', {cache:'no-store'})` al
+cargar la página (`_versionContenidoInicial`) y de nuevo en cada `visibilitychange`;
+si cambió, se muestra el mismo banner/botón "Actualizar ahora" — `aplicarNuevaVersion()`
+ya caía a `window.location.reload()` cuando no había `_swEsperando` pendiente, que es
+justo la navegación real que hace falta forzar. Validado con Playwright (aislando la
+interferencia del propio Service Worker sobre el mock de red, que no se puede
+interceptar de forma confiable con `page.route` una vez que el SW controla la
+página): banner oculto con la misma versión, banner visible al simular una versión
+distinta. **Si en el futuro el banner de nueva versión sigue sin aparecer en el TWA
+pese a estos dos mecanismos, sospechar primero de que `version.json` no se
+regeneró en el último deploy** — es el punto de falla más probable, no un bug de
+lógica nuevo.
 
 ## Decisiones de producto a respetar
 
