@@ -1615,6 +1615,7 @@
         #pantallaFAQ.oculta { display: none; }
         #pantallaSugerencias.oculta { display: none; }
         #pantallaSoporte.oculta { display: none; }
+        #pantallaTutorialInicial.oculta { display: none; }
         .faq-item-app { margin-bottom: 14px; }
         .faq-item-app h4 { font-size: 13px; color: var(--color-brand); margin: 0 0 3px; }
         .faq-item-app p { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
@@ -2691,6 +2692,20 @@
     </div>
 </div>
 
+<!-- ===== PANTALLA: Tutorial inicial (video corto, se muestra solo la primera vez) ===== -->
+<div id="pantallaTutorialInicial" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div class="login-card" style="max-height:85vh; text-align:center; max-width:380px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarTutorialInicial()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0; z-index:1;">✕</button>
+        <h2 class="login-titulo" style="margin:0 28px 4px 0; flex-shrink:0;">👋 ¡Bienvenido!</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px; flex-shrink:0;">Así se registra un alimento en unos segundos.</p>
+        <div style="overflow-y:auto; flex:1; min-height:0;">
+            <video src="/tutorial-inicio.mp4" autoplay muted loop playsinline style="width:100%; border-radius:14px; box-shadow:0 8px 24px rgba(35,51,51,0.16); display:block;"></video>
+        </div>
+        <button class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="cerrarTutorialInicial()">Entendido</button>
+        <div style="font-size:11px; color:var(--text-muted); text-decoration:underline; cursor:pointer; margin-top:8px; flex-shrink:0;" onclick="cerrarTutorialInicial()">Saltar</div>
+    </div>
+</div>
+
 <script>
     // ══════════════════════════════════════════════════════
     // SISTEMA DE DIÁLOGOS PROPIOS (reemplaza alert/confirm/prompt nativos)
@@ -2799,6 +2814,32 @@
         document.getElementById('pantallaSoporte').style.display = 'none';
     }
     window.cerrarSoporte = cerrarSoporte;
+
+    // ── TUTORIAL INICIAL (video corto, solo la primera vez por dispositivo) ──
+    // Se llama desde aplicarDatosRestaurados() — cubre login, registro,
+    // cambio de perfil y Modo Demo por igual (todos pasan por esa misma
+    // función). El flag es por localStorage (por dispositivo/navegador, no
+    // por cuenta): una vez mostrado en un dispositivo, no vuelve a
+    // aparecer ahí aunque después inicie sesión otra cuenta distinta.
+    function mostrarTutorialInicialSiCorresponde() {
+        if (localStorage.getItem('pku_tutorial_visto')) return;
+        localStorage.setItem('pku_tutorial_visto', '1');
+        const pantalla = document.getElementById('pantallaTutorialInicial');
+        if (!pantalla) return;
+        pantalla.classList.remove('oculta');
+        pantalla.style.display = 'flex';
+    }
+
+    function cerrarTutorialInicial() {
+        const pantalla = document.getElementById('pantallaTutorialInicial');
+        pantalla.classList.add('oculta');
+        pantalla.style.display = 'none';
+        // Pausar el video al cerrar — si no, sigue reproduciéndose (y
+        // consumiendo batería/CPU) oculto de fondo indefinidamente.
+        const video = pantalla.querySelector('video');
+        if (video) video.pause();
+    }
+    window.cerrarTutorialInicial = cerrarTutorialInicial;
 
     // ── EXPORTAR REPORTE POR RANGO DE FECHAS (PDF/Excel) ──
     // Recuerda qué botón (PDF o Excel) abrió el selector de rango, para que
@@ -8571,6 +8612,7 @@
         renderizarCitas();
         renderizarPlanSemanal();
         try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (aplicarDatosRestaurados, no crítico):', e); }
+        try { mostrarTutorialInicialSiCorresponde(); } catch (e) { console.warn('Error mostrando el tutorial inicial (no crítico):', e); }
     }
     // Exponer globalmente para el módulo Firebase
     window.aplicarDatosRestaurados = aplicarDatosRestaurados;
@@ -11637,7 +11679,12 @@
         // Sobreescribir localStorage.setItem para ignorar claves PKU en modo demo
         const _setItemOriginal = localStorage.setItem.bind(localStorage);
         localStorage.setItem = function(key, value) {
-            if (_modoDemo && key.startsWith('pku_')) return; // no persistir nada del demo
+            // Excepción: pku_tutorial_visto no es dato clínico del paciente
+            // ni dato de demo — es una preferencia de UI a nivel de
+            // dispositivo (¿ya vio el tutorial de bienvenida?). Bloquearla
+            // en Modo Demo hacía que el tutorial reapareciera en cada
+            // entrada al demo en vez de mostrarse una sola vez.
+            if (_modoDemo && key.startsWith('pku_') && key !== 'pku_tutorial_visto') return; // no persistir nada del demo
             _setItemOriginal(key, value);
         };
     }
