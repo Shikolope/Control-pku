@@ -416,6 +416,10 @@ mecanismo mismo que detecta actualizaciones. Si agregas headers nuevos a
 ## Pendientes conocidos
 
 - Subir el APK nuevo a Play Store (ya generado, apuntando a pku-control.web.app).
+  **Mientras el APK no esté publicado, las 534 familias usan la app exclusivamente
+  vía la URL `pku-control.web.app`, tanto desde PC como desde celular** — no asumir
+  que hay una app instalada de por medio en ningún texto/guía/feature nueva
+  (instrucciones de "abre la app" deben leerse como "abre la URL en el navegador").
 - Migración a persistencia offline nativa de Firestore: las 3 fases ya están hechas
   (ver sección "Sistema de sincronización con Firestore" arriba).
 - Evaluar pasar de plan Spark a Blaze antes del lanzamiento a las 534 familias.
