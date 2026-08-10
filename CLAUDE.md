@@ -227,6 +227,23 @@ usuarios/{uid}/
     comidas/{comidaId} → id, nombre, gramos, fa, unidad, categoria
     historial/{fecha}  → fecha, consumido, meta, comidas[]  (fecha = "YYYY-MM-DD")
     citas/{citaId}     → id, texto, fechaTexto, rawDateTime
+    recetas/{recetaId} → id, nombre, categoria, porciones, modoFa, ingredientes[], faTotal
+                          ("Mis Recetas" — recetas propias de la familia, combinan varios
+                          alimentos de la Tabla PKU; no confundir con el Recetario oficial
+                          INTA, que es estático y vive embebido en index.html, no en
+                          Firestore. Incluye el modo "Ya sé el FA total" para recetas de
+                          la comunidad PKU — ej. Corporación PKU Chile — donde ya se conoce
+                          el valor total sin desglosar ingredientes; el botón "Recetario
+                          Comunidad PKU Chile" del buscador usa esta misma colección, no
+                          una estructura aparte)
+    planSemanal/actual → { dias: { lunes: {...6 bloques}, martes: {...}, ... } }
+                          (menú de referencia RECURRENTE, no atado a fecha calendario —
+                          documento único que se sobreescribe entero. Se lee UNA sola vez
+                          al iniciar sesión, sin onSnapshot, a propósito para no sumar
+                          cuota de lecturas. El cliente escribe con merge:true apuntando
+                          solo al día/bloque tocado, desde el fix de integridad
+                          2026-08-10, para no pisar cambios de otro dispositivo; sigue
+                          aceptando también un setDoc del documento completo)
     log/{logId}        → auditoría append-only (comidas del dueño + cambios de límite
                           del profesional). No tiene pantalla propia para los cambios
                           de límite — decisión consciente, ver más abajo.
@@ -393,6 +410,18 @@ mecanismo mismo que detecta actualizaciones. Si agregas headers nuevos a
 - Migración a persistencia offline nativa de Firestore: las 3 fases ya están hechas
   (ver sección "Sistema de sincronización con Firestore" arriba).
 - Evaluar pasar de plan Spark a Blaze antes del lanzamiento a las 534 familias.
+- Agrupar "Comidas de Hoy" en los mismos 6 bloques que ya usa Plan Semanal
+  (Desayuno/Colación mañana/Almuerzo/Colación tarde/Cena/Otros). Se armó un plan
+  completo (2026-08-09) — agregar campo `bloque` a cada comida, preguntado con chips
+  (default por hora del día) en `calcularFA`/`agregarAlimentoCustom`/
+  `confirmarRegistroReceta`/`registrarRecetaComoComida`, auto-etiquetado sin
+  preguntar en los registros que vienen de Plan Semanal, sin requerir cambios en
+  `firestore.rules`. **Se descartó por decisión de producto, no técnica**: el dueño
+  del proyecto sintió que agregar un paso al flujo de registro más usado de la app
+  (el buscador principal, `calcularFA`) es un riesgo de UX que no vale la pena para
+  534 familias reales, aunque el cambio estuviera bien acotado técnicamente. Si se
+  retoma, evaluar una versión que NO le pida nada al usuario en el flujo de agregar
+  (ver `feedback_flujos_core` en memoria del agente para el detalle de esta decisión).
 
 ## Guía de soporte completa
 
