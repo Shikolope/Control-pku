@@ -4738,6 +4738,18 @@
         card.style.position = 'relative';
         const icono = obtenerIconoHTML(obtenerCategoria(item), 28);
         const unidad = item.unidad === 'ml' ? 'ml' : 'g';
+        // Las recetas del Recetario PKU no tienen gramosPorcion/medidaCasera
+        // (usan gramos_racion/raciones/tipo_porcion) — sin este caso especial
+        // la tarjeta mostraba "undefinedg · undefined".
+        let textoPorcion;
+        if (item.categoria === 'recetario') {
+            const { singular, plural } = _etiquetasPorcionReceta(item);
+            textoPorcion = item.raciones > 1
+                ? `${item.gramos_racion}g · ${item.raciones} ${plural}`
+                : `${item.gramos_racion}g · 1 ${singular}`;
+        } else {
+            textoPorcion = `${item.gramosPorcion}${unidad} · ${item.medidaCasera}`;
+        }
         card.innerHTML = `
             <div class="alimento-card-grid-top">
                 ${icono}
@@ -4745,7 +4757,7 @@
             </div>
             <div class="alimento-card-grid-bottom">
                 <div>
-                    <div class="alimento-card-grid-porcion">${item.gramosPorcion}${unidad} · ${item.medidaCasera}</div>
+                    <div class="alimento-card-grid-porcion">${textoPorcion}</div>
                     ${item.tipo === 'prohibido' ? '<span class="tag-alimento tag-prohibido">🚫 prohibido</span>' : ''}
                     ${esSoloHFA(item) ? '<span class="tag-alimento tag-hfa">⚠️ solo HFA</span>' : ''}
                     ${esRecetaReciente(item) ? '<span class="tag-alimento tag-nuevo">🆕 nueva de INTA</span>' : ''}
