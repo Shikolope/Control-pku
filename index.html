@@ -3778,6 +3778,18 @@
         return `${anio}-${mes}-${dia}`;
     }
 
+    // Ventana de edición del historial: solo hoy y ayer son editables (agregar/
+    // borrar comidas). Días más antiguos quedan de solo lectura a propósito —
+    // decisión de producto para que el registro de días ya cerrados no cambie.
+    function fechaEsEditable(fechaStr) {
+        if (fechaStr === fechaHoyLocal()) return true;
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        const ayerStr = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, '0')}-${String(ayer.getDate()).padStart(2, '0')}`;
+        return fechaStr === ayerStr;
+    }
+    window.fechaEsEditable = fechaEsEditable;
+
     let metaDiaria = parseFloat(localStorage.getItem('pku_meta')) || 300;
     let consumidoHoy = parseFloat(localStorage.getItem('pku_consumido')) || 0;
     let alimentoActual = null;
@@ -6432,6 +6444,7 @@
 
         const hoyStr = fechaHoyLocal();
         const esHoy = fechaStr === hoyStr;
+        const editable = fechaEsEditable(fechaStr);
 
         // El día de hoy vive en consumidoHoy/comidasHoy, no en historialDias (que solo
         // recibe el día una vez que pasa la medianoche). Si se selecciona hoy, construimos
@@ -6481,10 +6494,14 @@
                         ? `<div style="background:#f0faf5; border:1.5px solid #c8eed9; border-radius:12px; padding:12px; text-align:center; font-size:12px; color:#1B5E5E;">
                                📌 Para agregar comidas de hoy usa el <strong>Buscador de Alimentos</strong> en la pantalla principal
                            </div>`
-                        : `<button class="cal-btn-agregar" onclick="toggleMiniAgregadorCalendario('${fechaStr}')">➕ Agregar comida a este día</button>`
+                        : editable
+                            ? `<button class="cal-btn-agregar" onclick="toggleMiniAgregadorCalendario('${fechaStr}')">➕ Agregar comida a este día</button>`
+                            : `<div style="background:#f8f9fa; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px; text-align:center; font-size:12px; color:#64748b;">
+                                   🔒 Este día ya no se puede editar — solo se permite registrar hoy y ayer
+                               </div>`
                     }
                 </div>
-                ${!esHoy ? `
+                ${(!esHoy && editable) ? `
                 <div id="miniAgregador-${fechaStr}" class="cal-mini-buscador">
                     <label>Buscar alimento</label>
                     <input type="text" id="miniBusc-${fechaStr}" placeholder="🔎 Escribe por nombre o toca una categoría..." oninput="buscarEnMiniAgregador('${fechaStr}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
@@ -6536,7 +6553,7 @@
                         <br><span style="font-size:11px; color:var(--text-muted);">${c.gramos}${c.unidad || 'g'}</span>
                     </div>
                     <span class="cal-detalle-comida-fa">${c.fa} mg</span>
-                    <button class="btn-del-item" onclick="borrarComidaEnCalendario('${fechaStr}', '${c.id}')">❌</button>
+                    ${editable ? `<button class="btn-del-item" onclick="borrarComidaEnCalendario('${fechaStr}', '${c.id}')">❌</button>` : ''}
                 </div>`).join('');
 
         detalleEl.innerHTML = `
@@ -6555,10 +6572,14 @@
                     ? `<div style="background:#f0faf5; border:1.5px solid #c8eed9; border-radius:12px; padding:12px; text-align:center; font-size:12px; color:#1B5E5E;">
                            📌 Para agregar más comidas de hoy usa el <strong>Buscador de Alimentos</strong> en la pantalla principal
                        </div>`
-                    : `<button class="cal-btn-agregar" onclick="toggleMiniAgregadorCalendario('${fechaStr}')">➕ Agregar comida</button>`
+                    : editable
+                        ? `<button class="cal-btn-agregar" onclick="toggleMiniAgregadorCalendario('${fechaStr}')">➕ Agregar comida</button>`
+                        : `<div style="background:#f8f9fa; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px; text-align:center; font-size:12px; color:#64748b;">
+                               🔒 Este día ya no se puede editar — solo se permite registrar hoy y ayer
+                           </div>`
                 }
             </div>
-            ${!esHoy ? `
+            ${(!esHoy && editable) ? `
             <div id="miniAgregador-${fechaStr}" class="cal-mini-buscador">
                 <label>Buscar alimento que faltó</label>
                 <input type="text" id="miniBusc-${fechaStr}" placeholder="🔎 Escribe por nombre o toca una categoría..." oninput="buscarEnMiniAgregador('${fechaStr}')" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; font-size:13px; box-sizing:border-box; margin-bottom:6px;">
@@ -6975,6 +6996,7 @@
 
     function agregarMiniCustomAlCalendario(fecha) {
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para agregar comidas.', 'toast-warn'); return; }
+        if (!fechaEsEditable(fecha)) { pkuToast('🔒 Este día ya no se puede editar — solo hoy y ayer.', 'toast-warn'); return; }
         const nombre = document.getElementById(`miniCustomNombre-${fecha}`).value.trim();
         if (!nombre) { pkuToast('Ingresa el nombre del alimento.', 'toast-error'); return; }
 
@@ -7052,6 +7074,7 @@
     // mini-agregador (confirmarAgregarEnCalendario/agregarMiniCustomAlCalendario).
     async function seleccionarRecetaEnMiniAgregador(fecha, recetaId) {
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para agregar comidas.', 'toast-warn'); return; }
+        if (!fechaEsEditable(fecha)) { pkuToast('🔒 Este día ya no se puede editar — solo hoy y ayer.', 'toast-warn'); return; }
         const receta = misRecetas.find(r => String(r.id) === String(recetaId));
         if (!receta) return;
         document.getElementById(`miniSug-${fecha}`).style.display = 'none';
@@ -7107,6 +7130,7 @@
 
     function confirmarAgregarEnCalendario(fecha) {
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para agregar comidas.', 'toast-warn'); return; }
+        if (!fechaEsEditable(fecha)) { pkuToast('🔒 Este día ya no se puede editar — solo hoy y ayer.', 'toast-warn'); return; }
         if (!calAlimentoEditorActual || calAlimentoEditorActual.fecha !== fecha) return;
         const alimento = calAlimentoEditorActual.alimento;
 
@@ -7168,6 +7192,7 @@
 
     async function borrarComidaEnCalendario(fecha, idComida) {
         if (appEsSoloLectura()) { pkuToast('📖 Modo solo lectura — conéctate para eliminar comidas.', 'toast-warn'); return; }
+        if (!fechaEsEditable(fecha)) { pkuToast('🔒 Este día ya no se puede editar — solo hoy y ayer.', 'toast-warn'); return; }
         const hoyStr = fechaHoyLocal();
 
         if (fecha === hoyStr) {
