@@ -7,7 +7,12 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "CLAUDE.md",
+      "README.md",
+      "firestore.rules",
+      "guia-soporte-mi-control-pku.md",
+      "Autorizacion de uso y reproduccion de material bajo propiedad intelectual VCORNEJO-firmado.pdf"
     ],
     "headers": [
       {
