@@ -1601,6 +1601,7 @@
         #pantallaHistorialCambios.oculta { display: none; }
         #pantallaNovedades.oculta { display: none; }
         #pantallaMensajesINTA.oculta { display: none; }
+        #pantallaExportarRango.oculta { display: none; }
         #pantallaFAQ.oculta { display: none; }
         #pantallaSugerencias.oculta { display: none; }
         #pantallaSoporte.oculta { display: none; }
@@ -2430,10 +2431,10 @@
             </div>
             <!-- Reporte para nutricionista -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:0;">
-                <button onclick="generarReporteNutricionista()" style="background:#1B5E5E; color:white; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:5px;">
+                <button onclick="abrirExportarRango('pdf')" style="background:#1B5E5E; color:white; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:5px;">
                     📄 Reporte PDF
                 </button>
-                <button onclick="generarReporteExcel()" style="background:#217346; color:white; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:5px;">
+                <button onclick="abrirExportarRango('excel')" style="background:#217346; color:white; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:5px;">
                     📊 Reporte Excel
                 </button>
             </div>
@@ -2611,6 +2612,22 @@
     </div>
 </div>
 
+<!-- ===== PANTALLA: Exportar reporte por rango de fechas ===== -->
+<div id="pantallaExportarRango" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarExportarRango()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0;">✕</button>
+        <h2 class="login-titulo" id="exportarRangoTitulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">📤 Exportar reporte</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">Elige el rango de fechas a incluir. Por defecto abarca todo tu historial registrado.</p>
+        <div style="overflow-y:auto; flex:1; min-height:0;">
+            <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Desde</label>
+            <input type="date" id="exportarFechaDesde" style="width:100%; box-sizing:border-box; border:1.5px solid var(--border-color); border-radius:10px; padding:9px 10px; font-size:13px; font-family:inherit; color:var(--text-main); margin-bottom:12px;">
+            <label style="font-size:11px; font-weight:bold; color:#475569; display:block; margin-bottom:4px;">Hasta</label>
+            <input type="date" id="exportarFechaHasta" style="width:100%; box-sizing:border-box; border:1.5px solid var(--border-color); border-radius:10px; padding:9px 10px; font-size:13px; font-family:inherit; color:var(--text-main);">
+        </div>
+        <button id="btnConfirmarExportarRango" class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="confirmarExportarConRango()">Generar reporte</button>
+    </div>
+</div>
+
 <!-- ===== PANTALLA: Preguntas frecuentes ===== -->
 <div id="pantallaFAQ" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
     <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
@@ -2768,6 +2785,44 @@
         document.getElementById('pantallaSoporte').style.display = 'none';
     }
     window.cerrarSoporte = cerrarSoporte;
+
+    // ── EXPORTAR REPORTE POR RANGO DE FECHAS (PDF/Excel) ──
+    // Recuerda qué botón (PDF o Excel) abrió el selector de rango, para que
+    // el único botón "Generar reporte" del modal sepa a cuál de las dos
+    // funciones (generarReporteNutricionista/generarReporteExcel) llamar.
+    let _formatoExportarPendiente = null;
+
+    function abrirExportarRango(formato) {
+        _formatoExportarPendiente = formato;
+        const fechas = (historialDias || []).map(d => d.fecha).filter(Boolean).sort();
+        const hoy = fechaHoyLocal();
+        document.getElementById('exportarFechaDesde').value = fechas.length > 0 ? fechas[0] : hoy;
+        document.getElementById('exportarFechaHasta').value = hoy;
+        document.getElementById('exportarRangoTitulo').textContent = formato === 'excel' ? '📤 Exportar reporte Excel' : '📤 Exportar reporte PDF';
+        document.getElementById('pantallaExportarRango').classList.remove('oculta');
+        document.getElementById('pantallaExportarRango').style.display = 'flex';
+    }
+    window.abrirExportarRango = abrirExportarRango;
+
+    function cerrarExportarRango() {
+        document.getElementById('pantallaExportarRango').classList.add('oculta');
+        document.getElementById('pantallaExportarRango').style.display = 'none';
+    }
+    window.cerrarExportarRango = cerrarExportarRango;
+
+    function confirmarExportarConRango() {
+        const desde = document.getElementById('exportarFechaDesde').value;
+        const hasta = document.getElementById('exportarFechaHasta').value;
+        if (!desde || !hasta) { pkuToast('Elige ambas fechas.', 'toast-error'); return; }
+        if (desde > hasta) { pkuToast('La fecha "Desde" no puede ser posterior a "Hasta".', 'toast-error'); return; }
+        cerrarExportarRango();
+        if (_formatoExportarPendiente === 'excel') {
+            generarReporteExcel(desde, hasta);
+        } else {
+            generarReporteNutricionista(desde, hasta);
+        }
+    }
+    window.confirmarExportarConRango = confirmarExportarConRango;
 
     // ══════════════════════════════════════════════════════
     // NOVEDADES DE LA APP (campanita 🔔)
@@ -7535,7 +7590,7 @@
 
     // --- RESPALDO ---
     // ===================== REPORTE PDF PARA NUTRICIONISTA =====================
-    function generarReporteNutricionista() {
+    function generarReporteNutricionista(fechaDesde, fechaHasta) {
         if (typeof window.jspdf === 'undefined') {
             pkuToast('El generador de PDF aún está cargando, intenta en unos segundos.', 'toast-warn');
             return;
@@ -7582,7 +7637,15 @@
         docPdf.text('Límite diario de FA configurado:', 14, y);
         docPdf.setFont(undefined, 'normal');
         docPdf.text(`${metaDiaria} mg`, 78, y);
-        y += 8;
+        y += 7;
+        if (fechaDesde && fechaHasta) {
+            docPdf.setFont(undefined, 'bold');
+            docPdf.text('Rango exportado:', 14, y);
+            docPdf.setFont(undefined, 'normal');
+            docPdf.text(`${formatearFechaParaReporte(fechaDesde)} — ${formatearFechaParaReporte(fechaHasta)}`, 48, y);
+            y += 7;
+        }
+        y += 1;
 
         // --- Disclaimer ---
         docPdf.setFillColor(245, 245, 245);
@@ -7600,8 +7663,12 @@
         y += 17;
 
         // --- Tabla resumen diario (historial) ---
+        // Rango de fechas opcional (ver abrirExportarRango/confirmarExportarConRango):
+        // filtra tanto el historial cerrado como la inclusión del día de hoy.
         const filasResumen = [];
-        const historialOrdenado = [...historialDias].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+        const historialOrdenado = [...historialDias]
+            .filter(d => !fechaDesde || !fechaHasta || (d.fecha >= fechaDesde && d.fecha <= fechaHasta))
+            .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
         historialOrdenado.forEach(dia => {
             const porcentaje = dia.meta ? Math.round((dia.consumido / dia.meta) * 100) : 0;
             filasResumen.push([
@@ -7612,11 +7679,13 @@
                 String(dia.comidas?.length || 0)
             ]);
         });
-        // Incluir el día de hoy si tiene registros
-        if (comidasHoy.length > 0 || consumidoHoy > 0) {
+        // Incluir el día de hoy si tiene registros Y cae dentro del rango elegido
+        const fechaHoyPKU = localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal();
+        const hoyEnRango = !fechaDesde || !fechaHasta || (fechaHoyPKU >= fechaDesde && fechaHoyPKU <= fechaHasta);
+        if (hoyEnRango && (comidasHoy.length > 0 || consumidoHoy > 0)) {
             const porcentajeHoy = metaDiaria ? Math.round((consumidoHoy / metaDiaria) * 100) : 0;
             filasResumen.push([
-                formatearFechaParaReporte(localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal()) + ' (hoy)',
+                formatearFechaParaReporte(fechaHoyPKU) + ' (hoy)',
                 `${Math.round(consumidoHoy)} mg`,
                 `${metaDiaria} mg`,
                 `${porcentajeHoy}%`,
@@ -7648,8 +7717,8 @@
 
         // --- Detalle de comidas por día ---
         const diasParaDetalle = [...historialOrdenado];
-        if (comidasHoy.length > 0) {
-            diasParaDetalle.push({ fecha: localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal(), comidas: comidasHoy, esHoy: true });
+        if (hoyEnRango && comidasHoy.length > 0) {
+            diasParaDetalle.push({ fecha: fechaHoyPKU, comidas: comidasHoy, esHoy: true });
         }
 
         diasParaDetalle.forEach(dia => {
@@ -7681,14 +7750,23 @@
         });
 
         // --- Citas médicas ---
-        if (citasMedicas && citasMedicas.length > 0) {
+        // Filtradas por el mismo rango (comparando la parte de fecha de
+        // rawDateTime, formato "YYYY-MM-DDTHH:MM") — si una cita no tiene
+        // rawDateTime parseable, se incluye igual por seguridad.
+        const citasEnRango = (citasMedicas || []).filter(c => {
+            if (!fechaDesde || !fechaHasta) return true;
+            const fechaCita = (c.rawDateTime || '').slice(0, 10);
+            if (!fechaCita) return true;
+            return fechaCita >= fechaDesde && fechaCita <= fechaHasta;
+        });
+        if (citasEnRango.length > 0) {
             if (y > 250) { docPdf.addPage(); y = 18; }
             docPdf.setFontSize(12);
             docPdf.setFont(undefined, 'bold');
             docPdf.setTextColor(30, 30, 30);
             docPdf.text('Citas médicas registradas', 14, y);
             y += 4;
-            const filasCitas = citasMedicas.map(c => [c.fechaTexto || '-', c.texto || '-']);
+            const filasCitas = citasEnRango.map(c => [c.fechaTexto || '-', c.texto || '-']);
             docPdf.autoTable({
                 startY: y,
                 head: [['Fecha', 'Detalle']],
@@ -7710,8 +7788,8 @@
             docPdf.text(`Página ${p} de ${totalPaginas}`, anchoPagina - 30, 290);
         }
 
-        const fechaArchivo = fechaHoyLocal();
-        docPdf.save(`reporte_PKU_${nombrePaciente.replace(/\s+/g, '_')}_${fechaArchivo}.pdf`);
+        const sufijoArchivo = fechaDesde && fechaHasta ? `${fechaDesde}_a_${fechaHasta}` : fechaHoyLocal();
+        docPdf.save(`reporte_PKU_${nombrePaciente.replace(/\s+/g, '_')}_${sufijoArchivo}.pdf`);
         } catch (e) {
             console.warn('Error generando el reporte PDF:', e);
             pkuToast('No se pudo generar el reporte PDF. Tus datos están a salvo.', 'toast-error');
@@ -8008,7 +8086,7 @@
     };
 
     // ===================== REPORTE EXCEL PARA NUTRICIONISTA =====================
-    function generarReporteExcel() {
+    function generarReporteExcel(fechaDesde, fechaHasta) {
         if (typeof XLSX === 'undefined') {
             pkuToast('El generador de Excel aún está cargando, intenta en unos segundos.', 'toast-warn');
             return;
@@ -8026,12 +8104,16 @@
             const wb = XLSX.utils.book_new();
 
             // ── Hoja 1: Resumen diario ──────────────────────────────────────────
-            const historialOrdenado = [...historialDias].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+            // Rango de fechas opcional (ver abrirExportarRango/confirmarExportarConRango).
+            const historialOrdenado = [...historialDias]
+                .filter(d => !fechaDesde || !fechaHasta || (d.fecha >= fechaDesde && d.fecha <= fechaHasta))
+                .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
             const resumenData = [
                 [`Mi Control PKU — Reporte de seguimiento dietético`],
                 [`Paciente: ${nombrePaciente}`],
                 [`Límite diario de FA: ${metaDiaria} mg`],
                 [`Generado el: ${fechaGeneracion}`],
+                ...(fechaDesde && fechaHasta ? [[`Rango exportado: ${formatearFechaParaReporte(fechaDesde)} — ${formatearFechaParaReporte(fechaHasta)}`]] : []),
                 [`Nota: Este reporte es generado por una herramienta de apoyo familiar y no reemplaza la evaluación del equipo médico o nutricional tratante.`],
                 [],
                 ['Fecha', 'FA consumido (mg)', 'Límite (mg)', '% del límite', 'N° comidas']
@@ -8048,11 +8130,13 @@
                 ]);
             });
 
-            // Incluir día de hoy si tiene registros
-            if (comidasHoy.length > 0 || consumidoHoy > 0) {
+            // Incluir día de hoy si tiene registros Y cae dentro del rango elegido
+            const fechaHoyPKU = localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal();
+            const hoyEnRango = !fechaDesde || !fechaHasta || (fechaHoyPKU >= fechaDesde && fechaHoyPKU <= fechaHasta);
+            if (hoyEnRango && (comidasHoy.length > 0 || consumidoHoy > 0)) {
                 const pctHoy = metaDiaria ? Math.round((consumidoHoy / metaDiaria) * 100) : 0;
                 resumenData.push([
-                    formatearFechaParaReporte(localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal()) + ' (hoy)',
+                    formatearFechaParaReporte(fechaHoyPKU) + ' (hoy)',
                     Math.round(consumidoHoy),
                     metaDiaria,
                     `${pctHoy}%`,
@@ -8071,9 +8155,9 @@
             ];
 
             const diasParaDetalle = [...historialOrdenado];
-            if (comidasHoy.length > 0) {
+            if (hoyEnRango && comidasHoy.length > 0) {
                 diasParaDetalle.push({
-                    fecha: localStorage.getItem('pku_ultimo_dia') || fechaHoyLocal(),
+                    fecha: fechaHoyPKU,
                     comidas: comidasHoy,
                     esHoy: true
                 });
@@ -8098,11 +8182,20 @@
             XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle de comidas');
 
             // ── Hoja 3: Citas médicas ───────────────────────────────────────────
-            if (citasMedicas && citasMedicas.length > 0) {
+            // Filtradas por el mismo rango (comparando la parte de fecha de
+            // rawDateTime) — si una cita no tiene rawDateTime parseable, se
+            // incluye igual por seguridad.
+            const citasEnRango = (citasMedicas || []).filter(c => {
+                if (!fechaDesde || !fechaHasta) return true;
+                const fechaCita = (c.rawDateTime || '').slice(0, 10);
+                if (!fechaCita) return true;
+                return fechaCita >= fechaDesde && fechaCita <= fechaHasta;
+            });
+            if (citasEnRango.length > 0) {
                 const citasData = [
                     ['Fecha', 'Detalle']
                 ];
-                citasMedicas.forEach(c => {
+                citasEnRango.forEach(c => {
                     citasData.push([c.fechaTexto || '-', c.texto || '-']);
                 });
                 const wsCitas = XLSX.utils.aoa_to_sheet(citasData);
@@ -8110,8 +8203,8 @@
                 XLSX.utils.book_append_sheet(wb, wsCitas, 'Citas médicas');
             }
 
-            const fechaArchivo = fechaHoyLocal();
-            XLSX.writeFile(wb, `reporte_PKU_${nombrePaciente.replace(/\s+/g, '_')}_${fechaArchivo}.xlsx`);
+            const sufijoArchivo = fechaDesde && fechaHasta ? `${fechaDesde}_a_${fechaHasta}` : fechaHoyLocal();
+            XLSX.writeFile(wb, `reporte_PKU_${nombrePaciente.replace(/\s+/g, '_')}_${sufijoArchivo}.xlsx`);
 
         } catch (e) {
             console.warn('Error generando el reporte Excel:', e);
