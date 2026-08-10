@@ -5397,7 +5397,11 @@
         // de "permitido" vs "controlado".
         box.style.backgroundColor = alimentoActual.tipo === 'prohibido' ? '#fde2e1' : '#eef6f6';
         box.style.display = 'block';
-        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // block:'start' (no 'nearest') para que además del box queden a la vista
+        // el toggle gramos/medida, el input y el botón "Calcular y Sumar" —
+        // son hermanos del box en el DOM, no hijos, así que 'nearest' solo
+        // garantizaba ver el box y dejaba el botón fuera de pantalla.
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         const unidad = alimentoActual.unidad === 'ml' ? 'ml' : 'g';
         const favActual = esFavorito(alimentoActual.nombre);
@@ -5441,7 +5445,10 @@
             inputGramos.style.display = 'block';
         }
 
-        inputGramos.focus();
+        // preventScroll: sin esto, el foco automático del navegador sobre el
+        // input compite con el scrollIntoView de más arriba y lo pisa,
+        // dejando el botón "Calcular y Sumar" fuera de pantalla otra vez.
+        inputGramos.focus({ preventScroll: true });
 
         if (alimentoActual.tipo === 'prohibido') {
             pkuToast('⚠️ Este alimento está marcado como PROHIBIDO en tu tabla PKU.', 'toast-error', 4000);
