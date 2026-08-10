@@ -4,7 +4,7 @@ rules_version = '2';
 // REGLAS DE SEGURIDAD — Mi Control PKU
 // Proyecto Firebase: pku-control
 // Región: southamerica-west1
-// Última revisión: 2026-07-15
+// Última revisión: 2026-08-10
 //
 // ESTRUCTURA DE DATOS:
 //   usuarios/{uid}/
@@ -33,6 +33,11 @@ rules_version = '2';
 //     papelera/{itemId}        → soft-delete (write-only desde la app)
 //     respaldos/{respaldoId}   → copias automáticas pre-cierre de día
 //     meta/migracion           → control de versión del esquema
+//   sugerencias/{id}           → buzón de feedback de las familias: mensaje, correo,
+//                                nombrePaciente, uid, fecha, _ts. Write-only desde la
+//                                app (allow read: if false), igual criterio que
+//                                /papelera — se revisa a mano desde la consola de
+//                                Firebase, no hay pantalla de lectura en index.html.
 //   codigosPerfil/{codigo}     → mapeo PK-1234 -> ruta del perfil (identificador
 //                                no sensible, sin datos clínicos, para modo profesional)
 //   profesionales/{uid}        → cuentas de nutricionistas INTA con acceso institucional
@@ -315,6 +320,17 @@ service cloud.firestore {
     // consulta, no esta regla.
     match /{path=**}/notificaciones/{notifId} {
       allow read: if esProfesional();
+    }
+
+    // ── SUGERENCIAS (buzón de feedback de las familias) ────────
+    // Write-only desde la app, igual criterio que /papelera: no hay pantalla
+    // de lectura en index.html, el dueño del proyecto las revisa directo
+    // desde la consola de Firebase (no existe un rol "admin" separado).
+    match /sugerencias/{sugerenciaId} {
+      allow read: if false;
+      allow create: if request.auth != null
+        && strValido(request.resource.data.mensaje, 1000);
+      allow update, delete: if false;
     }
 
     // ── CÓDIGOS DE PERFIL (identificador corto no sensible, PK-1234) ──

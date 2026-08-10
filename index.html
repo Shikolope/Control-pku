@@ -1601,6 +1601,12 @@
         #pantallaHistorialCambios.oculta { display: none; }
         #pantallaNovedades.oculta { display: none; }
         #pantallaMensajesINTA.oculta { display: none; }
+        #pantallaFAQ.oculta { display: none; }
+        #pantallaSugerencias.oculta { display: none; }
+        #pantallaSoporte.oculta { display: none; }
+        .faq-item-app { margin-bottom: 14px; }
+        .faq-item-app h4 { font-size: 13px; color: var(--color-brand); margin: 0 0 3px; }
+        .faq-item-app p { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
         #pantallaRegistroReceta.oculta { display: none; }
         #pantallaRecuperarContrasena { display: flex; }
         #pantallaRecuperarContrasena.oculta { display: none; }
@@ -1835,6 +1841,9 @@
             <div id="menuAjustesHeader" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; background:white; border:1px solid var(--border-color); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:1000; overflow:hidden;">
                 <button id="btnGuiaCompleta" onclick="window.open('/Mi-Control-PKU-Guia-para-familias.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía de uso completa en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">📘 Guía de uso (PDF)</button>
                 <button id="btnGuiaRapida" onclick="window.open('/Mi-Control-PKU-Guia-Simple.pdf', '_blank'); document.getElementById('menuAjustesHeader').style.display='none';" title="Abrir la guía rápida en PDF" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">⚡ Guía rápida (PDF)</button>
+                <button id="btnAbrirFAQ" onclick="abrirFAQ()" title="Preguntas frecuentes" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">❓ Preguntas frecuentes</button>
+                <button id="btnAbrirSugerencias" onclick="abrirSugerencias()" title="Enviar una sugerencia" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">💡 Sugerencias</button>
+                <button id="btnAbrirSoporte" onclick="abrirSoporte()" title="Contacto de soporte" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🆘 Soporte</button>
                 <button id="btnModoProfesional" onclick="window.location.href='profesional.html'" title="Acceder al modo profesional" style="display:none;background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--color-brand);font-weight:600;align-items:center;gap:8px;border-radius:0;text-align:left;">🩺 Cuenta profesional</button>
                 <button id="btnCambiarCuenta" onclick="cerrarSesion()" title="Cerrar sesión" style="background:none;border:none;cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🚪 Cerrar sesión</button>
                 <button id="btnSalirDemo" onclick="window.salirModoDemo()" title="Salir del Modo Demo" style="display:none;background:none;border:none;border-top:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:#E8A33D;font-weight:600;align-items:center;gap:8px;border-radius:0;text-align:left;">🚪 Salir del demo</button>
@@ -2601,6 +2610,54 @@
     </div>
 </div>
 
+<!-- ===== PANTALLA: Preguntas frecuentes ===== -->
+<div id="pantallaFAQ" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarFAQ()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0;">✕</button>
+        <h2 class="login-titulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">❓ Preguntas frecuentes</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">Las dudas más comunes sobre la app.</p>
+        <div style="overflow-y:auto; flex:1; min-height:0;">
+            <div class="faq-item-app"><h4>¿Necesito internet para usar la app?</h4><p>No siempre. Una vez que abriste la app con conexión al menos una vez, puedes seguir registrando comidas sin internet — los datos se guardan en tu celular y se sincronizan solos apenas te vuelves a conectar.</p></div>
+            <div class="faq-item-app"><h4>¿Se pierden mis datos si se corta internet a mitad de un registro?</h4><p>No. La app guarda todo localmente primero. Evita cerrar la app justo en el instante en que se corta la conexión mientras estás guardando algo; fuera de ese caso puntual, tus datos quedan seguros.</p></div>
+            <div class="faq-item-app"><h4>Borré una comida por error, ¿se puede recuperar?</h4><p>Revisa «🕒 Historial de cambios» (junto a los botones de reporte, al final de la pantalla principal) — ahí queda el registro de cada alimento agregado o eliminado, con fecha y hora. Con ese detalle puedes volver a agregar el alimento manualmente desde el Buscador.</p></div>
+            <div class="faq-item-app"><h4>¿Cómo cambio el límite diario de fenilalanina?</h4><p>Toca el ⚙️ junto a «Límite» en el círculo de la pantalla principal. Tu nutricionista también puede ajustarlo por ti, y en ese caso te llegará un aviso al sobre ✉️.</p></div>
+            <div class="faq-item-app"><h4>Olvidé mi contraseña, ¿qué hago?</h4><p>En la pantalla de inicio de sesión, toca «¿Olvidaste tu contraseña?» e ingresa tu correo — te llegará un link para crear una nueva.</p></div>
+            <div class="faq-item-app"><h4>¿Puedo usar la app en más de un celular?</h4><p>Sí. Inicia sesión con el mismo correo y contraseña en cualquier dispositivo; los datos se mantienen sincronizados entre todos.</p></div>
+            <div class="faq-item-app"><h4>¿Los valores de los alimentos son oficiales?</h4><p>Sí, la base de datos corresponde a la Tabla Oficial PKU Chile 2021 y al Recetario Oficial PKU, ambos elaborados y validados por el equipo clínico del INTA · Universidad de Chile.</p></div>
+        </div>
+        <button class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="cerrarFAQ()">Cerrar</button>
+    </div>
+</div>
+
+<!-- ===== PANTALLA: Sugerencias ===== -->
+<div id="pantallaSugerencias" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarSugerencias()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0;">✕</button>
+        <h2 class="login-titulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">💡 Sugerencias</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">¿Qué te gustaría que mejoráramos? Tu mensaje llega directo al equipo de Mi Control PKU.</p>
+        <div style="overflow-y:auto; flex:1; min-height:0;">
+            <textarea id="inputSugerenciaTexto" maxlength="1000" rows="6" placeholder="Cuéntanos tu idea, problema o sugerencia..." style="width:100%; box-sizing:border-box; resize:vertical; border:1.5px solid var(--border-color); border-radius:10px; padding:10px 12px; font-size:13px; font-family:inherit; color:var(--text-main);"></textarea>
+        </div>
+        <button id="btnEnviarSugerencia" class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="enviarSugerencia()">Enviar sugerencia</button>
+    </div>
+</div>
+
+<!-- ===== PANTALLA: Soporte ===== -->
+<div id="pantallaSoporte" class="oculta" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div class="login-card" style="max-height:85vh; text-align:left; max-width:420px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
+        <button type="button" onclick="cerrarSoporte()" title="Cerrar" style="position:absolute; top:12px; right:12px; background:#e2e8f0; color:#475569; border:none; border-radius:50%; width:28px; height:28px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; margin:0; line-height:1; flex-shrink:0;">✕</button>
+        <h2 class="login-titulo" style="text-align:left; margin:0 28px 4px 0; flex-shrink:0;">🆘 Soporte</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px; flex-shrink:0;">¿Tienes un problema técnico o una duda sobre la app? Escríbenos directamente.</p>
+        <div style="overflow-y:auto; flex:1; min-height:0;">
+            <div style="background:var(--color-brand-light); border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:14px; font-weight:700; color:var(--color-brand); margin-bottom:4px;">Diego López</div>
+                <a href="mailto:diego.lopez017@outlook.com" style="font-size:13px; color:var(--color-brand); text-decoration:underline; word-break:break-all;">diego.lopez017@outlook.com</a>
+            </div>
+        </div>
+        <button class="login-btn-principal" style="margin-top:16px; flex-shrink:0;" onclick="cerrarSoporte()">Cerrar</button>
+    </div>
+</div>
+
 <script>
     // ══════════════════════════════════════════════════════
     // SISTEMA DE DIÁLOGOS PROPIOS (reemplaza alert/confirm/prompt nativos)
@@ -2641,6 +2698,74 @@
             menu.style.display = 'none';
         }
     });
+
+    // ── PREGUNTAS FRECUENTES ─────────────────────────────
+    function abrirFAQ() {
+        document.getElementById('menuAjustesHeader').style.display = 'none';
+        document.getElementById('pantallaFAQ').classList.remove('oculta');
+        document.getElementById('pantallaFAQ').style.display = 'flex';
+    }
+    window.abrirFAQ = abrirFAQ;
+
+    function cerrarFAQ() {
+        document.getElementById('pantallaFAQ').classList.add('oculta');
+        document.getElementById('pantallaFAQ').style.display = 'none';
+    }
+    window.cerrarFAQ = cerrarFAQ;
+
+    // ── SUGERENCIAS (buzón de feedback — ver window.enviarSugerenciaAFirestore
+    // en el <script type="module">, guarda en Firestore write-only) ──────
+    function abrirSugerencias() {
+        document.getElementById('menuAjustesHeader').style.display = 'none';
+        document.getElementById('inputSugerenciaTexto').value = '';
+        document.getElementById('pantallaSugerencias').classList.remove('oculta');
+        document.getElementById('pantallaSugerencias').style.display = 'flex';
+    }
+    window.abrirSugerencias = abrirSugerencias;
+
+    function cerrarSugerencias() {
+        document.getElementById('pantallaSugerencias').classList.add('oculta');
+        document.getElementById('pantallaSugerencias').style.display = 'none';
+    }
+    window.cerrarSugerencias = cerrarSugerencias;
+
+    async function enviarSugerencia() {
+        const texto = document.getElementById('inputSugerenciaTexto').value.trim();
+        if (!texto) { pkuToast('Escribe tu sugerencia antes de enviarla.', 'toast-error'); return; }
+        if (typeof window.enviarSugerenciaAFirestore !== 'function') { pkuToast('No se pudo enviar, intenta de nuevo.', 'toast-error'); return; }
+        const btn = document.getElementById('btnEnviarSugerencia');
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        const nombrePaciente = localStorage.getItem('pku_nombre_paciente') || null;
+        const resultado = await window.enviarSugerenciaAFirestore(texto, nombrePaciente);
+        btn.disabled = false;
+        btn.textContent = 'Enviar sugerencia';
+        if (resultado && resultado.demo) {
+            pkuToast('En Modo Demo las sugerencias no se guardan. ¡Créate una cuenta para enviarla de verdad!', 'toast-warn', 4000);
+            return;
+        }
+        if (resultado && resultado.ok) {
+            pkuToast('¡Gracias! Tu sugerencia fue enviada.', 'toast-success');
+            cerrarSugerencias();
+        } else {
+            pkuToast('No se pudo enviar la sugerencia, intenta de nuevo.', 'toast-error');
+        }
+    }
+    window.enviarSugerencia = enviarSugerencia;
+
+    // ── SOPORTE ───────────────────────────────────────────
+    function abrirSoporte() {
+        document.getElementById('menuAjustesHeader').style.display = 'none';
+        document.getElementById('pantallaSoporte').classList.remove('oculta');
+        document.getElementById('pantallaSoporte').style.display = 'flex';
+    }
+    window.abrirSoporte = abrirSoporte;
+
+    function cerrarSoporte() {
+        document.getElementById('pantallaSoporte').classList.add('oculta');
+        document.getElementById('pantallaSoporte').style.display = 'none';
+    }
+    window.cerrarSoporte = cerrarSoporte;
 
     // ══════════════════════════════════════════════════════
     // NOVEDADES DE LA APP (campanita 🔔)
@@ -9737,6 +9862,29 @@
         } catch(e) {
             // FASE 2: ver nota en guardarComidaEnFirestore — ya no es problema de conexión.
             console.error('Error real al borrar receta en Firestore (no es problema de conexión):', e);
+        }
+    };
+
+    // ---- ENVIAR SUGERENCIA (buzón de feedback, write-only — Diego revisa desde
+    // la consola de Firebase, no hay pantalla de lectura en la app) ----
+    window.enviarSugerenciaAFirestore = async function(mensaje, nombrePaciente) {
+        if (typeof _modoDemo !== 'undefined' && _modoDemo) return { ok: false, demo: true };
+        const user = auth.currentUser;
+        if (!user) return { ok: false };
+        try {
+            const id = 'sug_' + Date.now();
+            await setDoc(doc(db, 'sugerencias/' + id), {
+                mensaje: mensaje,
+                correo: user.email || null,
+                nombrePaciente: nombrePaciente || null,
+                uid: user.uid,
+                fecha: new Date().toISOString(),
+                _ts: serverTimestamp()
+            });
+            return { ok: true };
+        } catch (e) {
+            console.error('Error al enviar sugerencia:', e);
+            return { ok: false, error: e.code || e.message };
         }
     };
 
