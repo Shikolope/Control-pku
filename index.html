@@ -5397,6 +5397,7 @@
         // de "permitido" vs "controlado".
         box.style.backgroundColor = alimentoActual.tipo === 'prohibido' ? '#fde2e1' : '#eef6f6';
         box.style.display = 'block';
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
         const unidad = alimentoActual.unidad === 'ml' ? 'ml' : 'g';
         const favActual = esFavorito(alimentoActual.nombre);
