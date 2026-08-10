@@ -4021,6 +4021,14 @@
     // descarga e instala en segundo plano de inmediato; solo se retrasa
     // el momento de activarla hasta que el usuario lo confirme.
     let _swEsperando = null;
+    // Referencia al registration para poder forzar un chequeo manual de
+    // actualización (ver visibilitychange más abajo) — necesaria porque el
+    // TWA instalado en Android no hace una navegación/reload real cada vez
+    // que se reabre desde el ícono (retoma el WebView existente), así que el
+    // chequeo automático del navegador al navegar casi nunca se dispara ahí.
+    // Sin este refresco manual, un usuario de TWA podía quedarse pegado en
+    // una versión vieja indefinidamente aunque hubiera un deploy nuevo.
+    let _swRegistracion = null;
 
     window.aplicarNuevaVersion = function() {
         if (_swEsperando) {
@@ -4034,6 +4042,7 @@
         navigator.serviceWorker.register('sw.js')
             .then(reg => {
                 console.log('Service Worker OK — versión', window.PKU_APP_VERSION || '(sin definir)');
+                _swRegistracion = reg;
 
                 // Si ya hay un SW nuevo esperando al cargar (instalado en una
                 // sesión anterior), mostrar el banner de inmediato.
@@ -4074,6 +4083,12 @@
             // el cierre de día automático debe seguir funcionando igual).
             try { verificarCitasProximas(); } catch (e) { console.warn('Error en verificarCitasProximas (visibilitychange, no crítico):', e); }
             try { revisarYAplicarCambioDeDia(); } catch (e) { console.warn('Error en revisarYAplicarCambioDeDia (no crítico):', e); }
+            // Forzar chequeo de actualización del Service Worker al volver a
+            // primer plano — ver nota junto a _swRegistracion más arriba
+            // (necesario sobre todo para el TWA instalado en Android).
+            if (_swRegistracion) {
+                try { _swRegistracion.update(); } catch (e) { console.warn('Error al chequear actualización del SW (no crítico):', e); }
+            }
         }
     });
 

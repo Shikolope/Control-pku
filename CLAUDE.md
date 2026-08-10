@@ -390,6 +390,22 @@ network-first una vez instalado, así que ese cache HTTP normal no los deja
 mecanismo mismo que detecta actualizaciones. Si agregas headers nuevos a
 `firebase.json`, no le saques el `no-cache` a `/sw.js` sin una razón fuerte.
 
+**El TWA (APK) instalado en Android no dispara el chequeo automático de
+actualización del navegador** (2026-08-10, bug real reportado por el dueño del
+proyecto probando en su celular): al reabrir la app desde el ícono, Android retoma
+el WebView existente en vez de hacer una navegación/reload real, así que el chequeo
+que Chrome hace normalmente "al navegar a una página controlada por un SW" casi
+nunca se dispara ahí — el banner de nueva versión podía quedar sin aparecer
+indefinidamente en el TWA aunque sí funcionara bien en un navegador normal. Arreglo:
+el listener de `visibilitychange` que ya existía (`index.html`, usado para
+`verificarCitasProximas`/`revisarYAplicarCambioDeDia`) ahora también llama
+`_swRegistracion.update()` cada vez que la app vuelve a primer plano, forzando el
+chequeo manualmente en vez de depender del automático del navegador. Validado con
+Playwright: 0 llamadas a `update()` al cargar, 1 llamada exacta al simular que la
+app vuelve a foreground. `_swRegistracion` guarda la referencia del
+`register('sw.js').then(reg => ...)` para que el handler de `visibilitychange`
+(declarado más abajo en el archivo) pueda acceder a ella.
+
 ## Decisiones de producto a respetar
 
 - El modo profesional NO se menciona en ningún texto visible para las familias
