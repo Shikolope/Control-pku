@@ -2107,7 +2107,7 @@
         <div id="formularioRecetaBox" style="display:none; margin-top:12px;">
             <input type="text" id="recNombre" maxlength="200" placeholder="Nombre de la receta (ej: Sopa de verduras)">
 
-            <input type="number" id="recPorciones" min="1" step="1" value="1" placeholder="Porciones sugeridas (ej: 4)">
+            <input type="number" id="recPorciones" min="1" max="999" step="1" value="1" placeholder="Porciones sugeridas (ej: 4)">
 
             <div style="display:flex; gap:6px; margin:10px 0 4px;">
                 <button type="button" class="grupo-btn activo" id="recModoIngredientesBtn" onclick="setModoRecetaFa('ingredientes')" style="flex:1;">🧾 Con ingredientes</button>
@@ -2170,7 +2170,7 @@
                     Úsalo para recetas de fuentes comunitarias (como <strong>Corporación PKU Chile</strong> u otras) donde ya conoces el FA total de la preparación — no necesitas desglosar los ingredientes uno por uno.
                 </div>
                 <label style="font-size:12px; font-weight:600; color:var(--text-main);">FA total de la receta (mg)</label>
-                <input type="number" id="recFaTotalManual" min="0" placeholder="Ej: 320" oninput="actualizarFaTotalManual(this.value)">
+                <input type="number" id="recFaTotalManual" min="0" max="999999" placeholder="Ej: 320" oninput="actualizarFaTotalManual(this.value)">
                 <div style="font-size:11px; color:var(--text-muted); margin-top:-4px; margin-bottom:8px;">Junto con "Porciones sugeridas" de arriba, esto define cuánto FA corresponde a cada porción.</div>
             </div>
 
@@ -5622,14 +5622,20 @@
         const porciones = parseInt(document.getElementById('recPorciones').value, 10);
 
         if (!nombre) { pkuToast('Ingresa un nombre para la receta.', 'toast-error'); return; }
-        if (!porciones || porciones < 1) { pkuToast('Ingresa una cantidad válida de porciones.', 'toast-error'); return; }
+        // Topes alineados con firestore.rules (enRango(porciones,1,999) /
+        // enRango(faTotal,0,999999)): si se guardan fuera de rango, el setDoc a
+        // Firestore se rechaza en silencio (solo console.error) y la receta
+        // nunca sincroniza entre dispositivos — mejor avisar antes de guardar.
+        if (!porciones || porciones < 1 || porciones > 999) { pkuToast('Ingresa una cantidad válida de porciones (entre 1 y 999).', 'toast-error'); return; }
         if (recetaDraft.modoFa === 'total') {
             if (!recetaDraft.faTotalManual || recetaDraft.faTotalManual <= 0) { pkuToast('Ingresa el FA total de la receta.', 'toast-error'); return; }
+            if (recetaDraft.faTotalManual > 999999) { pkuToast('El FA total ingresado es demasiado alto (máximo 999999 mg).', 'toast-error'); return; }
         } else if (recetaDraft.ingredientes.length === 0) {
             pkuToast('Agrega al menos un ingrediente.', 'toast-error'); return;
         }
 
         const faTotal = redondearFA(calcularFaTotalDraft());
+        if (faTotal > 999999) { pkuToast('El FA total de la receta es demasiado alto (máximo 999999 mg) — revisa los ingredientes.', 'toast-error'); return; }
         const esEdicion = !!recetaDraft.id;
         const receta = {
             id: esEdicion ? recetaDraft.id : (Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
@@ -6019,6 +6025,7 @@
         renderizarPlanSemanal();
         limpiarSeleccionItemPlan();
         pkuToast(`✅ ${item.nombre} agregado al plan.`, 'toast-ok');
+        return { diaKey, bloqueKey };
     }
 
     function renderizarListaMisRecetasPlan() {
@@ -6075,6 +6082,7 @@
         guardarPlanSemanalLocal();
         renderizarPlanSemanal();
         pkuToast(`✅ ${item.nombre} agregada al plan.`, 'toast-ok');
+        return { diaKey, bloqueKey };
     }
 
     // ── Recetario oficial INTA (baseDatosRecetario) como tercera fuente de
@@ -6155,6 +6163,7 @@
         guardarPlanSemanalLocal();
         renderizarPlanSemanal();
         pkuToast(`✅ ${item.nombre} agregada al plan.`, 'toast-ok');
+        return { diaKey, bloqueKey };
     }
 
     function quitarItemDeBloquePlan(diaKey, bloqueKey, idx) {
@@ -9735,14 +9744,36 @@
     // A propósito NO tiene listener onSnapshot (ver cargarDesdeFirestore y
     // activarListenersTiempoReal) — es una plantilla recurrente que se lee
     // una sola vez al iniciar sesión, para no sumar cuota de lecturas.
-    window.guardarPlanSemanalEnFirestore = async function() {
+    // FIX INTEGRIDAD (auditoría 2026-08-10): antes este setDoc sobreescribía
+    // SIEMPRE el documento planSemanal/actual entero. Como la lectura es única
+    // (getDoc, no onSnapshot — ver comentario más abajo), dos dispositivos con
+    // sesión abierta al mismo tiempo podían pisarse cambios de días/bloques
+    // distintos sin ningún aviso: el dispositivo A agrega algo al lunes y
+    // guarda; el dispositivo B, con una copia local desactualizada, borra algo
+    // del miércoles y guarda — su versión completa (sin el cambio de A) sube
+    // entera y borra el cambio de A en silencio. Ahora, cuando se conoce el
+    // día/bloque puntual que cambió, se escribe SOLO ese campo anidado con
+    // merge:true (Firestore hace merge recursivo de mapas — solo reemplaza el
+    // path `dias.<dia>.<bloque>`, no el resto del documento). Sigue existiendo
+    // un choque posible si dos dispositivos editan el MISMO día+bloque a la
+    // vez (last-write-wins ahí), pero ese es el mismo nivel de riesgo ya
+    // aceptado para `config/principal`.
+    window.guardarPlanSemanalEnFirestore = async function(diaKey, bloqueKey) {
         if (modoOffline) return;
         if (typeof _modoDemo !== 'undefined' && _modoDemo) return;
         const user = auth.currentUser;
         if (!user) return;
         try {
             const bpP = perfilActivo ? `usuarios/${user.uid}/perfiles/${perfilActivo.id}` : `usuarios/${user.uid}`;
-            await setDoc(doc(db, bpP + '/planSemanal/actual'), { ...window.planSemanal, _ts: serverTimestamp() });
+            const ref = doc(db, bpP + '/planSemanal/actual');
+            if (diaKey && bloqueKey && window.planSemanal && window.planSemanal.dias && window.planSemanal.dias[diaKey]) {
+                await setDoc(ref, {
+                    dias: { [diaKey]: { [bloqueKey]: window.planSemanal.dias[diaKey][bloqueKey] } },
+                    _ts: serverTimestamp()
+                }, { merge: true });
+            } else {
+                await setDoc(ref, { ...window.planSemanal, _ts: serverTimestamp() });
+            }
         } catch(e) {
             console.error('Error real al guardar el plan semanal en Firestore (no es problema de conexión):', e);
         }
@@ -10667,14 +10698,15 @@
             return r;
         };
 
-        // Plan Semanal → agregar/quitar ítem: documento único que se
-        // sobreescribe entero, así que el wrap es más simple que el de
-        // comidas/citas/recetas (no hace falta identificar "cuál" ítem
-        // cambió, se sincroniza el objeto planSemanal completo cada vez).
+        // Plan Semanal → agregar/quitar ítem: cada función de "agregar"
+        // devuelve { diaKey, bloqueKey } del bloque que tocó, para que
+        // guardarPlanSemanalEnFirestore escriba SOLO ese campo anidado
+        // (merge:true) en vez del documento entero — ver FIX INTEGRIDAD en
+        // la definición de guardarPlanSemanalEnFirestore.
         const _agregarAlimentoPlan = window.agregarAlimentoABloquePlan;
         if (_agregarAlimentoPlan) window.agregarAlimentoABloquePlan = function(...args) {
             const r = _agregarAlimentoPlan.apply(this, args);
-            window.guardarPlanSemanalEnFirestore();
+            if (r) window.guardarPlanSemanalEnFirestore(r.diaKey, r.bloqueKey);
             return r;
         };
 
@@ -10682,7 +10714,7 @@
         const _agregarRecetaPlan = window.agregarRecetaABloquePlan;
         if (_agregarRecetaPlan) window.agregarRecetaABloquePlan = async function(...args) {
             const r = await _agregarRecetaPlan.apply(this, args);
-            window.guardarPlanSemanalEnFirestore();
+            if (r) window.guardarPlanSemanalEnFirestore(r.diaKey, r.bloqueKey);
             return r;
         };
 
@@ -10690,14 +10722,16 @@
         const _agregarRecetarioPlan = window.agregarRecetarioABloquePlan;
         if (_agregarRecetarioPlan) window.agregarRecetarioABloquePlan = async function(...args) {
             const r = await _agregarRecetarioPlan.apply(this, args);
-            window.guardarPlanSemanalEnFirestore();
+            if (r) window.guardarPlanSemanalEnFirestore(r.diaKey, r.bloqueKey);
             return r;
         };
 
+        // quitarItemDeBloquePlan(diaKey, bloqueKey, idx) ya recibe el día/
+        // bloque como argumentos propios — no necesita valor de retorno.
         const _quitarItemPlan = window.quitarItemDeBloquePlan;
         if (_quitarItemPlan) window.quitarItemDeBloquePlan = function(...args) {
             const r = _quitarItemPlan.apply(this, args);
-            window.guardarPlanSemanalEnFirestore();
+            window.guardarPlanSemanalEnFirestore(args[0], args[1]);
             return r;
         };
 

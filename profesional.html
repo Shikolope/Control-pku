@@ -525,10 +525,12 @@
         }
     };
 
-    // Búsqueda por prefijo (case-sensitive tal como está guardado el
-    // nombre): nombre >= término && nombre < término + caracter límite.
-    // Requiere un índice compuesto la primera vez — Firestore muestra
-    // un enlace para crearlo automáticamente si falta.
+    // Búsqueda por prefijo, insensible a mayúsculas/tildes (ver el
+    // detalle completo junto al query más abajo, que compara contra
+    // 'nombreLower' en vez de 'nombre'): nombre >= término && nombre <
+    // término + caracter límite. Requiere un índice compuesto la primera
+    // vez — Firestore muestra un enlace para crearlo automáticamente si
+    // falta.
     window.buscarPacientes = async function() {
         clearTimeout(debounceBusqueda);
         indiceActivoBusqueda = -1;

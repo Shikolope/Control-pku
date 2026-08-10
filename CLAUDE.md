@@ -130,8 +130,9 @@ call sites existentes (`grep -n archivarEnPapelera`), no solo las funciones de
 borrado "principales" — este bug demostró que el patrón se copia a mano en varios
 lugares y es fácil que alguno quede afuera de una corrección puntual.
 
-**Los 4 `onSnapshot` de `activarListenersTiempoReal`** (comidas/historial/citas/
-config) ahora tienen callback de error (`console.error`) — antes, si un listener
+**Los 5 `onSnapshot` de `activarListenersTiempoReal`** (comidas/historial/citas/
+recetas/config — el de recetas se sumó con la feature "Mis Recetas") ahora tienen
+callback de error (`console.error`) — antes, si un listener
 fallaba a mitad de sesión (regla de Firestore mal alineada, token vencido, índice
 faltante), Firestore dejaba de invocarlo sin ninguna señal visible: el dispositivo
 dejaba de recibir cambios de otros dispositivos/del profesional en silencio,

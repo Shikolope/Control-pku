@@ -18,7 +18,7 @@ rules_version = '2';
 //       comidas/{comidaId}     → id, nombre, gramos, fa, unidad, categoria
 //       historial/{fecha}      → fecha, consumido, meta, comidas[]
 //       citas/{citaId}         → id, texto, fechaTexto, rawDateTime
-//       recetas/{recetaId}     → id, nombre, categoria, porciones, ingredientes[], faTotal
+//       recetas/{recetaId}     → id, nombre, categoria, porciones, modoFa, ingredientes[], faTotal
 //                                (recetas propias de la familia — "Mis Recetas", combinan
 //                                varios alimentos de la Tabla PKU; no confundir con el
 //                                Recetario oficial INTA, que es estático y vive embebido
@@ -204,7 +204,10 @@ service cloud.firestore {
         // ── PLAN SEMANAL (menú de referencia recurrente, documento único) ──
         // Mismo criterio que recetas: datos de familia, sin acceso del
         // profesional. docId fijo 'actual' — no es una colección que crece
-        // con el tiempo, se sobreescribe entera cada vez que se edita.
+        // con el tiempo. Desde el fix de integridad 2026-08-10, el cliente
+        // escribe con merge:true apuntando solo al día/bloque tocado (evita
+        // pisar cambios de otro día hechos por otro dispositivo); sigue
+        // aceptando también un setDoc del documento completo como fallback.
         match /planSemanal/{docId} {
           allow read: if esPropietario(uid);
 
