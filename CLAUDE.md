@@ -538,6 +538,20 @@ independiente de esa opción del cliente).
   534 familias reales, aunque el cambio estuviera bien acotado técnicamente. Si se
   retoma, evaluar una versión que NO le pida nada al usuario en el flujo de agregar
   (ver `feedback_flujos_core` en memoria del agente para el detalle de esta decisión).
+- Cuenta profesional + cuenta de familia con el mismo correo (2026-08-13): hoy es
+  posible técnicamente (`firestore.rules` no lo bloquea, cada rol vive bajo su propio
+  path para el mismo `uid`), pero el flujo es malo — si un profesional inicia sesión
+  en `index.html` (no se registra, porque `createUserWithEmailAndPassword` rechaza con
+  `auth/email-already-in-use` si el correo ya es una cuenta profesional) y esa cuenta
+  no tiene perfiles todavía, `migrarUsuarioAMultiperfil` (`index.html:11026`) le crea
+  en silencio un perfil placeholder llamado literalmente "Paciente" con 300mg, sin
+  preguntar nada. Pendiente: agregar una pantalla que detecte "esta cuenta es
+  profesional (existe en `profesionales/{uid}`) y no tiene perfiles todavía" y le pida
+  el nombre real del paciente en vez de autocompletar "Paciente" — parecido al flujo
+  del tab "Registro", pero disparado desde el login. Hoy, la alternativa sin tocar
+  código es usar un correo distinto para la cuenta de familia (Firebase Auth exige
+  correo único por cuenta en todo el proyecto, así que con el mismo correo es
+  imposible tener dos cuentas separadas).
 
 ## Guía de soporte completa
 
