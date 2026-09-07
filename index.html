@@ -1910,6 +1910,7 @@
                 <button id="btnAbrirFAQ" onclick="abrirFAQ()" title="Preguntas frecuentes" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">❓ Preguntas frecuentes</button>
                 <button id="btnAbrirSugerencias" onclick="abrirSugerencias()" title="Enviar una sugerencia" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">💡 Sugerencias</button>
                 <button id="btnAbrirSoporte" onclick="abrirSoporte()" title="Contacto de soporte" style="background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🆘 Soporte</button>
+                <button id="btnInstalarApp" onclick="instalarApp()" title="Instalar la app en este dispositivo" style="display:none;background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;align-items:center;gap:8px;border-radius:0;text-align:left;">📲 Instalar app</button>
                 <button id="btnModoProfesional" onclick="window.location.href='profesional.html'" title="Acceder al modo profesional" style="display:none;background:none;border:none;border-bottom:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--color-brand);font-weight:600;align-items:center;gap:8px;border-radius:0;text-align:left;">🩺 Cuenta profesional</button>
                 <button id="btnCambiarCuenta" onclick="cerrarSesion()" title="Cerrar sesión" style="background:none;border:none;cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:var(--text-main);font-weight:600;display:flex;align-items:center;gap:8px;border-radius:0;text-align:left;">🚪 Cerrar sesión</button>
                 <button id="btnSalirDemo" onclick="window.salirModoDemo()" title="Salir del Modo Demo" style="display:none;background:none;border:none;border-top:1px solid var(--border-color);cursor:pointer;font-size:13px;padding:11px 14px;width:100%;margin:0;color:#E8A33D;font-weight:600;align-items:center;gap:8px;border-radius:0;text-align:left;">🚪 Salir del demo</button>
@@ -2809,6 +2810,57 @@
             menu.style.display = 'none';
         }
     });
+
+    // ── INSTALAR APP COMO PWA (atajo en el menú de Ajustes ⚙️) ──
+    // Chrome/Edge/Android disparan 'beforeinstallprompt' cuando la app cumple
+    // los requisitos de instalabilidad (manifest.json + sw.js ya registrado).
+    // Guardamos ese evento para poder dispararlo a pedido desde el botón del
+    // menú, en vez de depender del mini-infobar automático del navegador
+    // (que Chrome dejó de mostrar por defecto). iOS Safari NUNCA dispara este
+    // evento, así que el botón se muestra siempre igual (salvo que la app ya
+    // esté instalada) y, sin evento capturado, cae a instrucciones manuales.
+    let _deferredInstallPrompt = null;
+
+    function _appYaInstalada() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function _actualizarBotonInstalar() {
+        const btn = document.getElementById('btnInstalarApp');
+        if (!btn) return;
+        btn.style.display = _appYaInstalada() ? 'none' : 'flex';
+    }
+    _actualizarBotonInstalar();
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _deferredInstallPrompt = e;
+    });
+
+    window.addEventListener('appinstalled', () => {
+        _deferredInstallPrompt = null;
+        _actualizarBotonInstalar();
+        pkuToast('🎉 ¡Mi Control PKU se instaló en tu dispositivo!', 'toast-success', 4000);
+    });
+
+    async function instalarApp() {
+        document.getElementById('menuAjustesHeader').style.display = 'none';
+        if (_deferredInstallPrompt) {
+            const promptEvent = _deferredInstallPrompt;
+            _deferredInstallPrompt = null; // el evento solo se puede usar una vez
+            promptEvent.prompt();
+            try { await promptEvent.userChoice; } catch (e) { /* ignorar */ }
+            return;
+        }
+        // Sin evento capturado: iOS Safari (nunca lo dispara) u otro
+        // navegador que no soporta instalación automática. Instrucciones a mano.
+        const esIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const msg = esIOS
+            ? 'En iPhone/iPad: toca el botón compartir 📤 en Safari y elige "Agregar a pantalla de inicio".'
+            : 'Busca la opción "Instalar app" o "Agregar a pantalla de inicio" en el menú ⋮ de tu navegador.';
+        pkuToast(msg, '', 7000);
+    }
+    window.instalarApp = instalarApp;
 
     // ── PREGUNTAS FRECUENTES ─────────────────────────────
     function abrirFAQ() {
