@@ -534,6 +534,12 @@ citas/cambio de día que no aplican acá) que llama a ambos. Nota: "nunca falle"
 sigue siendo una garantía imposible del todo lado-cliente — este fix cierra el
 hueco concreto que quedaba entre los disparadores existentes, no elimina el caso
 límite de un dispositivo que jamás vuelve a estar online/en foreground.
+Validado con Playwright (técnica de servidor local + `version.json` editado en
+disco, ver `tecnica_grabar_video_tutorial` en memoria): con el SW ya controlando
+la página, `context.setOffline(true)` → se reescribe `version.json` en disco
+(simula un deploy mientras el cliente está offline) → `context.setOffline(false)`
+sin ningún `visibilitychange`/`focus` de por medio → el banner aparece solo,
+disparado por el nuevo listener de `online`.
 
 ## Decisiones de producto a respetar
 
