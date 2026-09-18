@@ -4519,6 +4519,19 @@
     // de un deploy, banner de "nueva versión" nunca apareció.
     window.addEventListener('focus', _alVolverAPrimerPlano);
 
+    // Respaldo adicional: el evento 'online' cubre el caso en que la app
+    // sigue en primer plano todo el tiempo (sin cambio de pestaña ni de
+    // foco) pero se corta y reconecta la conexión — ej. wifi inestable.
+    // Sin este listener, ese chequeo quedaba esperando hasta el próximo
+    // poll de 2 minutos (setInterval de más arriba) en vez de reaccionar
+    // apenas vuelve la red.
+    window.addEventListener('online', () => {
+        if (_swRegistracion) {
+            try { _swRegistracion.update(); } catch (e) { console.warn('Error al chequear actualización del SW (evento online, no crítico):', e); }
+        }
+        chequearVersionContenido(false);
+    });
+
     // ---- DETECCIÓN DE CAMBIO DE DÍA MIENTRAS LA APP ESTÁ ABIERTA ----
     // verificarCambioDeDiaAutomatico() solo corría una vez al cargar la app
     // (window.onload). Si la app se deja abierta y pasa la medianoche sin

@@ -10,6 +10,30 @@ Recetario PKU (Verónica Cornejo y M. Jesús González, ISBN 978-956-358-345-6).
 
 Escala objetivo: ~534 familias con personas PKU en Chile.
 
+**Estado de lanzamiento (2026-09-05): la app YA TIENE USUARIOS REALES** — ~13 familias
+registradas. No es el lanzamiento oficial a las 534 familias: es un **piloto**, los
+nutricionistas del INTA le compartieron la URL `pku-control.web.app` a pacientes suyos
+para que la probaran. Pero son familias reales, con datos reales de un paciente PKU
+real, sin supervisión nuestra de por medio. Esto invalida la premisa de "todas las
+cuentas son de prueba" que justificaba varias decisiones anteriores (ver Fase 3 de la
+migración offline y el backfill de `nombreLower` más abajo, ambos anotados).
+
+Que sea "para probar" NO significa que los datos sean descartables — una familia que
+registra el consumo de FA de su hijo lo hace en serio desde el primer día, y perder
+ese historial es perder información clínica real. Tratar estos datos exactamente igual
+que los de producción. Consecuencias prácticas para cualquier cambio de acá en
+adelante:
+
+- Hay datos reales que se pueden perder. Un bug de borrado/sincronización ya no es
+  "molesto", es pérdida de datos de una familia real.
+- Ya no vale retirar código de compatibilidad el mismo día que se deja de generar
+  (colas viejas de `localStorage`, campos viejos, tipos de operación retirados):
+  puede haber instalaciones reales con estado viejo guardado. Esperar de verdad.
+- Un deploy roto ahora se ve. Probar antes de `firebase deploy`, y no olvidar
+  regenerar `version.json` (si no, nadie recibe el arreglo).
+- Migraciones de esquema ya necesitan backfill real, no se puede asumir que "los
+  perfiles existentes son de prueba y no importan".
+
 ## Archivos principales
 
 - `index.html` — app de familias, versión de producción única. Ya incluye el sello
@@ -179,12 +203,13 @@ con un `console.warn` en vez de aplicarse (ya no hay drenaje real para esos 6 ti
 3. ✅ Fase 3 (2026-07-30): se retiraron del `switch` de `ejecutarOperacionFirestore` los
    6 casos que ya no genera nadie desde la Fase 2, dejando solo `'log'`. Se publicó el
    mismo día que la Fase 2, saltándose el tiempo prudente de espera originalmente
-   previsto — decisión consciente del dueño del proyecto, válida porque **la app
-   todavía no se lanzó oficialmente y todas las cuentas que existen hoy son de
-   prueba** (no hay usuarios reales con colas viejas de `localStorage` circulando
-   por ahí todavía). Si en el futuro se retoma este patrón de "esperar antes de
-   retirar código de compatibilidad", ya no aplica ese argumento una vez lanzada la
-   app a las 534 familias. `colaReintentos`/`procesarColaReintentos`/
+   previsto — decisión consciente del dueño del proyecto, válida **en ese momento**
+   porque la app todavía no se había lanzado y todas las cuentas que existían eran de
+   prueba (no había usuarios reales con colas viejas de `localStorage` circulando).
+   **⚠️ Ese argumento YA NO APLICA: desde 2026-09-05 hay ~13 familias reales usando la
+   app en piloto** (ver "Estado de lanzamiento" al inicio de este archivo). Si se retoma el
+   patrón de "retirar código de compatibilidad", ahora sí hay que esperar de verdad
+   antes de sacarlo. `colaReintentos`/`procesarColaReintentos`/
    `manejarFalloFirestore` NO se retiraron — siguen activos porque `registrarEnLog`
    (auditoría) todavía los usa a propósito como red de
    seguridad.
@@ -381,7 +406,11 @@ comparar días, evita bugs de huso horario (Chile es UTC-3/UTC-4).
   de prueba, confirmado con el dueño del proyecto) — un perfil creado antes de este
   cambio no aparece en el buscador por nombre hasta que la familia vuelva a guardar su
   nombre una vez, o se le agregue `nombreLower` a mano en la consola (el profesional
-  igual puede encontrarlo por código PK-1234 mientras tanto). Requiere además una
+  igual puede encontrarlo por código PK-1234 mientras tanto). **Los perfiles reales
+  creados desde 2026-09-05 (~13 familias) sí traen `nombreLower` automáticamente**,
+  porque se registraron después de este cambio — el riesgo del "no backfill" quedó
+  acotado a los perfiles de prueba viejos. Conviene igual verificar en la consola de
+  Firebase que ningún perfil real quedó sin el campo antes de dar por cerrado el tema. Requiere además una
   **exención (field override)** en Firestore — Índices → Exenciones — para
   `perfiles.nombreLower` con "Alcance del grupo de colecciones" → Ascendente habilitado
   (mismo mecanismo ya usado para `perfiles.nombre` antes de este cambio, que queda
@@ -493,6 +522,19 @@ forma, no asumir que `cache:'no-store'` del lado del cliente alcanza por sí sol
 (el Service Worker intercepta el fetch de todas formas, y su respaldo a caché es
 independiente de esa opción del cliente).
 
+**Disparador adicional en el evento `online` (2026-09-18):** los disparadores de
+`chequearVersionContenido`/`_swRegistracion.update()` eran carga inicial,
+`visibilitychange`, `focus` y el `setInterval` de 2 minutos — pero ninguno cubría
+el caso de la app quedándose en primer plano TODO el tiempo (sin cambio de
+pestaña ni de foco) mientras se corta y reconecta la conexión (wifi inestable):
+ese chequeo quedaba esperando hasta el próximo poll de 2 minutos en vez de
+reaccionar apenas vuelve la red. Se agregó un listener de `window.addEventListener('online', ...)`
+dedicado (separado de `_alVolverAPrimerPlano`, que además dispara chequeos de
+citas/cambio de día que no aplican acá) que llama a ambos. Nota: "nunca falle"
+sigue siendo una garantía imposible del todo lado-cliente — este fix cierra el
+hueco concreto que quedaba entre los disparadores existentes, no elimina el caso
+límite de un dispositivo que jamás vuelve a estar online/en foreground.
+
 ## Decisiones de producto a respetar
 
 - El modo profesional NO se menciona en ningún texto visible para las familias
@@ -526,6 +568,10 @@ independiente de esa opción del cliente).
 - Migración a persistencia offline nativa de Firestore: las 3 fases ya están hechas
   (ver sección "Sistema de sincronización con Firestore" arriba).
 - Evaluar pasar de plan Spark a Blaze antes del lanzamiento a las 534 familias.
+  **Más urgente desde 2026-09-05**: ya hay ~13 familias reales generando lecturas/
+  escrituras de verdad. Con Spark, si se topa la cuota diaria gratuita, Firestore
+  empieza a rechazar operaciones y la app se degrada para usuarios reales. Vale la
+  pena mirar el uso real en la consola de Firebase antes de que crezca más.
 - Agrupar "Comidas de Hoy" en los mismos 6 bloques que ya usa Plan Semanal
   (Desayuno/Colación mañana/Almuerzo/Colación tarde/Cena/Otros). Se armó un plan
   completo (2026-08-09) — agregar campo `bloque` a cada comida, preguntado con chips
