@@ -10033,8 +10033,19 @@
             const ahora = new Date().toISOString();
             docs.forEach(d => {
                 const idPapelera = `${coleccionOrigen}_${d.id}_${Date.now()}`;
+                // FIX INTEGRIDAD (2026-11-23): la papelera vive a nivel de CUENTA,
+                // así que sin esto un item archivado no decía de qué perfil venía
+                // (en una familia con 2 pacientes había que adivinarlo para
+                // restaurarlo). Se saca de la ruta real del propio documento
+                // (usuarios/{uid}/perfiles/{perfilId}/{coleccion}/{id}), no de
+                // perfilActivo, para que sea correcto en todos los call sites.
+                // 'raiz' = ruta legacy usuarios/{uid}/{coleccion} sin multiperfil.
+                const segs = d.ref.path.split('/');
+                const perfilId = (segs[2] === 'perfiles' && segs[3]) ? segs[3] : 'raiz';
                 batch.set(doc(db, 'usuarios', uid, 'papelera', idPapelera), {
                     coleccionOrigen: coleccionOrigen,
+                    perfilId: perfilId,
+                    rutaOriginal: d.ref.path,
                     idOriginal: d.id,
                     datos: d.data(),
                     archivadoEn: ahora,
@@ -10066,8 +10077,17 @@
             // idénticos con el tiempo). Ahora el respaldo solo guarda lo que
             // de verdad está en riesgo si algo falla antes de sincronizar:
             // el día en curso (comidasHoy, aún no cerrado) y las citas.
-            const idRespaldo = fechaHoyLocal();
+            //
+            // FIX INTEGRIDAD (2026-11-23): el ID era solo {fecha}, y la regla de
+            // respaldos no permitía update — el primer respaldo del día se creaba
+            // y todos los siguientes (incluido el de otros perfiles de la misma
+            // cuenta) fallaban con permission-denied en silencio. Ahora es un
+            // documento por día Y por perfil, y firestore.rules permite al dueño
+            // sobrescribirlo (que era la intención original de este diseño).
+            const perfilIdRespaldo = perfilActivo ? perfilActivo.id : 'raiz';
+            const idRespaldo = `${fechaHoyLocal()}_${perfilIdRespaldo}`;
             await setDoc(doc(db, 'usuarios', uid, 'respaldos', idRespaldo), {
+                perfilId: perfilIdRespaldo,
                 motivo: motivo,
                 fechaHora: ahora.toISOString(),
                 metaDiaria: parseFloat(localStorage.getItem('pku_meta')) || 300,
@@ -10562,6 +10582,15 @@
 
             // Respaldo automático ANTES de tocar nada: si algo sale mal en los
             // pasos siguientes, esta copia permite reconstruir el estado a mano.
+            //
+            // ⚠️ Este await es A PROPÓSITO, no lo saques (a diferencia del de
+            // archivarEnPapelera). Probado con el emulador (2026-11-23): sin él,
+            // al abrir la app sin conexión la mañana siguiente el cierre sigue de
+            // largo, falla en el getDoc del historial de ayer (no está en caché →
+            // "client is offline"), el catch lo traga y el día NUNCA se cierra —
+            // las comidas de ayer quedan como si fueran de hoy, aun tras reconectar.
+            // Con el await, el cierre queda en pausa hasta que vuelve la conexión y
+            // recién ahí se completa bien.
             await crearRespaldoAutomatico(uid, 'cierre_dia_al_abrir');
 
             // Tomar lo que haya en la colección "comidas" — son las comidas

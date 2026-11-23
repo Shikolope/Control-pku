@@ -318,10 +318,21 @@ usuarios/{uid}/
                           últimos dos, agregados 2026-07-31 para el feed "Actividad
                           reciente" de profesional.html — ver más abajo).
   papelera/{itemId}     → soft-delete, a nivel de CUENTA (no por perfil), write-only
-                          desde la app (allow read: if false)
-  respaldos/{fecha}     → un documento POR DÍA (se sobrescribe con merge), solo con
-                          comidasHoy/citas/config del día en curso — nunca duplica
-                          historial completo
+                          desde la app (allow read: if false). Campos: coleccionOrigen,
+                          perfilId, rutaOriginal, idOriginal, datos, archivadoEn
+                          (perfilId/rutaOriginal desde 2026-11-23 — items anteriores
+                          no los tienen y no se pueden atribuir a un perfil)
+  respaldos/{fecha}_{perfilId} → un documento POR DÍA Y POR PERFIL (se sobrescribe
+                          con merge; la regla permite update al dueño, no delete),
+                          solo con comidasHoy/citas/config del día en curso — nunca
+                          duplica historial completo. Hasta 2026-11-23 el ID era solo
+                          {fecha} y la regla bloqueaba update: solo se guardaba el
+                          primer respaldo del día de toda la cuenta (los demás daban
+                          permission-denied en silencio). Esos docs viejos siguen ahí.
+                          ⚠️ El `await crearRespaldoAutomatico(...)` dentro de
+                          `cerrarDiaAnteriorEnFirestoreSiCorresponde` es a propósito:
+                          probado con emulador, sin él el cierre de día abierto offline
+                          se salta y no se reintenta (ver comentario en el código).
   meta/migracion        → control de versión de esquema
 
 sugerencias/{id}        → buzón de feedback de las familias: mensaje, correo,
