@@ -324,6 +324,11 @@ usuarios/{uid}/
                           historial completo
   meta/migracion        → control de versión de esquema
 
+sugerencias/{id}        → buzón de feedback de las familias: mensaje, correo,
+                          nombrePaciente, uid, fecha, _ts. Write-only desde la app
+                          (allow read: if false, igual criterio que papelera) — se
+                          revisa a mano desde la consola de Firebase, no hay pantalla
+                          de lectura en index.html
 codigosPerfil/{codigo}  → mapeo PK-1234 → ruta del perfil (para búsqueda en modo profesional)
 profesionales/{uid}     → cuentas de nutricionistas INTA (creadas a mano en consola)
 ```
